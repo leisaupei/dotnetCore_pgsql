@@ -8,13 +8,13 @@
 1. 直接进入dotnetCore_pgsql/bin/Debug/netcoreapp2.0/
 2. 编辑build.bat 运行
 ### 参数
-- -h host
-- -p port
-- -u pgsql用户名
-- -pw pgsql密码
-- -d datebase
-- -pool 数据库连接池
-- -o output directory 输出路径
-- -proj 项目名称
+- -h: host
+- -p: port
+- -u: pgsql用户名
+- -pw: pgsql密码
+- -d: datebase
+- -pool: 数据库连接池
+- -o: output directory 输出路径
+- -proj: 项目名称
 ## v-1.0.0
 1. 支持Insert Query Update Delete
