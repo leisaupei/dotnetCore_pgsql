@@ -1,5 +1,5 @@
 # dotnetCore_pgsql CodeMarker
-## 用法: 
+## 环境配置: 
 ### Mac OS
 1. 打开terminal
 2. cd 到目录 dotnetCore_pgsql/bin/Debug/netcoreapp2.0/
@@ -16,5 +16,6 @@
 - -pool 数据库连接池
 - -o 输出路径output directory
 - -proj 项目名称
+> 注意: Mac OS用的是路径用的是'/', Windows用的是'\'
 ## v-1.0.0
 1. 支持Insert Query Update Delete
