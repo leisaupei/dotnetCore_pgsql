@@ -1,0 +1,13 @@
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\dotnetCore_pgsql\obj\Debug\netcoreapp2.0\dotnetCore_pgsql.csprojResolveAssemblyReference.cache
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\dotnetCore_pgsql\obj\Debug\netcoreapp2.0\dotnetCore_pgsql.csproj.CoreCompileInputs.cache
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\dotnetCore_pgsql\obj\Debug\netcoreapp2.0\dotnetCore_pgsql.AssemblyInfoInputs.cache
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\dotnetCore_pgsql\obj\Debug\netcoreapp2.0\dotnetCore_pgsql.AssemblyInfo.cs
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\dotnetCore_pgsql\bin\Debug\netcoreapp2.0\dotnetCore_pgsql.deps.json
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\dotnetCore_pgsql\bin\Debug\netcoreapp2.0\dotnetCore_pgsql.runtimeconfig.json
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\dotnetCore_pgsql\bin\Debug\netcoreapp2.0\dotnetCore_pgsql.runtimeconfig.dev.json
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\dotnetCore_pgsql\bin\Debug\netcoreapp2.0\dotnetCore_pgsql.dll
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\dotnetCore_pgsql\bin\Debug\netcoreapp2.0\dotnetCore_pgsql.pdb
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\dotnetCore_pgsql\obj\Debug\netcoreapp2.0\dotnetCore_pgsql.dll
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\dotnetCore_pgsql\obj\Debug\netcoreapp2.0\dotnetCore_pgsql.pdb
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\dotnetCore_pgsql\bin\Debug\netcoreapp2.0\Common.db.dll
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\dotnetCore_pgsql\bin\Debug\netcoreapp2.0\Common.db.pdb

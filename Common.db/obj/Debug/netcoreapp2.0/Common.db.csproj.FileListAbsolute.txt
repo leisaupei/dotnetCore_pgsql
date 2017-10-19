@@ -1,0 +1,8 @@
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\Common.db\obj\Debug\netcoreapp2.0\Common.db.csproj.CoreCompileInputs.cache
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\Common.db\obj\Debug\netcoreapp2.0\Common.db.AssemblyInfoInputs.cache
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\Common.db\obj\Debug\netcoreapp2.0\Common.db.AssemblyInfo.cs
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\Common.db\bin\Debug\netcoreapp2.0\Common.db.deps.json
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\Common.db\bin\Debug\netcoreapp2.0\Common.db.dll
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\Common.db\bin\Debug\netcoreapp2.0\Common.db.pdb
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\Common.db\obj\Debug\netcoreapp2.0\Common.db.dll
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\Common.db\obj\Debug\netcoreapp2.0\Common.db.pdb

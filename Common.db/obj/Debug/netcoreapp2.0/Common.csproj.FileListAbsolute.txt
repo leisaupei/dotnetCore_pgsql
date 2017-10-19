@@ -1,0 +1,9 @@
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\Common\bin\Debug\netcoreapp2.0\Common.deps.json
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\Common\bin\Debug\netcoreapp2.0\Common.dll
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\Common\bin\Debug\netcoreapp2.0\Common.pdb
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\Common\obj\Debug\netcoreapp2.0\Common.csproj.CoreCompileInputs.cache
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\Common\obj\Debug\netcoreapp2.0\Common.AssemblyInfoInputs.cache
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\Common\obj\Debug\netcoreapp2.0\Common.AssemblyInfo.cs
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\Common\obj\Debug\netcoreapp2.0\Common.dll
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\Common\obj\Debug\netcoreapp2.0\Common.pdb
+C:\Users\Administrator\Documents\git\dotnetCore_pgsql\Common\obj\Debug\netcoreapp2.0\Common.csprojResolveAssemblyReference.cache
