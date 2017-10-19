@@ -7,7 +7,7 @@
 #### Windows
 1. 直接进入dotnetCore_pgsql/bin/Debug/netcoreapp2.0/
 2. 编辑build.bat 运行
-> 注意: Mac OS用的是路径用的是'/', Windows用的是'\'
+> 注意: Mac OS用的是路径用的是'/', Windows用的是'\\'
 #### 参数
 - -h host
 - -p port
