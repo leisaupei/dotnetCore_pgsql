@@ -19,5 +19,6 @@
 - -o 输出路径output directory
 - -proj 项目名称
 ## 支持数据库字段类型: 
+## 版本更新: 
 ### v-1.0.0
 1. 支持Insert Query Update Delete
