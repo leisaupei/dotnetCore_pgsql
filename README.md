@@ -1,4 +1,5 @@
 # dotnetCore_pgsql CodeMarker
+## 使用: 
 ### 环境配置: 
 #### Mac OS
 1. 打开terminal
@@ -17,5 +18,6 @@
 - -pool 数据库连接池
 - -o 输出路径output directory
 - -proj 项目名称
+## 支持数据库字段类型: 
 ### v-1.0.0
 1. 支持Insert Query Update Delete
