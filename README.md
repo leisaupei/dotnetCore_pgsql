@@ -111,6 +111,12 @@ People_student.UpdateDiy.SetAge(12).SetName("name1").Where("name = {0}","name").
 // 更新数据库并且把更新后的值赋给stu1
 stu1 = stu1.UpdateDiy.SetAge(12).CommitRet();
 ```
+### 其他:
+Order By 排序
+Group By 分组
+Skip 跳过
+Page(pageIndex,pageSize) 分页
+等等
 ## 版本更新: 
 ### v-1.0.0
 1. 支持Insert Query Update Delete
