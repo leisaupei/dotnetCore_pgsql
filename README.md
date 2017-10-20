@@ -45,6 +45,11 @@ dotnet dotnetCore_pgsql.dll -h 127.0.0.1 -p 5432 -u postgres -pw 123456 -d postg
 | bool            | bool          | 
 | (enum type)     | -             |
 | (array type)    | -             |
+## 用法:
+### Select:
+### Insert:
+### Delete:
+### Update:
 ## 版本更新: 
 ### v-1.0.0
 1. 支持Insert Query Update Delete
