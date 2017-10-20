@@ -1,12 +1,5 @@
 ﻿using NpgsqlTypes;
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq.Expressions;
-using System.Net;
-using System.Net.NetworkInformation;
-using System.Text;
-
 namespace Common.db.DBHelper
 {
     public class TypeHelper
@@ -177,15 +170,22 @@ namespace Common.db.DBHelper
                 case "int4": return NpgsqlDbType.Integer;
                 case "int8": return NpgsqlDbType.Bigint;
                 case "bool": return NpgsqlDbType.Boolean;
-                case "bpchar":return NpgsqlDbType.Varchar;
+                case "bpchar": return NpgsqlDbType.Varchar;
                 default: return Enum.Parse<NpgsqlDbType>(db_type.ToUpperPascal());
-
             }
 
         }
-        public static string GetWhereTypeFromDbType(string type)
+        public static bool MakeWhereOrExceptType(string type)
         {
-            string _type = PgDbTypeConvertToCSharpString(type);
+            string[] arr = new string[] { "datetime" };
+            if (arr.Contains(f => f == type.Replace("?", "")))
+                return false;
+            return true;
+        }
+        public static string GetWhereTypeFromDbType(string type)// where 参数加不加文浩
+        {
+            string _type = PgDbTypeConvertToCSharpString(type).Replace("?","");
+
             string brackets = type.Contains("[]") ? "" : "[]";
             switch (_type)
             {
@@ -198,7 +198,6 @@ namespace Common.db.DBHelper
             string _type = PgDbTypeConvertToCSharpString(type);
             switch (_type)
             {
-                case "string": return _type + (is_array ? "[]" : "");
                 case "JToken": return _type;
                 default: return _type + "?" + (is_array ? "[]" : "");
             }

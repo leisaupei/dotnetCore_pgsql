@@ -38,6 +38,9 @@ namespace Common.db.DBHelper
             OffsetText = $"OFFSET {i}";
             return this;
         }
+
+        
+
         public Query<T> Page(int index, int size)
         {
             return Limit(size).Skip(Math.Max(0, index - 1) * size);

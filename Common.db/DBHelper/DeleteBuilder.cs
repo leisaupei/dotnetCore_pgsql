@@ -13,6 +13,7 @@ namespace Common.db.DBHelper
 
         public int Commit()
         {
+            if (WhereList.Count < 1) throw new Exception("delete语句必须带where条件");
             string tableName = MappingHelper.GetMapping(typeof(T));
             string sqlText = $"DELETE FROM {tableName} WHERE {string.Join("\nAND", WhereList)}";
             return PgSqlHelper.ExecuteNonQuery(CommandType.Text, sqlText, CommandParams.ToArray());

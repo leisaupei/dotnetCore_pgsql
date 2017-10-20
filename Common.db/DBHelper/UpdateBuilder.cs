@@ -46,15 +46,22 @@ namespace Common.db.DBHelper
         public int Commit()
         {
             string tableName = MappingHelper.GetMapping(typeof(T));
-            string sqltext = $"UPDATE {tableName} SET {string.Join(",", setList)} WHERE {string.Join("\nAND", WhereList)}";
+            string sqltext = GetSqlText(tableName, null);
             return PgSqlHelper.ExecuteNonQuery(CommandType.Text, sqltext, CommandParams.ToArray());
         }
         public T CommitRet()
         {
             string tableName = MappingHelper.GetMapping(typeof(T));
             var fields = EntityHelper.GetAllFields(typeof(T), null);
-            string sqltext = $"UPDATE {tableName} SET {string.Join(",", setList)} WHERE {string.Join("\nAND", WhereList)} RETURNING {string.Join(", ", fields)};";
+            string sqltext = GetSqlText(tableName, fields, true);
             return ExecuteNonQueryReader(sqltext);
+        }
+
+        private string GetSqlText(string tableName, List<string> fields, bool IsReturn = false)
+        {
+            if (WhereList.Count < 1) throw new Exception("update语句必须带where条件");
+            var ret = IsReturn ? $"RETURNING {string.Join(", ", fields)}" : "";
+            return $"UPDATE {tableName} SET {string.Join(",", setList)} WHERE {string.Join("\nAND", WhereList)} {ret};";
         }
     }
 }

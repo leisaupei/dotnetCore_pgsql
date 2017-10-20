@@ -51,7 +51,7 @@ namespace Common.db.DBHelper
         }
         protected QueryHelper<T> Where(string filter, params object[] value)
         {
-
+            if (value == null) value = new object[] { null };
             if (new Regex(@"\{\d\}").Matches(filter).Count != value.Length)//参数个数不匹配
                 throw new Exception("where 参数错误");
             if (value.IsNullOrEmpty())//参数不能为空

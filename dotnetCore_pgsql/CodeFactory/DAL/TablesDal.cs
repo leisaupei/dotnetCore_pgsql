@@ -57,32 +57,32 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
                 WHERE b.nspname='{schemaName}' and a.relname='{table.Name}';";
             PgSqlHelper.ExecuteDataReader(dr =>
          {
-            FieldInfo fi = new FieldInfo();
-            fi.Oid = Convert.ToInt32(dr["oid"]);
-            fi.Field = dr["field"].ToString();
-            fi.Length = Convert.ToInt32(dr["length"].ToString());
-            fi.Is_not_null = Convert.ToBoolean(dr["notnull"]);
-            fi.Comment = dr["comment"].ToString();
-            fi.Data_Type = dr["data_type"].ToString();
-            fi.Db_type = dr["type"].ToString();
-            fi.Db_type = fi.Db_type.StartsWith("_") ? fi.Db_type.Remove(0, 1) : fi.Db_type;
-            fi.PgDbType = TypeHelper.ConvertFromDbTypeToNpgsqlDbTypeEnum(fi.Data_Type, fi.Db_type);
-            fi.Is_identity = dr["is_identity"].ToString() == "YES";
-            fi.Is_array = dr["typcategory"].ToString() == "A";
-            fi.Is_enum = fi.Data_Type == "e";
+             FieldInfo fi = new FieldInfo();
+             fi.Oid = Convert.ToInt32(dr["oid"]);
+             fi.Field = dr["field"].ToString();
+             fi.Length = Convert.ToInt32(dr["length"].ToString());
+             fi.Is_not_null = Convert.ToBoolean(dr["notnull"]);
+             fi.Comment = dr["comment"].ToString();
+             fi.Data_Type = dr["data_type"].ToString();
+             fi.Db_type = dr["type"].ToString();
+             fi.Db_type = fi.Db_type.StartsWith("_") ? fi.Db_type.Remove(0, 1) : fi.Db_type;
+             fi.PgDbType = TypeHelper.ConvertFromDbTypeToNpgsqlDbTypeEnum(fi.Data_Type, fi.Db_type);
+             fi.Is_identity = dr["is_identity"].ToString() == "YES";
+             fi.Is_array = dr["typcategory"].ToString() == "A";
+             fi.Is_enum = fi.Data_Type == "e";
 
-            string _type = TypeHelper.PgDbTypeConvertToCSharpString(fi.Db_type);
+             string _type = TypeHelper.PgDbTypeConvertToCSharpString(fi.Db_type);
 
-            if (fi.Is_enum) _type = _type.ToUpperPascal() + "ENUM";
-            string _notnull = "";
-            if (_type != "string" && _type != "JToken")
-                _notnull = fi.Is_not_null ? "" : "?";
+             if (fi.Is_enum) _type = _type.ToUpperPascal() + "ENUM";
+             string _notnull = "";
+             if (_type != "string" && _type != "JToken"&& !fi.Is_array)
+                 _notnull = fi.Is_not_null ? "" : "?";
 
-            string _array = fi.Is_array ? "[]" : "";
-            fi.RelType = $"{_type}{_notnull}{_array}";
-            // dal
-            this.fieldList.Add(fi);
-        }, sqlText);
+             string _array = fi.Is_array ? "[]" : "";
+             fi.RelType = $"{_type}{_notnull}{_array}";
+             // dal
+             this.fieldList.Add(fi);
+         }, sqlText);
         }
 
         public void GetConstraint()
@@ -114,12 +114,12 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
             pkList = GenericHelper<PrimarykeyInfo>.Generic.ToList<PrimarykeyInfo>(PgSqlHelper.ExecuteDataReader(sqlText));
         }
 
-        private string DeletePublic(string schemaName, string table_name, bool isTableName = false)
+        private string DeletePublic(string _schemaName, string table_name, bool isTableName = false)
         {
             if (isTableName)
-                return schemaName.ToLower() == "public" ? table_name.ToUpperPascal() : schemaName.ToLower() + "." + table_name;
+                return _schemaName.ToLower() == "public" ? table_name.ToUpperPascal() : _schemaName.ToLower() + "." + table_name;
             else
-                return schemaName.ToLower() == "public" ? table_name.ToUpperPascal() : schemaName.ToUpperPascal() + "_" + table_name;
+                return _schemaName.ToLower() == "public" ? table_name.ToUpperPascal() : _schemaName.ToUpperPascal() + "_" + table_name;
         }
         private string modelClassName => dalClassName + "Model";
         private string dalClassName => $"{DeletePublic(schemaName, table.Name)}";
@@ -170,7 +170,7 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
                     writer.WriteLine();
                     writer.WriteLine($"\t\tprivate {f_dalName}Model {tmp_var} = null;");
                     writer.WriteLine($"\t\t[ForeignKeyProperty]");
-                    writer.WriteLine($"\t\tpublic {f_dalName}Model {propertyName} => {tmp_var} == null ? {f_dalName}.GetItem({DotValueHelper(item.Conname, fieldList)}) : {tmp_var};");
+                    writer.WriteLine($"\t\tpublic {f_dalName}Model {propertyName} => {tmp_var} = {tmp_var} == null ? {f_dalName}.GetItem({DotValueHelper(item.Conname, fieldList)}) : {tmp_var};");
 
                     ht.Add(propertyName, "");
                 }
@@ -321,21 +321,26 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
             foreach (var item in fieldList)
             {
                 if (item.Is_identity) continue;
-                string cSharpType = TypeHelper.PgDbTypeConvertToCSharpString(item.RelType);
-                writer.WriteLine($"\t\tpublic Query<{modelClassName}> Where{item.Field.ToUpperPascal()}({TypeHelper.GetWhereTypeFromDbType(item.RelType)} {item.Field}) => WhereOr(\"a.{item.Field} = {{{0}}}\", {item.Field});");
+                string cSharpType = TypeHelper.PgDbTypeConvertToCSharpString(item.RelType).Replace("?", "");
+                if (TypeHelper.MakeWhereOrExceptType(cSharpType))
+                    writer.WriteLine($"\t\tpublic {dalClassName} Where{item.Field.ToUpperPascal()}({TypeHelper.GetWhereTypeFromDbType(item.RelType)} {item.Field}) => WhereOr(\"a.{item.Field} = {{{0}}}\", {item.Field}) as {dalClassName};");
                 switch (cSharpType.ToLower())
                 {
                     case "string":
-                        writer.WriteLine($"\t\tpublic Query<{modelClassName}> Where{item.Field.ToUpperPascal()}Like({TypeHelper.GetWhereTypeFromDbType(item.RelType)} {item.Field}) => WhereOr(\"a.{item.Field} LIKE {{{0}}}\", {item.Field}.Select(a => \"%\" + a + \"%\").ToArray());");
+                        writer.WriteLine($"\t\tpublic {dalClassName} Where{item.Field.ToUpperPascal()}Like({TypeHelper.GetWhereTypeFromDbType(item.RelType)} {item.Field}) => WhereOr(\"a.{item.Field} LIKE {{{0}}}\", {item.Field}.Select(a => \"%\" + a + \"%\").ToArray()) as {dalClassName};");
                         break;
                     case "datetime":
+                        writer.WriteLine($"\t\tpublic {dalClassName} Where{item.Field.ToUpperPascal()}Earlier(DateTime datetime) => Where(\"a.{item.Field} <= {{0}}\", datetime) as {dalClassName};");
+                        writer.WriteLine($"\t\tpublic {dalClassName} Where{item.Field.ToUpperPascal()}Later(DateTime datetime) => Where(\"a.{item.Field} >= {{0}}\", datetime) as {dalClassName};");
+                        writer.WriteLine($"\t\tpublic {dalClassName} Where{item.Field.ToUpperPascal()}Between(DateTime datetime1, DateTime datetime2) => Where(\"a.{item.Field} between {{0}} and {{1}}\", datetime1, datetime2) as {dalClassName};");
                         break;
                     default: break;
                 }
                 if (item.Is_array)
                 {
                     // mark: Db_type有待确认
-                    writer.WriteLine($"\t\tpublic Query<{modelClassName}> Where{item.Field.ToUpperPascal()}Any({TypeHelper.GetWhereTypeFromDbType(item.RelType)} {item.Field}) => WhereOr(\"a.{item.Field} @> array[{{{0}}}::{item.Db_type}]\", {item.Field});");
+                    writer.WriteLine($"\t\tpublic {dalClassName} Where{item.Field.ToUpperPascal()}Any({TypeHelper.GetWhereTypeFromDbType(item.RelType)} {item.Field}) => WhereOr(\"a.{item.Field} @> array[{{0}}::{item.Db_type}]\", {item.Field}) as {dalClassName};");
+                    writer.WriteLine($"\t\tpublic {dalClassName} Where{item.Field.ToUpperPascal()}IsArrayNull() => Where(\"a.{item.Field} = '{{}}' OR a.{item.Field} = {{0}}\", null) as {dalClassName};");
                 }
             }
         }
@@ -383,7 +388,6 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
                         case "short":
                         case "decimal":
                         case "long":
-                            //increment
                             writer.WriteLine($"\t\t\tpublic {dalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Increment({cSharpType} {item.Field}) => SetFieldIncrement(\"{item.Field}\", {item.Field}, {item.Length}) as {dalClassName}UpdateBuilder;");
                             break;
                         case "datetime":
