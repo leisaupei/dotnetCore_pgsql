@@ -74,7 +74,7 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory
             //unzip
             string common_file = Path.Combine(OutputDir, ProjectName, "Common.db");
             string system_directory = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).FullName, "Common.db");
-            string common_directory = system_directory.Substring(0, system_directory.IndexOf("\\dotnetCore_pgsql") + 17) + "\\Common.db";
+            string common_directory =Path.Combine(system_directory.Substring(0, system_directory.IndexOf("dotnetCore_pgsql") + 17))  + "Common.db";
             Console.WriteLine(common_directory);
             DirectoryCopy(common_directory, common_file);
             //if (!Directory.Exists(common_file))
@@ -138,7 +138,7 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory
             FileInfo[] fileInfo = sourceInfo.GetFiles();
             foreach (FileInfo fiTemp in fileInfo)
             {
-                File.Copy(sourceDirectory + "\\" + fiTemp.Name, targetDirectory + "\\" + fiTemp.Name, true);
+                File.Copy(Path.Combine(sourceDirectory, fiTemp.Name), Path.Combine(targetDirectory, fiTemp.Name), true);
             }
             DirectoryInfo[] diInfo = sourceInfo.GetDirectories();
             foreach (DirectoryInfo diTemp in diInfo)
