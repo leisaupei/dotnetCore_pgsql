@@ -19,6 +19,10 @@ dotnet dotnetCore_pgsql.dll -h 127.0.0.1 -p 5432 -u postgres -pw 123456 -d postg
 - -pool 数据库连接池
 - -o 输出路径output directory
 - -proj 项目名称
+## 说明:
+* 由于此框架为了防止数据库注入问题全面参数化所有where条件都是如: Where("expression1 = {0} and expression2 = {1}",param1,param2)的重载, 并不能直接Where("expression1 = param1")的写法
+* 框架生成了DAL层与Model层, Common.db是通用的逻辑封装, 若生成器没有自动生成(生成过db层没有完全删掉的情况是不会复制的), 请自行拷贝一份到项目中. 
+* 生成器是自动生成解决方案, 但也可直接生成到项目中, 注意项目间的引用. 
 ## 支持数据库字段类型: 
 | PostgreSQL type | 转化的.net类型 |
 | :-------------: | :-----------: | 
@@ -45,10 +49,6 @@ dotnet dotnetCore_pgsql.dll -h 127.0.0.1 -p 5432 -u postgres -pw 123456 -d postg
 | bool            | bool          | 
 | (enum type)     | -             |
 | (array type)    | -             |
-## 说明:
-1. 由于此框架为了防止数据库注入问题全面参数化所有where条件都是如: Where("expression1 = {0} and expression2 = {1}",param1,param2)的重载, 并不能直接Where("expression1 = param1")的写法
-2. 框架生成了DAL层与Model层, Common.db是通用的逻辑封装, 若生成器没有自动生成(生成过db层没有完全删掉的情况是不会复制的), 请自行拷贝一份到项目中. 
-3. 生成器是自动生成解决方案, 但也可直接生成到项目中, 注意项目间的引用. 
 ## 用法:
 ### Select:
 ```
