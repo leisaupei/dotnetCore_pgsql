@@ -4,10 +4,8 @@
 #### Mac OS
 1. 打开终端terminal
 2. cd 到目录 dotnetCore_pgsql/bin/Debug/netcoreapp2.0/
-3. 执行 dotnet dotnetCore_pgsql.dll -h [host] -p [port] -u [username] -pw [password] -d [database] -pool [maximum pool size] -o [output directory] -proj [project name]
-```
-dotnet dotnetCore_pgsql.dll -h 127.0.0.1 -p 5432 -u postgres -pw tanweijie -d postgres -pool 50 -o /Users/mac/Projects -proj Test
-```
+3. 编辑执行命令
+dotnet dotnetCore_pgsql.dll -h 127.0.0.1 -p 5432 -u postgres -pw 123456 -d postgres -pool 50 -o /Users/mac/Projects -proj Test
 #### Windows
 1. 直接进入dotnetCore_pgsql/bin/Debug/netcoreapp2.0/
 2. 编辑build.bat 运行
