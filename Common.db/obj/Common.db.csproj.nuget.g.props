@@ -3,16 +3,16 @@
   <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
     <RestoreSuccess Condition=" '$(RestoreSuccess)' == '' ">True</RestoreSuccess>
     <RestoreTool Condition=" '$(RestoreTool)' == '' ">NuGet</RestoreTool>
-    <ProjectAssetsFile Condition=" '$(ProjectAssetsFile)' == '' ">/Users/mac/Projects/dotnetCore_pgsql/Common.db/obj/project.assets.json</ProjectAssetsFile>
-    <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">/Users/mac/.nuget/packages/</NuGetPackageRoot>
-    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">/Users/mac/.nuget/packages/</NuGetPackageFolders>
+    <ProjectAssetsFile Condition=" '$(ProjectAssetsFile)' == '' ">C:\Users\Administrator\Documents\git\dotnetCore_pgsql\Common.db\obj\project.assets.json</ProjectAssetsFile>
+    <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">$(UserProfile)\.nuget\packages\</NuGetPackageRoot>
+    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">C:\Users\Administrator\.nuget\packages\;C:\Program Files\dotnet\sdk\NuGetFallbackFolder</NuGetPackageFolders>
     <NuGetProjectStyle Condition=" '$(NuGetProjectStyle)' == '' ">PackageReference</NuGetProjectStyle>
-    <NuGetToolVersion Condition=" '$(NuGetToolVersion)' == '' ">4.3.1</NuGetToolVersion>
+    <NuGetToolVersion Condition=" '$(NuGetToolVersion)' == '' ">4.3.0</NuGetToolVersion>
   </PropertyGroup>
   <PropertyGroup>
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
   </PropertyGroup>
   <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <Import Project="$(NuGetPackageRoot)microsoft.netcore.app/2.0.0/build/netcoreapp2.0/Microsoft.NETCore.App.props" Condition="Exists('$(NuGetPackageRoot)microsoft.netcore.app/2.0.0/build/netcoreapp2.0/Microsoft.NETCore.App.props')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.netcore.app\2.0.0\build\netcoreapp2.0\Microsoft.NETCore.App.props" Condition="Exists('$(NuGetPackageRoot)microsoft.netcore.app\2.0.0\build\netcoreapp2.0\Microsoft.NETCore.App.props')" />
   </ImportGroup>
 </Project>
