@@ -1,4 +1,7 @@
 # dotnetCore_pgsql CodeMarker
+>感谢两位给予的帮助</br>
+>https://github.com/2881099</br>
+>https://github.com/lianggx
 ## 使用: 
 ### 环境配置: 
 #### Mac OS
@@ -51,7 +54,7 @@
 | (array type)    | -             |
 ## 用法:
 ### Select:
-```
+```c#
 // 条件查询 '()'里面是或(or)关系 where之间是且(and)关系
 // select * from people.student where (age =10 or age = 12) and name = ('name1' or name = 'name2')
 People_studentModel stu1 = People_student.Query.WhereAge(10, 12).WhereName("name1","name2").ToOne(); 
@@ -71,7 +74,7 @@ System.Collections.IDictionary[]  idict  = stu3.ToBson();
 People_studentModel stu5 = People_student.Query
     .InnerJoin<People_teacherModel>("b","a.teacher_id = b.id").ToOne();
 People_student.Query
-    .Union<People_studentModel>(UnionType.INNER_JOIN,"b","a.teacher_id = b.id").ToOne();
+    .Union<People_teacherModel>(UnionType.INNER_JOIN,"b","a.teacher_id = b.id").ToOne();
 
 // 返回元组
 int age1 = People_student.Query.ToTuple<int>("age"); // 单条
@@ -83,7 +86,7 @@ List<(int,string)> age1 = People_student.Query.ToTupleList<(int,string)>("age,na
 People_student.Query.WhereAge(10).ToString(); // 重写ToString()方法 ()内可以写数据库字段名称
 ```
 ### Insert:
-```
+```c#
 // insert方式 返回实体类
 // 1. Model.Insert();
 new People_studentModel{ Id = Guid.NewGuid(), Name = "name", Age = 12 }.Insert();
@@ -91,7 +94,7 @@ new People_studentModel{ Id = Guid.NewGuid(), Name = "name", Age = 12 }.Insert()
 People_student.Insert(new People_studentModel{ Id = Guid.NewGuid(), Name = "name", Age = 12 });
 ```
 ### Delete:
-```
+```c#
 // delete两种方式 返回修改行数
 // --------------
 // 1. Delete(主键)
@@ -100,7 +103,7 @@ People_student.Delete(主键值);
 People_student.DeleteDiy.Where("name = {0}","name").Commit();
 ```
 ### Update:
-```
+```c#
 // update两种方式 
 // 返回类型也有两种---返回修改的行数.Commit()/返回实体类(需要字段接收).CommitRet()
 // --------------
@@ -115,14 +118,22 @@ People_student.UpdateDiy.SetAge(12).SetName("name1").Where("name = {0}","name").
 stu1 = stu1.UpdateDiy.SetAge(12).CommitRet();
 ```
 ### 其他:
-Order By(string) 排序
-Group By(string) 分组
-Skip(int) 跳过
-Page(int pageIndex,int pageSize) 分页
+```c#
+// OrderBy(string) 排序
+People_student.Query.OrderBy("name desc").ToList();
+// GroupBy(string) 分组
+People_student.Query.GroupBy("name").ToList();
+// Skip(int) 跳过
+People_student.Query.Skip(5).ToList();
+// Page(int pageIndex,int pageSize) 分页
+People_student.Query.Page(1,10).ToList();
+// Limit(int) 返回前x向
+People_student.Query.Limit(1).ToList();
+// Count(); count
+People_student.Query.Count();
+```
 等等
 ## 版本更新: 
 ### v-1.0.0
 
->感谢两位给予的帮助</br>
->https://github.com/2881099</br>
->https://github.com/lianggx
+
