@@ -39,7 +39,7 @@ namespace Common.db.DBHelper
             return this;
         }
 
-        
+
 
         public Query<T> Page(int index, int size)
         {
@@ -70,10 +70,10 @@ namespace Common.db.DBHelper
         #endregion
 
         #region union
-        public new Query<T> Union<TModel>(string alias, UnionType unionType, string on) => base.Union<TModel>(alias, unionType, on) as Query<T>;
-        public Query<T> InnerJoin<TModel>(string alias, string on) => Union<TModel>(alias, UnionType.INNER_JOIN, on);
-        public Query<T> LeftJoin<TModel>(string alias, string on) => Union<TModel>(alias, UnionType.LEFT_JOIN, on);
-        public Query<T> RightJoin<TModel>(string alias, string on) => Union<TModel>(alias, UnionType.RIGHT_JOIN, on);
+        public new Query<T> Union<TModel>(UnionType unionType, string alias, string on) => base.Union<TModel>(unionType, alias, on) as Query<T>;
+        public Query<T> InnerJoin<TModel>(string alias, string on) => Union<TModel>(UnionType.INNER_JOIN, alias, on);
+        public Query<T> LeftJoin<TModel>(string alias, string on) => Union<TModel>(UnionType.LEFT_JOIN, alias, on);
+        public Query<T> RightJoin<TModel>(string alias, string on) => Union<TModel>(UnionType.RIGHT_JOIN, alias, on);
         #endregion
 
         public new Query<T> AddParameter(string field, NpgsqlDbType dbType, object value, int size, Type specificType) =>

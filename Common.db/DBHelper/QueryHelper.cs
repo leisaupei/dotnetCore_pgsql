@@ -77,10 +77,11 @@ namespace Common.db.DBHelper
         #endregion
 
         #region union
-        protected QueryHelper<T> Union<TModel>(string alias_name, UnionType union_type, string on)
+        protected QueryHelper<T> Union<TModel>(UnionType union_type, string alias_name, string on)
         {
             if (new Regex(@"\{\d\}").Matches(on).Count > 0)//参数个数不匹配
                 throw new ArgumentException("on 参数不支持存在参数");
+
             UnionModel us = new UnionModel
             {
                 Model = typeof(TModel),
@@ -137,7 +138,6 @@ namespace Common.db.DBHelper
             }
             return ExecuteReader<TResult>();
         }
-
 
         /// <summary>
         /// 返回一行
