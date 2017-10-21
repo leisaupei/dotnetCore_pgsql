@@ -59,7 +59,8 @@ People_studentModel stu1 = People_student.Query.WhereAge(10, 12).WhereName("name
 People_studentModel stu2 = People_student.Query.Where("age = {0}", 10).ToOne();
 // select * from people.student where (age = 10 or age = 20)
 People_studentModel stu3 = People_student.Query.WhereOr("age = {0}", new int[] { 10, 20 }).ToOne();
-List<People_studentModel> stu4 = People_student.Query.WhereAge(10).ToList();// ToOne()返回单条;ToList()返回多条
+// ToOne()返回单条;ToList()返回多条
+List<People_studentModel> stu4 = People_student.Query.WhereAge(10).ToList();
 
 // 转化为dictionary类型 格式化数据
 // ToBsonOne()用于单个模型 ToBson()用于模型列表List<Model>
@@ -122,3 +123,6 @@ Page(int pageIndex,int pageSize) 分页
 ## 版本更新: 
 ### v-1.0.0
 
+>感谢两位给予的帮助</br>
+>https://github.com/2881099</br>
+>https://github.com/lianggx
