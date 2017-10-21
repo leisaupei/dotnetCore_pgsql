@@ -67,8 +67,10 @@ System.Collections.IDictionary[]  idict  = stu3.ToBson();
 
 // 多表查询 支持 INNER JOIN, LEFT JOIN, RIGHT JOIN, LEFT OUTER JOIN, RIGHT OUTER JOIN
 //select *from people.student a join people.teacher b on a.teacher_id = b.id limit 1
-People_studentModel stu5 = People_student.Query.InnerJoin<People_teacherModel>("b","a.teacher_id = b.id").ToOne();
-People_student.Query.Union<People_studentModel>(UnionType.INNER_JOIN,"b","a.teacher_id = b.id").ToOne();
+People_studentModel stu5 = People_student.Query
+    .InnerJoin<People_teacherModel>("b","a.teacher_id = b.id").ToOne();
+People_student.Query
+    .Union<People_studentModel>(UnionType.INNER_JOIN,"b","a.teacher_id = b.id").ToOne();
 
 // 返回元组
 int age1 = People_student.Query.ToTuple<int>("age"); // 单条
