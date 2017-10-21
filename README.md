@@ -23,7 +23,7 @@
 - -o 输出路径output directory
 - -proj 项目名称
 ## 说明:
-* 由于此框架为了防止数据库注入问题全面参数化, 所有where条件都是如: Where("expression1 = {0} and expression2 = {1}",param1,param2)的重载, 并不能直接Where("expression1 = param1")的写法
+* 由于此框架为了防止数据库注入问题全面参数化, 所有where条件都是如: `Where("expression1 = {0} and expression2 = {1}",param1,param2)`的重载, 并不能直接`Where("expression1 = param1")`的写法
 * 框架生成了DAL层与Model层, Common.db是通用的逻辑封装, 若生成器没有自动生成(生成过db层没有完全删掉的情况是不会复制的), 请自行拷贝一份到项目中. 
 * 生成器是自动生成解决方案, 但也可直接生成到项目中, 注意项目间的引用. 
 ## 支持数据库字段类型: 
@@ -53,6 +53,7 @@
 | (enum type)     | -             |
 | (array type)    | -             |
 ## 用法:
+> 以下的写法只是列举一部分, 自己很容易能重载, 拓展
 ### Select:
 ```c#
 // 条件查询 '()'里面是或(or)关系 where之间是且(and)关系
@@ -62,25 +63,24 @@ People_studentModel stu1 = People_student.Query.WhereAge(10, 12).WhereName("name
 People_studentModel stu2 = People_student.Query.Where("age = {0}", 10).ToOne();
 // select * from people.student where (age = 10 or age = 20)
 People_studentModel stu3 = People_student.Query.WhereOr("age = {0}", new int[] { 10, 20 }).ToOne();
-// ToOne()返回单条;ToList()返回多条
+// ToOne()返回单条; ToList()返回多条
 List<People_studentModel> stu4 = People_student.Query.WhereAge(10).ToList();
 
 // 转化为dictionary类型 格式化数据
-// ToBsonOne()用于单个模型 ToBson()用于模型列表List<Model>
+// ToBsonOne()用于单个模型 ToBson()用于模型列表List<Model> 与 Model[]
 System.Collections.IDictionary[]  idict  = stu3.ToBson();
 
 // 多表查询 支持 INNER JOIN, LEFT JOIN, RIGHT JOIN, LEFT OUTER JOIN, RIGHT OUTER JOIN
 //select *from people.student a join people.teacher b on a.teacher_id = b.id limit 1
 People_studentModel stu5 = People_student.Query
     .InnerJoin<People_teacherModel>("b","a.teacher_id = b.id").ToOne();
+//通用
 People_student.Query
     .Union<People_teacherModel>(UnionType.INNER_JOIN,"b","a.teacher_id = b.id").ToOne();
 
-// 返回元组
+// 返回Tuple <>内支持单/多个属性
 int age1 = People_student.Query.ToTuple<int>("age"); // 单条
-List<int> age1 = People_student.Query.ToTupleList<int>("age"); // 多条
-(int,string) age1 = People_student.Query.ToTuple<(int,string)>("age","name");
-List<(int,string)> age1 = People_student.Query.ToTupleList<(int,string)>("age,name");
+List<(int,string)> items = People_student.Query.ToTupleList<(int,string)>("age,name"); // 多条
 
 // 导出sql语句(调试用)
 People_student.Query.WhereAge(10).ToString(); // 重写ToString()方法 ()内可以写数据库字段名称
