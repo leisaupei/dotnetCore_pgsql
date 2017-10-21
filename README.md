@@ -52,6 +52,7 @@
 | bool            | bool          | 
 | (enum type)     | -             |
 | (array type)    | -             |
+> Updating....
 ## 用法:
 > 以下的写法只是列举一部分, 自己很容易能重载, 拓展
 ### Select:
@@ -132,7 +133,6 @@ People_student.Query.Limit(1).ToList();
 // Count(); count
 People_student.Query.Count();
 ```
-等等
 ## 版本更新: 
 ### v-1.0.0
 
