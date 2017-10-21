@@ -5,7 +5,7 @@
 1. 打开终端terminal
 2. cd 到目录 dotnetCore_pgsql/bin/Debug/netcoreapp2.0/
 3. 编辑执行命令
-dotnet dotnetCore_pgsql.dll -h 127.0.0.1 -p 5432 -u postgres -pw 123456 -d postgres -pool 50 -o /Users/mac/Projects -proj Test
+`dotnet dotnetCore_pgsql.dll -h 127.0.0.1 -p 5432 -u postgres -pw 123456 -d postgres -pool 50 -o /Users/mac/Projects -proj Test`
 #### Windows
 1. 直接进入dotnetCore_pgsql/bin/Debug/netcoreapp2.0/
 2. 编辑build.bat 运行
@@ -20,7 +20,7 @@ dotnet dotnetCore_pgsql.dll -h 127.0.0.1 -p 5432 -u postgres -pw 123456 -d postg
 - -o 输出路径output directory
 - -proj 项目名称
 ## 说明:
-* 由于此框架为了防止数据库注入问题全面参数化所有where条件都是如: Where("expression1 = {0} and expression2 = {1}",param1,param2)的重载, 并不能直接Where("expression1 = param1")的写法
+* 由于此框架为了防止数据库注入问题全面参数化, 所有where条件都是如: Where("expression1 = {0} and expression2 = {1}",param1,param2)的重载, 并不能直接Where("expression1 = param1")的写法
 * 框架生成了DAL层与Model层, Common.db是通用的逻辑封装, 若生成器没有自动生成(生成过db层没有完全删掉的情况是不会复制的), 请自行拷贝一份到项目中. 
 * 生成器是自动生成解决方案, 但也可直接生成到项目中, 注意项目间的引用. 
 ## 支持数据库字段类型: 
@@ -114,11 +114,11 @@ People_student.UpdateDiy.SetAge(12).SetName("name1").Where("name = {0}","name").
 stu1 = stu1.UpdateDiy.SetAge(12).CommitRet();
 ```
 ### 其他:
-Order By 排序
-Group By 分组
-Skip 跳过
-Page(pageIndex,pageSize) 分页
+Order By(string) 排序
+Group By(string) 分组
+Skip(int) 跳过
+Page(int pageIndex,int pageSize) 分页
 等等
 ## 版本更新: 
 ### v-1.0.0
-1. 支持Insert Query Update Delete
+
