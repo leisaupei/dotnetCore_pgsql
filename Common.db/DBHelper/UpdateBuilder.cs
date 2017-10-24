@@ -10,7 +10,7 @@ namespace Common.db.DBHelper
     public class UpdateBuilder<T> : QueryHelper<T> where T : class, new()
     {
 
-        private List<string> setList = new List<string>();
+        public List<string> setList = new List<string>();
         //设置字段
         protected UpdateBuilder<T> SetField(string field, NpgsqlDbType dbType, object value, int size, Type specificType = null)
         {
@@ -34,6 +34,13 @@ namespace Common.db.DBHelper
         {
             var param_name = ParamsIndex;
             return SetFieldBase(param_name, dbType, value, size, $"{field} = array_remove({field}, @{param_name})", specificType);
+        }
+        //自定义设置
+        protected UpdateBuilder<T> SetDiy(List<NpgsqlParameter> list, string sqlStr)
+        {
+            CommandParams.AddRange(list);
+            setList.Add(sqlStr);
+            return this;
         }
         //底层设置字段
         protected UpdateBuilder<T> SetFieldBase(string field, NpgsqlDbType dbType, object value, int size, string sqlStr, Type specificType = null)
@@ -61,7 +68,7 @@ namespace Common.db.DBHelper
         {
             if (WhereList.Count < 1) throw new Exception("update语句必须带where条件");
             var ret = IsReturn ? $"RETURNING {string.Join(", ", fields)}" : "";
-            return $"UPDATE {tableName} SET {string.Join(",", setList)} WHERE {string.Join("\nAND", WhereList)} {ret};";
+            return $"UPDATE {tableName} a SET {string.Join(",", setList)} WHERE {string.Join("\nAND", WhereList)} {ret};";
         }
     }
 }

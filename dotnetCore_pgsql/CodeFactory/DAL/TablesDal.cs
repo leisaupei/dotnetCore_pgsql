@@ -35,6 +35,7 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
 
         }
 
+        #region Get
         public void GetFieldList()
         {
             string sqlText = $@"SELECT a.oid,
@@ -70,12 +71,12 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
              fi.Is_identity = dr["is_identity"].ToString() == "YES";
              fi.Is_array = dr["typcategory"].ToString() == "A";
              fi.Is_enum = fi.Data_Type == "e";
-
+             fi.Typcategory = dr["typcategory"].ToString();
              string _type = TypeHelper.PgDbTypeConvertToCSharpString(fi.Db_type);
 
              if (fi.Is_enum) _type = _type.ToUpperPascal() + "ENUM";
              string _notnull = "";
-             if (_type != "string" && _type != "JToken"&& !fi.Is_array)
+             if (_type != "string" && _type != "JToken" && !fi.Is_array)
                  _notnull = fi.Is_not_null ? "" : "?";
 
              string _array = fi.Is_array ? "[]" : "";
@@ -84,6 +85,7 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
              this.fieldList.Add(fi);
          }, sqlText);
         }
+
 
         public void GetConstraint()
         {
@@ -113,6 +115,7 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
                 WHERE a.indrelid = '{schemaName}.{table.Name}'::regclass AND a.indisprimary;";
             pkList = GenericHelper<PrimarykeyInfo>.Generic.ToList<PrimarykeyInfo>(PgSqlHelper.ExecuteDataReader(sqlText));
         }
+        #endregion
 
         private string DeletePublic(string _schemaName, string table_name, bool isTableName = false)
         {
@@ -123,7 +126,8 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
         }
         private string modelClassName => dalClassName + "Model";
         private string dalClassName => $"{DeletePublic(schemaName, table.Name)}";
-        private string tableName => $"{DeletePublic(schemaName, table.Name, true)}";
+        private string tableName => $"{DeletePublic(schemaName, table.Name, true).ToLowerPascal()}";
+        int xy_count = 0;
         public void Generate()
         {
             string _filename = $"{modelPath}/{modelClassName}.cs";
@@ -145,16 +149,45 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
                 writer.WriteLine($"\t[EntityMapping(TableName = \"{tableName}\"), JsonObject(MemberSerialization.OptIn)]");
                 writer.WriteLine($"\tpublic partial class {modelClassName}");
                 writer.WriteLine("\t{");
+
                 foreach (var item in fieldList)
                 {
-                    if (!string.IsNullOrEmpty(item.Comment))
+                    if (TypeHelper.NotCreateModelFieldDbType(item.Db_type, item.Typcategory))
                     {
-                        writer.WriteLine("\t\t/// <summary>");
-                        writer.WriteLine($"\t\t/// {item.Comment}");
-                        writer.WriteLine("\t\t/// </summary>");
+                        if (!string.IsNullOrEmpty(item.Comment))
+                        {
+                            writer.WriteLine("\t\t/// <summary>");
+                            writer.WriteLine($"\t\t/// {item.Comment}");
+                            writer.WriteLine("\t\t/// </summary>");
+                        }
+
+                        writer.WriteLine($"\t\t[JsonProperty] public {item.RelType} {item.Field.ToUpperPascal()} {{ get; set; }}");
+                        // writer.WriteLine($"\t\t{WritePropertyGetSet(item.RelType, item.Field)}");
+                    }
+                    if (item.Db_type == "geometry")
+                    {
+                        var c = xy_count == 0 ? "" : xy_count.ToString();
+                        List<FieldInfo> str_field = new List<FieldInfo>();
+                        str_field.Add(new FieldInfo { Comment = "经度", Field = "y" + c, RelType = "decimal" });
+                        str_field.Add(new FieldInfo { Comment = "纬度", Field = "x" + c, RelType = "decimal" });
+                        str_field.Add(new FieldInfo { Comment = "空间坐标系唯一标识", Field = "SRID" + c, RelType = "int" });
+                        foreach (var field in str_field)
+                        {
+                            if (!string.IsNullOrEmpty(item.Comment))
+                            {
+                                writer.WriteLine("\t\t/// <summary>");
+                                writer.WriteLine($"\t\t/// {field.Comment}");
+                                writer.WriteLine("\t\t/// </summary>");
+                            }
+                            if (field.Field == "SRID")
+                                writer.WriteLine($"\t\tpublic {field.RelType} {field.Field.ToUpperPascal()} {{ get; set;}} = 4326;");
+                            else
+                                writer.WriteLine($"\t\t[JsonProperty] public {field.RelType} {field.Field.ToUpperPascal()} {{ get; set;}}");
+                            xy_count++;
+                        }
                     }
 
-                    writer.WriteLine($"\t\t[JsonProperty] public {item.RelType} {item.Field.ToUpperPascal()} {{ get; set; }}");
+
                 }
                 Hashtable ht = new Hashtable();
                 foreach (var item in consList)
@@ -181,7 +214,8 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
                     d_Key.Add("this." + fs.Field.ToUpperPascal());
                 }
                 writer.WriteLine();
-                writer.WriteLine($"\t\t[MethodProperty] public {dalClassName}.{dalClassName}UpdateBuilder Update => {dalClassName}.Update(this);");
+                if (pkList.Count > 0)
+                    writer.WriteLine($"\t\t[MethodProperty] public {dalClassName}.{dalClassName}UpdateBuilder Update => {dalClassName}.Update(this);");
                 writer.WriteLine();
                 writer.WriteLine($"\t\tpublic {modelClassName} Insert() => {dalClassName}.Insert(this);");
 
@@ -246,6 +280,7 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
             }
         }
 
+        #region Dal Property
         private void PropertiesGenerator(StreamWriter writer)
         {
             StringBuilder sb_field = new StringBuilder();
@@ -265,10 +300,13 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
             }
             writer.WriteLine($"\t\tconst string insertSqlText = \"INSERT INTO {tableName}({sb_field.ToString()}) VALUES({sb_param}) RETURNING {sb_field.ToString()};\";");
             writer.WriteLine($"\t\tpublic static {dalClassName} Query => new {dalClassName}();");
+
             writer.WriteLine($"\t\tpublic static {dalClassName}UpdateBuilder UpdateDiy => new {dalClassName}UpdateBuilder();");
             writer.WriteLine($"\t\tpublic static DeleteBuilder<{modelClassName}> DeleteDiy => new DeleteBuilder<{modelClassName}>();");
         }
+        #endregion
 
+        #region Delete
         private void DeleteGenerator(StreamWriter writer)
         {
             if (pkList.Count > 0)
@@ -287,7 +325,9 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
                 writer.WriteLine();
             }
         }
+        #endregion
 
+        #region Insert
         private void InsertGenerator(StreamWriter writer)
         {
             var valuename = dalClassName.ToLowerPascal();
@@ -299,11 +339,18 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
                 if (item.Is_identity) continue;
                 NpgsqlDbType _dbtype = TypeHelper.ConvertFromDbTypeToNpgsqlDbTypeEnum(item.Data_Type, item.Db_type);
                 string ap = item.Is_array ? " | NpgsqlDbType.Array" : "";
-                writer.WriteLine($"\t\t\t{valuename}.AddParameter(\"{item.Field}\", NpgsqlDbType.{_dbtype}{ap}, model.{item.Field.ToUpperPascal()}, {item.Length}, {GetspecificType(item)});");
+                if (TypeHelper.NotCreateModelFieldDbType(item.Db_type, item.Typcategory))
+                    writer.WriteLine($"\t\t\t{valuename}.AddParameter(\"{item.Field}\", NpgsqlDbType.{_dbtype}{ap}, model.{item.Field.ToUpperPascal()}, {item.Length}, {GetspecificType(item)});");
+
+
             }
             writer.WriteLine($"\t\t\treturn {valuename}.ExecuteNonQueryReader(insertSqlText);");
             writer.WriteLine("\t\t}");
+
         }
+        #endregion
+
+        #region Query
         private void QueryGenerator(StreamWriter writer)
         {
             if (pkList.Count > 0)
@@ -344,6 +391,9 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
                 }
             }
         }
+        #endregion
+
+        #region Update
         private void UpdateGenerator(StreamWriter writer)
         {
             if (pkList.Count > 0)
@@ -370,7 +420,8 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
             {
                 NpgsqlDbType _dbtype = TypeHelper.ConvertFromDbTypeToNpgsqlDbTypeEnum(item.Data_Type, item.Db_type);
                 string ap = item.Is_array ? " | NpgsqlDbType.Array" : "";
-                writer.WriteLine($"\t\t\tpublic {dalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}({item.RelType} {item.Field}) => SetField(\"{item.Field}\", NpgsqlDbType.{_dbtype}{ap}, {item.Field}, {item.Length}, {GetspecificType(item)}) as {dalClassName}UpdateBuilder;");
+                if (TypeHelper.NotCreateModelFieldDbType(item.Db_type, item.Typcategory))
+                    writer.WriteLine($"\t\t\tpublic {dalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}({item.RelType} {item.Field}) => SetField(\"{item.Field}\", NpgsqlDbType.{_dbtype}{ap}, {item.Field}, {item.Length}, {GetspecificType(item)}) as {dalClassName}UpdateBuilder;");
                 string cSharpType = TypeHelper.PgDbTypeConvertToCSharpString(item.Db_type);
 
                 if (item.Is_array)
@@ -399,7 +450,9 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
             writer.WriteLine("\t\t}");
 
         }
+        #endregion
 
+        #region Private Method
         private string GetspecificType(FieldInfo fi)
         {
             string specificType = "null";
@@ -419,5 +472,17 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
             }
             return conname;
         }
+        public static string WritePropertyGetSet(string cSharpType, string field)
+        {
+            string[] NotSet = { "x", "y" };
+            string[] DefaultValue = { "SRID", "4326" };
+            Hashtable ht = new Hashtable { { "SRID", "4362" } };
+            string[] NotJsonProperty = { "SRID" };
+            var jsonproperty = NotJsonProperty.Contains(field) ? "" : "[JsonProperty] ";
+            var set = NotSet.Contains(field) ? "" : "set;";
+            var defaultValue = ht.ContainsKey(field) ? " = " + ht[field].ToString() + ";" : "";
+            return $"{jsonproperty}public {cSharpType} {field.ToUpperPascal()} {{ get; {set} }}{defaultValue}";
+        }
+        #endregion
     }
 }

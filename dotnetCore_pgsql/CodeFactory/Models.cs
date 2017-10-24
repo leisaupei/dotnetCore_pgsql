@@ -25,6 +25,7 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory
         public bool Is_enum { get; set; }
         public bool Is_not_null { get; set; }
         public NpgsqlDbType PgDbType { get; set; }
+        public string Typcategory{get;set;}
     }
     public class PrimarykeyInfo
     {

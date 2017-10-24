@@ -124,7 +124,7 @@ namespace Common.db.DBHelper
         /// </summary>
         public List<TResult> ToList<TResult>(params string[] fields)
         {
-            Fields.Clear();
+            Fields.Clear() ;
             if (fields.IsNullOrEmpty())
             {
                 Fields.AddRange(EntityHelper.GetAllFields(typeof(TResult), MasterAliasName));

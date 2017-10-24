@@ -125,7 +125,9 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory
         }
         private static List<TableViewModel> GetTables(string schemaname)
         {
-            string sqlText = $"select tablename as name, 'table' as type from pg_tables where schemaname not in ('pg_catalog','information_schema') and  schemaname = '{schemaname}'";
+            string[] NotCreateSchemas = { "'pg_catalog'", "'information_schema'" };
+            string[] NotCreateTables = { "'spatial_ref_sys'" };
+            string sqlText = $"select tablename as name, 'table' as type from pg_tables where schemaname not in ({string.Join(",", NotCreateTables)}) and tablename not in ({string.Join(",",NotCreateTables)})and  schemaname = '{schemaname}'";
             return GenericHelper<TableViewModel>.Generic.ToList<TableViewModel>(PgSqlHelper.ExecuteDataReader(CommandType.Text, sqlText));
         }
         private static void DirectoryCopy(string sourceDirectory, string targetDirectory)

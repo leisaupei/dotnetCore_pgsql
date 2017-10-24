@@ -51,22 +51,22 @@ namespace Common.db.DBHelper
         public new Query<T> Where(string filter, params object[] value) => base.Where(filter, value) as Query<T>;
         #endregion
         #region ToString
-        public override string ToString()
-        {
-            return ToString(null);
-        }
-        public string ToString(string field)//调试用
-        {
-            Fields.Clear();
-            if (string.IsNullOrEmpty(field))
-                Fields.AddRange(EntityHelper.GetAllFields(typeof(T), MasterAliasName + "."));
-            else
-                Fields.Add(field);
-            //var params_str = string.Empty;
-            //foreach (var item in CommandParams)
-            //    params_str = string.Concat(params_str, item.ParameterName, ":", item.Value, "\n");
-            return ToStringHelper.SqlToString(GetSqlString<T>(), CommandParams);
-        }
+        //public override string ToString()
+        //{
+        //    return ToString(null);
+        //}
+        //public string ToString(string field)//调试用
+        //{
+        //    Fields.Clear();
+        //    if (string.IsNullOrEmpty(field))
+        //        Fields.AddRange(EntityHelper.GetAllFields(typeof(T), MasterAliasName + "."));
+        //    else
+        //        Fields.Add(field);
+        //    //var params_str = string.Empty;
+        //    //foreach (var item in CommandParams)
+        //    //    params_str = string.Concat(params_str, item.ParameterName, ":", item.Value, "\n");
+        //    return ToStringHelper.SqlToString(GetSqlString<T>(), CommandParams);
+        //}
         #endregion
 
         #region union
@@ -76,8 +76,8 @@ namespace Common.db.DBHelper
         public Query<T> RightJoin<TModel>(string alias, string on) => Union<TModel>(UnionType.RIGHT_JOIN, alias, on);
         #endregion
 
-        public new Query<T> AddParameter(string field, NpgsqlDbType dbType, object value, int size, Type specificType) =>
-            AddParameter(field, dbType, value, size, specificType) as Query<T>;
+        //public new Query<T> AddParameter(string field, NpgsqlDbType dbType, object value, int size, Type specificType) =>
+            //AddParameter(field, dbType, value, size, specificType) as Query<T>;
 
         #endregion
 
