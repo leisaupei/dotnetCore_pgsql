@@ -142,4 +142,4 @@ People_student.Query.Count();
 ## 版本更新: 
 ### v1.0.0
 ### v1.0.1 -Oct. 24th
-1. 新增支持line,point,polygon,box,circle属性, geometry(postgis)二维 存取
+1. 新增支持line,point,polygon,box,circle属性, geometry(postgis)空间数据二维存取
