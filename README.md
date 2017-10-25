@@ -4,14 +4,14 @@
 >https://github.com/lianggx
 ## 使用: 
 ### 环境配置: 
+#### Windows
+1. 直接进入dotnetCore_pgsql/bin/Debug/netcoreapp2.0/
+2. 编辑build.bat 运行 (参照以下命令)
 #### Mac OS
 1. 打开终端terminal
 2. cd 到目录 dotnetCore_pgsql/bin/Debug/netcoreapp2.0/
 3. 编辑执行命令
 `dotnet dotnetCore_pgsql.dll -h 127.0.0.1 -p 5432 -u postgres -pw 123456 -d postgres -pool 50 -o /Users/mac/Projects -proj Test`
-#### Windows
-1. 直接进入dotnetCore_pgsql/bin/Debug/netcoreapp2.0/
-2. 编辑build.bat 运行
 > 注意: Mac OS用的是路径用的是'/', Windows用的是'\\'
 #### 参数
 - -h host
@@ -23,11 +23,12 @@
 - -o 输出路径output directory
 - -proj 项目名称
 ## 说明:
-* 由于此框架为了防止数据库注入问题全面参数化, 所有where条件都是如: `Where("expression1 = {0} and expression2 = {1}",param1,param2)`的重载, 并不能直接`Where("expression1 = param1")`的写法
+* 由于此框架为了防止数据库注入问题全面参数化, 所有where条件都是如: `Where("expression1 = {0} and expression2 = {1}",param1,param2)`的重载, 并不能直接`Where("expression1 = param1")`的写法 UpdateDiy与DeleteDiy必须带Where条件,
 * 框架生成了DAL层与Model层, Common.db是通用的逻辑封装, 若生成器没有自动生成(生成过db层没有完全删掉的情况是不会复制的), 请自行拷贝一份到项目中. 
 * 生成器是自动生成解决方案, 但也可直接生成到项目中, 注意项目间的引用. 
-## 支持数据库字段类型: 
-| PostgreSQL type | 转化的.net类型 |
+## 数据库支持: 
+#### 字段
+| PostgreSQL type | 转化的.net类型  |
 | :-------------: | :-----------: | 
 | uuid            | Guid          | 
 | int2            | short         | 
@@ -50,9 +51,22 @@
 | time            | TimeSpan      | 
 | interval        | TimeSpan      | 
 | bool            | bool          | 
+| line            | NpgsqlLine    | 
+| point           | NpgsqlPoint   | 
+| polygon         | NpgsqlPolygon | 
+| box             | Npgsqlbox     | 
+| circle          | NpgsqlCircle  | 
+| geometry        |  二维坐标点     | 
 | (enum type)     | -             |
 | (array type)    | -             |
-> Updating....
+#### 功能
+| 功能     | 支持    |
+| :-----: | :-----: | 
+| 事务     | √      |
+| 主键     | √      |
+| 外键     | √      |
+| 储存过程  | √      |
+#### 其他:
 ## 用法:
 > 以下的写法只是列举一部分, 自己很容易能重载, 拓展
 ### Select:
@@ -74,13 +88,13 @@ System.Collections.IDictionary[]  idict  = stu3.ToBson();
 // 多表查询 支持 INNER JOIN, LEFT JOIN, RIGHT JOIN, LEFT OUTER JOIN, RIGHT OUTER JOIN
 //select *from people.student a join people.teacher b on a.teacher_id = b.id limit 1
 People_studentModel stu5 = People_student.Query
-    .InnerJoin<People_teacherModel>("b","a.teacher_id = b.id").ToOne();
+    .InnerJoin<People_teacher>("b","a.teacher_id = b.id").ToOne();
 //通用
 People_student.Query
-    .Union<People_teacherModel>(UnionType.INNER_JOIN,"b","a.teacher_id = b.id").ToOne();
+    .Union<People_teacher>(UnionType.INNER_JOIN,"b","a.teacher_id = b.id").ToOne();
 
-// 返回Tuple <>内支持单/多个属性
-int age1 = People_student.Query.ToTuple<int>("age"); // 单条
+// 自定义查询 返回Tuple <>内支持单/多个属性
+(int,string) age1 = People_student.Query.ToTuple<int>("age,name"); // 单条
 List<(int,string)> items = People_student.Query.ToTupleList<(int,string)>("age,name"); // 多条
 
 // 导出sql语句(调试用)
@@ -134,6 +148,6 @@ People_student.Query.Limit(1).ToList();
 People_student.Query.Count();
 ```
 ## 版本更新: 
-### v-1.0.0
-
-
+### v1.0.0
+### v1.0.1 -Oct. 24th, 2017 
+1. 新增支持line,point,polygon,box,circle属性, geometry(postgis)空间数据二维存取
