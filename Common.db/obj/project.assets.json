@@ -12563,8 +12563,7 @@
     ]
   },
   "packageFolders": {
-    "/Users/mac/.nuget/packages/": {},
-    "/usr/local/share/dotnet/sdk/NuGetFallbackFolder": {}
+    "/Users/mac/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
@@ -12573,13 +12572,10 @@
       "projectName": "Common.db",
       "projectPath": "/Users/mac/Projects/dotnetCore_pgsql/Common.db/Common.db.csproj",
       "packagesPath": "/Users/mac/.nuget/packages/",
-      "outputPath": "/Users/mac/Projects/dotnetCore_pgsql/Common.db/obj/",
+      "outputPath": "/Users/mac/Projects/dotnetCore_pgsql/Common.db/obj",
       "projectStyle": "PackageReference",
-      "fallbackFolders": [
-        "/usr/local/share/dotnet/sdk/NuGetFallbackFolder"
-      ],
       "configFilePaths": [
-        "/Users/mac/.nuget/NuGet/NuGet.Config"
+        "/Users/mac/.config/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "netcoreapp2.0"
