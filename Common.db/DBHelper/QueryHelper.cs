@@ -28,9 +28,8 @@ namespace Common.db.DBHelper
         protected string CommandText { get; set; }
         protected string MasterAliasName { get; } = "a";
         protected string UnionAliasName { get; set; }
-        List<PropertyInfo> list_property = new List<PropertyInfo>();
+        protected string Field { get; set; }
         protected List<UnionModel> UnionList { get; set; } = new List<UnionModel>();
-        protected List<string> Fields { get; set; } = new List<string>();
         protected List<NpgsqlParameter> CommandParams { get; set; } = new List<NpgsqlParameter>();
         protected List<string> WhereList { get; set; } = new List<string>();
         #endregion
@@ -51,7 +50,7 @@ namespace Common.db.DBHelper
         }
         protected QueryHelper<T> Where(string filter, params object[] value)
         {
-
+            if (value == null) value = new object[] { null };
             if (new Regex(@"\{\d\}").Matches(filter).Count != value.Length)//参数个数不匹配
                 throw new Exception("where 参数错误");
             if (value.IsNullOrEmpty())//参数不能为空
@@ -77,10 +76,11 @@ namespace Common.db.DBHelper
         #endregion
 
         #region union
-        protected QueryHelper<T> Union<TModel>(string alias_name, UnionType union_type, string on)
+        protected QueryHelper<T> Union<TModel>(UnionType union_type, string alias_name, string on)
         {
             if (new Regex(@"\{\d\}").Matches(on).Count > 0)//参数个数不匹配
                 throw new ArgumentException("on 参数不支持存在参数");
+
             UnionModel us = new UnionModel
             {
                 Model = typeof(TModel),
@@ -101,7 +101,7 @@ namespace Common.db.DBHelper
         /// <returns></returns>
         protected T ExecuteNonQueryReader(string cmdText)
         {
-            List<T> info = ToList<T>(PgSqlHelper.ExecuteDataReader(CommandType.Text, cmdText, CommandParams.ToArray()));
+            List<T> info = ReaderToList<T>(PgSqlHelper.ExecuteDataReader(CommandType.Text, cmdText, CommandParams.ToArray()));
             return info.Count > 0 ? info[0] : default(T);
         }
         /// <summary>
@@ -110,7 +110,7 @@ namespace Common.db.DBHelper
         protected List<TResult> ExecuteReader<TResult>()
         {
             GetSqlString<TResult>();
-            return ToList<TResult>(PgSqlHelper.ExecuteDataReader(CommandType.Text, CommandText, CommandParams.ToArray()));
+            return ReaderToList<TResult>(PgSqlHelper.ExecuteDataReader(CommandType.Text, CommandText, CommandParams.ToArray()));
         }
         protected int ExecuteNonQuery(string cmdText)
         {
@@ -121,28 +121,17 @@ namespace Common.db.DBHelper
         /// <summary>
         /// 返回列表
         /// </summary>
-        public List<TResult> ToList<TResult>(params string[] fields)
+        public List<TResult> ToList<TResult>(string fields = null)
         {
-            Fields.Clear();
-            if (fields.IsNullOrEmpty())
-            {
-                Fields.AddRange(EntityHelper.GetAllFields(typeof(TResult), MasterAliasName));
-                //foreach (var item in UnionList)
-                //    Fields.AddRange(EntityHelper.GetAllFields(item.Model, item.AliasName));
-            }
-            else
-            {
-                foreach (var item in fields)
-                    Fields.Add(item);
-            }
+            if (!fields.IsNullOrEmpty())
+                Field = fields;
             return ExecuteReader<TResult>();
         }
-
 
         /// <summary>
         /// 返回一行
         /// </summary>
-        protected TResult ToOne<TResult>(params string[] fields)
+        protected TResult ToOne<TResult>(string fields = null)
         {
             LimitText = "LIMIT 1";
             List<TResult> list = ToList<TResult>(fields);
@@ -154,11 +143,9 @@ namespace Common.db.DBHelper
         /// <summary>
         /// 返回一个元素
         /// </summary>
-        protected TResult ToScalar<TResult>(params string[] fields)
+        protected TResult ToScalar<TResult>(string fields)
         {
-            Fields.Clear();
-            foreach (var item in fields)
-                Fields.Add(item);
+            Field = fields;
             GetSqlString<TResult>();
             object obj = PgSqlHelper.ExecuteScalar(CommandType.Text, CommandText, CommandParams.ToArray());
             return (TResult)obj;
@@ -176,7 +163,8 @@ namespace Common.db.DBHelper
             string tableName = MappingHelper.GetMapping(mastertype);
 
             StringBuilder sqlText = new StringBuilder();
-            sqlText.AppendLine($"SELECT {string.Join(',', Fields).ToLower()} FROM  {tableName} {MasterAliasName}");
+            //sqlText.AppendLine($"SELECT {string.Join(',', Fields).ToLower()} FROM  {tableName} {MasterAliasName}");
+            sqlText.AppendLine($"SELECT {Field} FROM  {tableName} {MasterAliasName}");
             foreach (var item in UnionList)
             {
                 string union_alias_name = item.Model == mastertype ? MasterAliasName : item.AliasName;
@@ -203,7 +191,7 @@ namespace Common.db.DBHelper
 
         #region ToList
         //Tresult 必须是能实例化的类型  不支持基本数据类型  例如List<string> 用ToListSingle<TResult>()
-        public List<TResult> ToList<TResult>(IDataReader objReader)
+        public List<TResult> ReaderToList<TResult>(IDataReader objReader)
         {
             using (objReader)
             {

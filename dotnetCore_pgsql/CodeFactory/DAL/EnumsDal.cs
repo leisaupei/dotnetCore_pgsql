@@ -22,7 +22,7 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
                 select a.oid,a.typname, b.nspname from pg_type a 
                 INNER JOIN pg_namespace b on a.typnamespace = b.oid 
                 where a.typtype = 'e' order by oid asc";
-            List<EnumTypeInfo> list = GenericHelper<EnumTypeInfo>.Generic.ToList<EnumTypeInfo>(PgSqlHelper.ExecuteDataReader(sqlText));
+            List<EnumTypeInfo> list = GenericHelper<EnumTypeInfo>.Generic.ReaderToList<EnumTypeInfo>(PgSqlHelper.ExecuteDataReader(sqlText));
 
             string _fileName = Path.Combine(modelPath, "_Enums.cs");
             using (StreamWriter writer = new StreamWriter(File.Create(_fileName)))

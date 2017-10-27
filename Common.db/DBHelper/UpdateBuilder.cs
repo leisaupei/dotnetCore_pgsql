@@ -10,7 +10,7 @@ namespace Common.db.DBHelper
     public class UpdateBuilder<T> : QueryHelper<T> where T : class, new()
     {
 
-        private List<string> setList = new List<string>();
+        protected List<string> setList = new List<string>();
         //设置字段
         protected UpdateBuilder<T> SetField(string field, NpgsqlDbType dbType, object value, int size, Type specificType = null)
         {
@@ -18,7 +18,7 @@ namespace Common.db.DBHelper
             return SetFieldBase(param_name, dbType, value, size, $"{field} = @{param_name}", specificType);
         }
         //字段自增
-        protected UpdateBuilder<T> SetFieldIncrement(string field, int increment, int size)
+        protected UpdateBuilder<T> SetFieldIncrement(string field, object increment, int size)
         {
             var param_name = ParamsIndex;
             return SetFieldBase(param_name, NpgsqlDbType.Integer, increment, size, $"{field} = COALESCE({field} , 0) + @{param_name}");
@@ -35,6 +35,13 @@ namespace Common.db.DBHelper
             var param_name = ParamsIndex;
             return SetFieldBase(param_name, dbType, value, size, $"{field} = array_remove({field}, @{param_name})", specificType);
         }
+        //自定义设置
+        protected UpdateBuilder<T> SetDiy(List<NpgsqlParameter> list, string sqlStr)
+        {
+            CommandParams.AddRange(list);
+            setList.Add(sqlStr);
+            return this;
+        }
         //底层设置字段
         protected UpdateBuilder<T> SetFieldBase(string field, NpgsqlDbType dbType, object value, int size, string sqlStr, Type specificType = null)
         {
@@ -46,15 +53,21 @@ namespace Common.db.DBHelper
         public int Commit()
         {
             string tableName = MappingHelper.GetMapping(typeof(T));
-            string sqltext = $"UPDATE {tableName} SET {string.Join(",", setList)} WHERE {string.Join("\nAND", WhereList)}";
+            string sqltext = GetSqlText(tableName);
             return PgSqlHelper.ExecuteNonQuery(CommandType.Text, sqltext, CommandParams.ToArray());
         }
         public T CommitRet()
         {
             string tableName = MappingHelper.GetMapping(typeof(T));
-            var fields = EntityHelper.GetAllFields(typeof(T), null);
-            string sqltext = $"UPDATE {tableName} SET {string.Join(",", setList)} WHERE {string.Join("\nAND", WhereList)} RETURNING {string.Join(", ", fields)};";
+            string sqltext = GetSqlText(tableName, true);
             return ExecuteNonQueryReader(sqltext);
+        }
+
+        private string GetSqlText(string tableName, bool IsReturn = false)
+        {
+            if (WhereList.Count < 1) throw new Exception("update语句必须带where条件");
+            var ret = IsReturn ? $"RETURNING {Field}" : "";
+            return $"UPDATE {tableName} a SET {string.Join(",", setList)} WHERE {string.Join("\nAND", WhereList)} {ret};";
         }
     }
 }

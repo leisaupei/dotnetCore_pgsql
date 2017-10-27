@@ -1,12 +1,5 @@
 ﻿using NpgsqlTypes;
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq.Expressions;
-using System.Net;
-using System.Net.NetworkInformation;
-using System.Text;
-
 namespace Common.db.DBHelper
 {
     public class TypeHelper
@@ -100,12 +93,8 @@ namespace Common.db.DBHelper
         }
 
 
-        /// <summary>
-        /// 数据库类型转化成C#类型String
-        /// </summary>
-        /// <param name="data_type"></param>
-        /// <param name="db_type"></param>
-        /// <returns></returns>
+
+        // 数据库类型转化成C#类型String
         public static string PgDbTypeConvertToCSharpString(string dbType)
         {
             switch (dbType)
@@ -167,6 +156,7 @@ namespace Common.db.DBHelper
                 default: return dbType;
             }
         }
+        //转化数据库字段未数据库字段NpgsqlDbType枚举
         public static NpgsqlDbType ConvertFromDbTypeToNpgsqlDbTypeEnum(string data_type, string db_type)
         {
             if (data_type == "e")
@@ -177,15 +167,27 @@ namespace Common.db.DBHelper
                 case "int4": return NpgsqlDbType.Integer;
                 case "int8": return NpgsqlDbType.Bigint;
                 case "bool": return NpgsqlDbType.Boolean;
-                case "bpchar":return NpgsqlDbType.Varchar;
-                default: return Enum.Parse<NpgsqlDbType>(db_type.ToUpperPascal());
+                case "bpchar": return NpgsqlDbType.Varchar;
+                case "float4":
+                case "float8": return NpgsqlDbType.Double;
 
+                default: return Enum.Parse<NpgsqlDbType>(db_type.ToUpperPascal());
             }
 
         }
-        public static string GetWhereTypeFromDbType(string type)
+        //排除生成whereor条件的字段类型
+        public static bool MakeWhereOrExceptType(string type)
         {
-            string _type = PgDbTypeConvertToCSharpString(type);
+            string[] arr = new string[] { "datetime", "geometry" };
+            if (arr.Contains(f => f == type.Replace("?", "")))
+                return false;
+            return true;
+        }
+        //从数据库类型获取where条件字段类型
+        public static string GetWhereTypeFromDbType(string type)// where 参数加不加文浩
+        {
+            string _type = PgDbTypeConvertToCSharpString(type).Replace("?", "");
+
             string brackets = type.Contains("[]") ? "" : "[]";
             switch (_type)
             {
@@ -193,15 +195,22 @@ namespace Common.db.DBHelper
                 default: return "params " + _type + brackets;
             }
         }
+        //从数据库类型获取设置的数据库类型
         public static string GetSetTypeFromDbType(string type, bool is_array)
         {
             string _type = PgDbTypeConvertToCSharpString(type);
             switch (_type)
             {
-                case "string": return _type + (is_array ? "[]" : "");
                 case "JToken": return _type;
                 default: return _type + "?" + (is_array ? "[]" : "");
             }
+        }
+        //根据数据库类型判断不生成模型的字段
+        public static bool NotCreateModelFieldDbType(string dbType, string typcategory)
+        {
+            if (typcategory.ToLower() == "u" && dbType.Replace("?", "") == "geometry")
+                return false;
+            return true;
         }
 
     }
