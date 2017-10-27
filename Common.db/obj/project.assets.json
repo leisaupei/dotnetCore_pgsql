@@ -12569,11 +12569,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Administrator\\Documents\\git\\dotnetCore_pgsql_DevVersion\\Common.db\\Common.db.csproj",
+      "projectUniqueName": "C:\\Users\\Administrator\\Documents\\git\\dotnetCore_pgsql\\Common.db\\Common.db.csproj",
       "projectName": "Common.db",
-      "projectPath": "C:\\Users\\Administrator\\Documents\\git\\dotnetCore_pgsql_DevVersion\\Common.db\\Common.db.csproj",
+      "projectPath": "C:\\Users\\Administrator\\Documents\\git\\dotnetCore_pgsql\\Common.db\\Common.db.csproj",
       "packagesPath": "C:\\Users\\Administrator\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Administrator\\Documents\\git\\dotnetCore_pgsql_DevVersion\\Common.db\\obj\\",
+      "outputPath": "C:\\Users\\Administrator\\Documents\\git\\dotnetCore_pgsql\\Common.db\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
