@@ -25,40 +25,41 @@
 ## 说明:
 * 由于此框架为了防止数据库注入问题全面参数化, 所有where条件都是如: `Where("expression1 = {0} and expression2 = {1}",param1,param2)`的重载, 并不能直接`Where("expression1 = param1")`的写法 UpdateDiy与DeleteDiy必须带Where条件,
 * 框架生成了DAL层与Model层, Common.db是通用的逻辑封装, 若生成器没有自动生成(生成过db层没有完全删掉的情况是不会复制的), 请自行拷贝一份到项目中. 
-* 生成器是自动生成解决方案, 但也可直接生成到项目中, 注意项目间的引用. 
+* 生成器是自动生成解决方案, 但也可直接生成到项目中, 注意项目间的引用.
+* 建数据库与字段名称最好用小写字母加'_'创建
 ## 数据库支持: 
 #### 字段
-| PostgreSQL type | 转化的.net类型  |
-| :-------------: | :-----------: | 
-| uuid            | Guid          | 
-| int2            | short         | 
-| int4            | int           | 
-| int8            | long          | 
-| xml             | string        | 
-| text            | string        | 
-| varchar         | string        | 
-| bpchar(char)    | string        | 
-| float4          | decimal       | 
-| float8          | decimal       | 
-| numeric         | decimal       | 
-| money           | decimal       | 
-| json            | JToken        | 
-| jsonb           | JToken        | 
-| date            | DateTime      | 
-| timetz          | DateTime      | 
-| timestamp       | DateTime      | 
-| timestamptz     | DateTime      | 
-| time            | TimeSpan      | 
-| interval        | TimeSpan      | 
-| bool            | bool          | 
-| line            | NpgsqlLine    | 
-| point           | NpgsqlPoint   | 
-| polygon         | NpgsqlPolygon | 
-| box             | Npgsqlbox     | 
-| circle          | NpgsqlCircle  | 
-| geometry        |  二维坐标点     | 
-| (enum type)     | -             |
-| (array type)    | -             |
+| PostgreSQL type | 转化的.net类型 | 备注          |
+| :-------------: | :-----------: | :-----------: |     
+| uuid            | Guid          |               | 
+| int2            | short         |               | 
+| int4            | int           |               | 
+| int8            | long          |               | 
+| xml             | string        |               | 
+| text            | string        |               | 
+| varchar         | string        |               | 
+| bpchar(char)    | string        |               | 
+| float4          | decimal       |               | 
+| float8          | decimal       |               | 
+| numeric         | decimal       |               | 
+| money           | decimal       |               | 
+| json            | JToken        |               | 
+| jsonb           | JToken        |               | 
+| date            | DateTime      |               | 
+| timetz          | DateTime      |               | 
+| timestamp       | DateTime      |               | 
+| timestamptz     | DateTime      |               | 
+| time            | TimeSpan      |               | 
+| interval        | TimeSpan      |               | 
+| bool            | bool          |               | 
+| line            | NpgsqlLine    |               | 
+| point           | NpgsqlPoint   |               | 
+| polygon         | NpgsqlPolygon |               | 
+| box             | Npgsqlbox     |               | 
+| circle          | NpgsqlCircle  |               | 
+| geometry        | 支持二维地理信息 |  自动生成{字段名}_x/y与 {字段名}_srid不需要自己定定义 | 
+| (enum type)     | -             | 自定义枚举类型 | 
+| (array type)    | -             | 支持二维数组 | 
 #### 功能
 | 功能     | 支持    |
 | :-----: | :-----: | 
