@@ -168,7 +168,7 @@ People_student.Query.Count();
 ### v1.0.1 -Oct. 24th, 2017 
 1. 新增支持line、point、polygon、box,、circle属性，geometry(postgis)空间数据二维存取。
 
-### v1.0.1 -Nov. 6th, 2017 
+### v1.0.2 -Nov. 6th, 2017 
 1. 新增表间一对多、多对一、多对多关系的查询。
 2. 新增Redis。见生成后db层RedisHelper.cs。
 3. 支持视图(view)，支持查询方法。
