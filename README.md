@@ -61,7 +61,7 @@
 | polygon         | NpgsqlPolygon |               | 
 | box             | Npgsqlbox     |               | 
 | circle          | NpgsqlCircle  |               | 
-| geometry        | 支持二维地理信息 |  自动生成{字段名}\_x/y与 {字段名}\_srid不需要自己定义 | 
+| geometry        | 支持二维地理信息 |  自动生成{字段名}\_x/y与 {字段名}\_srid<br />不需要自己定义 | 
 | (enum type)     | -             | 自定义枚举类型 | 
 | (array type)    | -             | 支持二维数组 | 
 #### 功能
