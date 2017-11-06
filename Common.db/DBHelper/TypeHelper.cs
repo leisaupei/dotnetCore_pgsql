@@ -168,6 +168,9 @@ namespace Common.db.DBHelper
                 case "int8": return NpgsqlDbType.Bigint;
                 case "bool": return NpgsqlDbType.Boolean;
                 case "bpchar": return NpgsqlDbType.Varchar;
+                case "float4":
+                case "float8": return NpgsqlDbType.Double;
+
                 default: return Enum.Parse<NpgsqlDbType>(db_type.ToUpperPascal());
             }
 

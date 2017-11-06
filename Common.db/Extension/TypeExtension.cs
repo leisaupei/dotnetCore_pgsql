@@ -12,7 +12,7 @@ using System.Text.RegularExpressions;
 /**
  * @ 强类型化对象扩展方法
  * */
-public static partial class TypeExtension
+public static class TypeExtension
 {
     /// <summary>
     ///  将首字母转大写

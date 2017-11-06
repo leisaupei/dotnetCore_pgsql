@@ -1,11 +1,9 @@
-﻿using Newtonsoft.Json.Linq;
+﻿
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Newtonsoft.Json;
-using System.Text.RegularExpressions;
+
 
 public static class GlobalExtension
 {
@@ -27,10 +25,10 @@ public static class GlobalExtension
         idict[key] = value;
         return idict;
     }
-	#endregion
+    #endregion
 
-	
-   	
+    public static bool IsNullOrEmpty(this Guid value) => value == null || value == Guid.Empty;
+
     /// <summary>
     /// object返回空字符串或者返回tostring()
     /// </summary>
