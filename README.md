@@ -2,6 +2,7 @@
 >感谢两位给予的帮助</br>
 >https://github.com/2881099</br>
 >https://github.com/lianggx
+
 ## 使用: 
 ### 环境配置: 
 #### Windows
@@ -12,7 +13,9 @@
 2. cd 到目录 dotnetCore_pgsql/bin/Debug/netcoreapp2.0/
 3. 编辑执行命令
 `dotnet dotnetCore_pgsql.dll -h 127.0.0.1 -p 5432 -u postgres -pw 123456 -d postgres -pool 50 -o /Users/mac/Projects -proj Test`
+
 > 注意: Mac OS用的是路径用的是'/', Windows用的是'\\'
+
 #### 参数
 - -h host
 - -p port
@@ -27,6 +30,7 @@
 * 框架生成了DAL层与Model层, Common.db是通用的逻辑封装, 若生成器没有自动生成(生成过db层没有完全删掉的情况是不会复制的), 请自行拷贝一份到项目中. 
 * 生成器是自动生成解决方案, 但也可直接生成到项目中, 注意项目间的引用.
 * 建数据库与字段名称最好用小写字母加'_'创建
+
 ## 数据库支持: 
 #### 字段
 | PostgreSQL type | 转化的.net类型 | 备注          |
@@ -57,7 +61,7 @@
 | polygon         | NpgsqlPolygon |               | 
 | box             | Npgsqlbox     |               | 
 | circle          | NpgsqlCircle  |               | 
-| geometry        | 支持二维地理信息 |  自动生成{字段名}_x/y与 {字段名}_srid不需要自己定义 | 
+| geometry        | 支持二维地理信息 |  自动生成{字段名}\_x/y与 {字段名}\_srid不需要自己定义 | 
 | (enum type)     | -             | 自定义枚举类型 | 
 | (array type)    | -             | 支持二维数组 | 
 #### 功能
@@ -66,9 +70,14 @@
 | 事务     | √      |
 | 主键     | √      |
 | 外键     | √      |
+| 一对多   | √      |
+| 多对一   | √      |
+| 多对多   | √      |
+| 存储过程  | -       |
 #### 其他:
 ## 用法:
 > 以下的写法只是列举一部分, 自己很容易能重载, 拓展
+
 ### Select:
 ```c#
 // 条件查询 '()'里面是或(or)关系 where之间是且(and)关系
@@ -99,6 +108,12 @@ List<(int,string)> items = People_student.Query.ToTupleList<(int,string)>("age,n
 
 // 导出sql语句(调试用)
 People_student.Query.WhereAge(10).ToString(); // 重写ToString()方法 ()内可以写数据库字段名称
+
+// 一对多, 多对一, 多对多关系 详情看Model层
+stu1.Obj_people_teacher; //多对一: student表里面有一个teacher_id的外键连接teacher表的主键
+teacher1.Obj_people_students; //一对多: 查出该班主任所带的学生
+//多对多: student之间course表用中间表 electives的复合主键连接两个表的主键 
+stu1.Obj_people_courses; //查出该学生选择了课程
 ```
 ### Insert:
 ```c#
@@ -150,4 +165,9 @@ People_student.Query.Count();
 ## 版本更新: 
 ### v1.0.0
 ### v1.0.1 -Oct. 24th, 2017 
-1. 新增支持line,point,polygon,box,circle属性, geometry(postgis)空间数据二维存取
+1. 新增支持line、point、polygon、box,、circle属性，geometry(postgis)空间数据二维存取。
+
+### v1.0.1 -Nov. 6th, 2017 
+1. 新增表间一对多、多对一、多对多关系的查询。
+2. 新增Redis。见生成后db层RedisHelper.cs。
+| jsonb           | JToken        |               | 
