@@ -38,7 +38,6 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
         #region Get
         public void GetFieldList()
         {
-<<<<<<< HEAD
             string sqlText = $@"
 SELECT
 	A .oid,
@@ -85,28 +84,7 @@ LEFT JOIN pg_type e2 ON e2.oid = e.typelem
 INNER JOIN information_schema. COLUMNS f ON f.table_schema = b.nspname AND f. TABLE_NAME = A .relname AND COLUMN_NAME = C .attname
 WHERE
   b.nspname='{schemaName}' and a.relname='{table.Name}';
-";
-=======
-            string sqlText = $@"SELECT a.oid,
-                c.attnum as num,
-                c.attname as field,
-                 (case when f.character_maximum_length is null then c.attlen else f.character_maximum_length end) as length,
-                c.attnotnull as notnull,
-                d.description as comment,
-                (case when e.typelem = 0 then e.typname when e.typcategory = 'G' then format_type(c.atttypid, c.atttypmod) else e2.typname end) as type,
-                format_type(c.atttypid, c.atttypmod) AS type_comment,
-                (case when e.typelem = 0 then e.typtype else e2.typtype end) as data_type,
-                e.typcategory,
-                f.is_identity
-                from  pg_class a 
-                inner join pg_namespace b on a.relnamespace=b.oid
-                inner join pg_attribute c on attrelid = a.oid
-                LEFT OUTER JOIN pg_description d ON c.attrelid = d.objoid AND c.attnum = d.objsubid and c.attnum > 0
-                inner join pg_type e on e.oid=c.atttypid
-                left join pg_type e2 on e2.oid=e.typelem
-                inner join information_schema.columns f on f.table_schema = b.nspname and f.table_name=a.relname and column_name = c.attname
-                WHERE b.nspname='{schemaName}' and a.relname='{table.Name}';";
->>>>>>> 15422cdd88155bbcf36d78f7fe96d36fa458071b
+";            
             PgSqlHelper.ExecuteDataReader(dr =>
          {
              FieldInfo fi = new FieldInfo();
@@ -139,7 +117,6 @@ WHERE
 
         public void GetConstraint()
         {
-<<<<<<< HEAD
             //多对一关系
             string sqlText_MoreToOne = $@"
 SELECT
@@ -309,29 +286,12 @@ WHERE
                     }
                 }
             }
-=======
-            string sqlText = $@"
-                SELECT(select attname from pg_attribute where attrelid = a.conrelid and attnum = any(a.conkey)) as conname
-                ,b.relname as table_name,c.nspname,d.attname as ref_column,e.typname as contype
-                FROM pg_constraint a 
-                left JOIN  pg_class b on b.oid= a.confrelid
-                inner join pg_namespace c on b.relnamespace = c.oid
-                INNER JOIN pg_attribute d on d.attrelid =a.confrelid and d.attnum=any(a.confkey)
-                inner join pg_type e on e.oid = d.atttypid
-                WHERE conrelid in 
-                (
-                SELECT a.oid FROM pg_class a 
-                inner join pg_namespace b on a.relnamespace=b.oid
-                WHERE b.nspname='{schemaName}' and a.relname='{table.Name}'
-                );";
-            consList = GenericHelper<ConstraintInfo>.Generic.ReaderToList<ConstraintInfo>(PgSqlHelper.ExecuteDataReader(sqlText));
->>>>>>> 15422cdd88155bbcf36d78f7fe96d36fa458071b
+
         }
 
         public void GetPrimaryKey()
         {
             string sqlText = $@"
-<<<<<<< HEAD
 SELECT
 	b.attname AS field,
 	format_type (b.atttypid, b.atttypmod) AS typename
@@ -343,12 +303,6 @@ WHERE
 	A .indrelid = '{schemaName}.{table.Name}' :: regclass
 AND A .indisprimary;
 ";
-=======
-                SELECT b.attname as field, format_type(b.atttypid, b.atttypmod) AS typename
-                FROM pg_index a
-                INNER JOIN pg_attribute b ON b.attrelid = a.indrelid AND b.attnum = ANY(a.indkey)
-                WHERE a.indrelid = '{schemaName}.{table.Name}'::regclass AND a.indisprimary;";
->>>>>>> 15422cdd88155bbcf36d78f7fe96d36fa458071b
             pkList = GenericHelper<PrimarykeyInfo>.Generic.ReaderToList<PrimarykeyInfo>(PgSqlHelper.ExecuteDataReader(sqlText));
         }
         #endregion
@@ -622,11 +576,7 @@ AND A .indisprimary;
                 string ap = item.Is_array ? " | NpgsqlDbType.Array" : "";
                 string cSharpType = TypeHelper.PgDbTypeConvertToCSharpString(item.Db_type);
                 if (TypeHelper.NotCreateModelFieldDbType(item.Db_type, item.Typcategory))
-<<<<<<< HEAD
                     writer.WriteLine($"\t\t\t{valuename}.AddParameter(\"{item.Field}\", NpgsqlDbType.{_dbtype}{ap}, model.{item.Field.ToUpperPascal()}{SetInsertDefaultValue(item.Field, cSharpType)}, {item.Length}, {GetspecificType(item)});");
-=======
-                    writer.WriteLine($"\t\t\t{valuename}.AddParameter(\"{item.Field}\", NpgsqlDbType.{_dbtype}{ap}, model.{item.Field.ToUpperPascal()}, {item.Length}, {GetspecificType(item)});");
->>>>>>> 15422cdd88155bbcf36d78f7fe96d36fa458071b
                 if (item.Db_type == "geometry")
                 {
                     writer.WriteLine($"\t\t\t{valuename}.AddParameter(\"{item.Field}_point0\", NpgsqlDbType.Varchar, $\"POINT({{model.{item.Field.ToUpperPascal()}_x}} {{model.{item.Field.ToUpperPascal()}_y}})\", -1, null);");
