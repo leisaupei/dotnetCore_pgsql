@@ -84,7 +84,7 @@ LEFT JOIN pg_type e2 ON e2.oid = e.typelem
 INNER JOIN information_schema. COLUMNS f ON f.table_schema = b.nspname AND f. TABLE_NAME = A .relname AND COLUMN_NAME = C .attname
 WHERE
   b.nspname='{schemaName}' and a.relname='{table.Name}';
-";            
+";
             PgSqlHelper.ExecuteDataReader(dr =>
          {
              FieldInfo fi = new FieldInfo();
@@ -286,7 +286,6 @@ WHERE
                     }
                 }
             }
-
         }
 
         public void GetPrimaryKey()
