@@ -122,7 +122,27 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory
         {
             string[] NotCreateSchemas = { "'pg_catalog'", "'information_schema'" };
             string[] NotCreateTables = { "'spatial_ref_sys'" };
-            string sqlText = $"select tablename as name, 'table' as type from pg_tables where schemaname not in ({string.Join(",", NotCreateTables)}) and tablename not in ({string.Join(",", NotCreateTables)})and  schemaname = '{schemaname}'";
+            string[] NotCreateViews = { "'raster_columns'", "'raster_overviews'", "'geometry_columns'", "'geography_columns'" };
+            string sqlText = $@"
+SELECT
+	tablename AS NAME,
+	'table' AS TYPE 
+FROM
+	pg_tables 
+WHERE
+	schemaname NOT IN ({string.Join(",", NotCreateSchemas)}) 
+	AND tablename NOT IN ({string.Join(",", NotCreateTables)}) 
+	AND schemaname = '{schemaname}' 
+UNION
+	SELECT
+		viewname AS NAME,
+		'view' AS TYPE 
+	FROM
+		pg_views 
+	WHERE
+		viewname NOT IN ({string.Join(",", NotCreateViews)}) 
+		AND schemaname = '{schemaname}'
+";
             return GenericHelper<TableViewModel>.Generic.ReaderToList<TableViewModel>(PgSqlHelper.ExecuteDataReader(CommandType.Text, sqlText));
         }
         //复制目录递归

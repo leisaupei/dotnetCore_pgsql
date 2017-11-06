@@ -29,8 +29,11 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
             this.dalPath = dalPath;
             this.schemaName = schemaName;
             this.table = table;
-            GetPrimaryKey();
-            GetConstraint();
+            if (table.Type == "table")
+            {
+                GetPrimaryKey();
+                GetConstraint();
+            }
             GetFieldList();
 
         }
@@ -206,10 +209,11 @@ WHERE
 AND A .indisprimary                
 ";
                     List<PrimarykeyInfo> pk = new List<PrimarykeyInfo>();
-                    PgSqlHelper.ExecuteDataReader(dr=>{
+                    PgSqlHelper.ExecuteDataReader(dr =>
+                    {
                         if (dr["field"]?.ToString() != item.Ref_column)
                             pk.Add(new PrimarykeyInfo { Field = dr["field"].ToString(), TypeName = dr["typename"].ToString() });
-                    },union_table_sql);
+                    }, union_table_sql);
                     if (pk.Count > 0)
                     {
                         foreach (var p in pk)
@@ -262,7 +266,7 @@ WHERE
                                 }
                             }, sql1);
 
-                        
+
                             foreach (var item2 in moretoone)
                             {
                                 consListMoreToMore.Add(new ConstraintMoreToMore
@@ -307,16 +311,17 @@ AND A .indisprimary;
         #endregion
 
 
-        private string DeletePublic(string _schemaName, string table_name, bool isTableName = false)
+        private string DeletePublic(string _schemaName, TableViewModel _table, bool isTableName = false)
         {
             if (isTableName)
-                return _schemaName.ToLower() == "public" ? table_name.ToUpperPascal() : _schemaName.ToLower() + "." + table_name;
+                return _schemaName.ToLower() == "public" ? _table.Name.ToUpperPascal() : _schemaName.ToLower() + "." + _table.Name;
             else
-                return _schemaName.ToLower() == "public" ? table_name.ToUpperPascal() : _schemaName.ToUpperPascal() + "_" + table_name;
+                return _schemaName.ToLower() == "public" ? _table.Name.ToUpperPascal() : _schemaName.ToUpperPascal() + "_" + _table.Name;
         }
         private string modelClassName => dalClassName + "Model";
-        private string dalClassName => $"{DeletePublic(schemaName, table.Name)}";
-        private string tableName => $"{DeletePublic(schemaName, table.Name, true).ToLowerPascal()}";
+        private string dalClassName => $"{DeletePublic(schemaName, table)}";
+        private string tableName => $"{DeletePublic(schemaName, table, true).ToLowerPascal()}";
+
         public void Generate()
         {
             string _filename = $"{modelPath}/{modelClassName}.cs";
@@ -379,64 +384,68 @@ AND A .indisprimary;
                 }
                 writer.WriteLine("\t\t#endregion");
                 writer.WriteLine();
-                writer.WriteLine("\t\t#region Foreign Key");
-                Hashtable ht = new Hashtable();
-                foreach (var item in consListMoreToOne)
+                if (table.Type == "table")
                 {
-                    string propertyName = $"Obj_{item.Nspname.ToLowerPascal()}_{item.Table_name}";
+                    writer.WriteLine("\t\t#region Foreign Key");
+                    Hashtable ht = new Hashtable();
+                    foreach (var item in consListMoreToOne)
+                    {
+                        string propertyName = $"Obj_{item.Nspname.ToLowerPascal()}_{item.Table_name}";
 
-                    if (ht.ContainsKey(propertyName))
-                        propertyName += "By" + item.Conname;
+                        if (ht.ContainsKey(propertyName))
+                            propertyName += "By" + item.Conname;
 
-                    string f_dalName = $"{item.Nspname.ToUpperPascal()}_{item.Table_name}";
-                    string tmp_var = $"_{propertyName.ToLowerPascal()}";
+                        string f_dalName = $"{item.Nspname.ToUpperPascal()}_{item.Table_name}";
+                        string tmp_var = $"_{propertyName.ToLowerPascal()}";
+                        writer.WriteLine();
+                        writer.WriteLine($"\t\tprivate {f_dalName}Model {tmp_var} = null;");
+                        writer.WriteLine($"\t\t[ForeignKeyProperty]");
+                        writer.WriteLine($"\t\tpublic {f_dalName}Model {propertyName} => {tmp_var} = {tmp_var} == null ? {f_dalName}.GetItem({DotValueHelper(item.Conname, fieldList)}) : {tmp_var};");
+
+                        ht.Add(propertyName, "");
+                    }
+                    foreach (var item in consListOneToMore)
+                    {
+                        string propertyName = $"Obj_{item.Nspname.ToLowerPascal()}_{item.Table_name}s";
+                        string f_dalName = $"{item.Nspname.ToUpperPascal()}_{item.Table_name}";
+                        string tmp_var = $"_{propertyName.ToLowerPascal()}";
+                        writer.WriteLine();
+                        writer.WriteLine($"\t\tprivate List<{f_dalName}Model> {tmp_var} = null;");
+                        writer.WriteLine($"\t\t[ForeignKeyProperty]");
+                        writer.WriteLine($"\t\tpublic List<{f_dalName}Model> {propertyName} => {tmp_var} = {tmp_var} == null ? {f_dalName}.Query.Where{item.Ref_column.ToUpperPascal()}({item.Conname.ToUpperPascal()}).ToList() : {tmp_var};");
+                    }
+                    foreach (var item in consListMoreToMore)
+                    {
+                        string propertyName = $"Obj_{item.Minor_nspname.ToLowerPascal()}_{item.Minor_table}s";
+                        string f_dalName = $"{item.Minor_nspname.ToUpperPascal()}_{item.Minor_table}";
+                        string tmp_var = $"_{propertyName.ToLowerPascal()}";
+                        string center_dal = $"{item.Center_nspname.ToUpperPascal()}_{item.Center_table}";
+                        string mian_dal = $"{item.Main_nspname.ToUpperPascal()}_{item.Main_table}";
+
+                        writer.WriteLine();
+                        writer.WriteLine($"\t\tprivate List<{f_dalName}Model> {tmp_var} = null;");
+                        writer.WriteLine("\t\t[ForeignKeyProperty]");
+                        writer.WriteLine($"\t\tpublic List<{f_dalName}Model> {propertyName} => {tmp_var} = {tmp_var} == null ? {f_dalName}.Query.InnerJoin<{center_dal}>(\"b\", \"b.{item.Center_minor_field} = a.{item.Minor_field}\").InnerJoin<{mian_dal}>(\"c\", \"c.{item.Main_field} = b.{item.Center_main_field}\").Where(\"c.{item.Main_field} = {{0}}\", {item.Main_field.ToUpperPascal()}).ToList() : {tmp_var};");
+                    }
+                    writer.WriteLine("\t\t#endregion");
+
+                    //List<string> d_Key = new List<string>();
+                    //foreach (var item in pkList)
+                    //{
+                    //    FieldInfo fs = fieldList.FirstOrDefault(f => f.Field == item.Field);
+                    //    d_Key.Add("this." + fs.Field.ToUpperPascal());
+                    //}
                     writer.WriteLine();
-                    writer.WriteLine($"\t\tprivate {f_dalName}Model {tmp_var} = null;");
-                    writer.WriteLine($"\t\t[ForeignKeyProperty]");
-                    writer.WriteLine($"\t\tpublic {f_dalName}Model {propertyName} => {tmp_var} = {tmp_var} == null ? {f_dalName}.GetItem({DotValueHelper(item.Conname, fieldList)}) : {tmp_var};");
-
-                    ht.Add(propertyName, "");
-                }
-                foreach (var item in consListOneToMore)
-                {
-                    string propertyName = $"Obj_{item.Nspname.ToLowerPascal()}_{item.Table_name}s";
-                    string f_dalName = $"{item.Nspname.ToUpperPascal()}_{item.Table_name}";
-                    string tmp_var = $"_{propertyName.ToLowerPascal()}";
+                    writer.WriteLine("\t\t#region Update/Insert");
+                    if (pkList.Count > 0)
+                        writer.WriteLine($"\t\t[MethodProperty] public {dalClassName}.{dalClassName}UpdateBuilder Update => {dalClassName}.Update(this);");
                     writer.WriteLine();
-                    writer.WriteLine($"\t\tprivate List<{f_dalName}Model> {tmp_var} = null;");
-                    writer.WriteLine($"\t\t[ForeignKeyProperty]");
-                    writer.WriteLine($"\t\tpublic List<{f_dalName}Model> {propertyName} => {tmp_var} = {tmp_var} == null ? {f_dalName}.Query.Where{item.Ref_column.ToUpperPascal()}({item.Conname.ToUpperPascal()}).ToList() : {tmp_var};");
+                    writer.WriteLine($"\t\tpublic {modelClassName} Insert() => {dalClassName}.Insert(this);");
+                    writer.WriteLine("\t\t#endregion");
                 }
-                foreach (var item in consListMoreToMore)
-                {
-                    string propertyName = $"Obj_{item.Minor_nspname.ToLowerPascal()}_{item.Minor_table}s";
-                    string f_dalName = $"{item.Minor_nspname.ToUpperPascal()}_{item.Minor_table}";
-                    string tmp_var = $"_{propertyName.ToLowerPascal()}";
-                    string center_dal = $"{item.Center_nspname.ToUpperPascal()}_{item.Center_table}";
-                    string mian_dal = $"{item.Main_nspname.ToUpperPascal()}_{item.Main_table}";
-
-                    writer.WriteLine();
-                    writer.WriteLine($"\t\tprivate List<{f_dalName}Model> {tmp_var} = null;");
-                    writer.WriteLine("\t\t[ForeignKeyProperty]");
-                    writer.WriteLine($"\t\tpublic List<{f_dalName}Model> {propertyName} => {tmp_var} = {tmp_var} == null ? {f_dalName}.Query.InnerJoin<{center_dal}>(\"b\", \"b.{item.Center_minor_field} = a.{item.Minor_field}\").InnerJoin<{mian_dal}>(\"c\", \"c.{item.Main_field} = b.{item.Center_main_field}\").Where(\"c.{item.Main_field} = {{0}}\", {item.Main_field.ToUpperPascal()}).ToList() : {tmp_var};");
-                }
-                writer.WriteLine("\t\t#endregion");
-
-                //List<string> d_Key = new List<string>();
-                //foreach (var item in pkList)
-                //{
-                //    FieldInfo fs = fieldList.FirstOrDefault(f => f.Field == item.Field);
-                //    d_Key.Add("this." + fs.Field.ToUpperPascal());
-                //}
-                writer.WriteLine();
-                writer.WriteLine("\t\t#region Update/Insert");
-                if (pkList.Count > 0)
-                    writer.WriteLine($"\t\t[MethodProperty] public {dalClassName}.{dalClassName}UpdateBuilder Update => {dalClassName}.Update(this);");
-                writer.WriteLine();
-                writer.WriteLine($"\t\tpublic {modelClassName} Insert() => {dalClassName}.Insert(this);");
-                writer.WriteLine("\t\t#endregion");
                 writer.WriteLine("\t}");
                 writer.WriteLine("}");
+
                 writer.Flush();
 
                 CreateDal();
@@ -467,14 +476,13 @@ AND A .indisprimary;
                 writer.WriteLine($"\tpublic class {dalClassName} : Query<{modelClassName}>");
                 writer.WriteLine("\t{");
 
+                writer.WriteLine("\t\t#region Properties");
+                PropertiesGenerator(writer);
+                writer.WriteLine("\t\t#endregion");
+                writer.WriteLine();
 
                 if (table.Type == "table")
                 {
-                    writer.WriteLine("\t\t#region Properties");
-                    PropertiesGenerator(writer);
-                    writer.WriteLine("\t\t#endregion");
-                    writer.WriteLine();
-
                     writer.WriteLine("\t\t#region Delete");
                     DeleteGenerator(writer);
                     writer.WriteLine("\t\t#endregion");
@@ -484,17 +492,19 @@ AND A .indisprimary;
                     InsertGenerator(writer);
                     writer.WriteLine("\t\t#endregion");
                     writer.WriteLine();
-
-                    writer.WriteLine("\t\t#region Query");
-                    QueryGenerator(writer);
-                    writer.WriteLine("\t\t#endregion");
-                    writer.WriteLine();
-
+                }
+                writer.WriteLine("\t\t#region Query");
+                QueryGenerator(writer);
+                writer.WriteLine("\t\t#endregion");
+                writer.WriteLine();
+                if (table.Type == "table")
+                {
                     writer.WriteLine("\t\t#region Update");
                     UpdateGenerator(writer);
                     writer.WriteLine("\t\t#endregion");
                     writer.WriteLine();
                 }
+
                 writer.WriteLine("\t}");
                 writer.WriteLine("}");
             }
@@ -531,13 +541,18 @@ AND A .indisprimary;
                     sb_query.Append(", ");
                 }
             }
-            writer.WriteLine($"\t\tconst string insertSqlText = \"INSERT INTO {tableName} as a ({sb_field.ToString()}) VALUES({sb_param}) RETURNING \" + _field;");
+            if (table.Type == "table")
+                writer.WriteLine($"\t\tconst string insertSqlText = \"INSERT INTO {tableName} as a ({sb_field.ToString()}) VALUES({sb_param}) RETURNING \" + _field;");
             writer.WriteLine($"\t\tconst string _field = \"{sb_query.ToString()}\";");
+            writer.WriteLine($"\t\tpublic {dalClassName}() => Field = _field;");
             writer.WriteLine($"\t\tpublic static {dalClassName} Query => new {dalClassName}();");
 
-            writer.WriteLine($"\t\tpublic static {dalClassName}UpdateBuilder UpdateDiy => new {dalClassName}UpdateBuilder();");
-            writer.WriteLine($"\t\tpublic static DeleteBuilder<{modelClassName}> DeleteDiy => new DeleteBuilder<{modelClassName}>();");
-            writer.WriteLine($"\t\tpublic {dalClassName}() => Field = _field;");
+            if (table.Type == "table")
+            {
+                writer.WriteLine($"\t\tpublic static {dalClassName}UpdateBuilder UpdateDiy => new {dalClassName}UpdateBuilder();");
+                writer.WriteLine($"\t\tpublic static DeleteBuilder<{modelClassName}> DeleteDiy => new DeleteBuilder<{modelClassName}>();");
+
+            }
         }
         #endregion
 
