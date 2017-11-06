@@ -12,7 +12,17 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
         public static List<string> GetSchemas()
         {
             string[] NotCreateSchemas = { "'pg_toast'", "'pg_temp_1'", "'pg_toast_temp_1'", "'pg_catalog'", "'information_schema'", "'topology'" };
-            string sql = $"SELECT schema_name as schemaname FROM information_schema.schemata WHERE SCHEMA_NAME NOT IN({string.Join(",", NotCreateSchemas)})  ORDER BY SCHEMA_NAME;";
+            string sql = $@"
+SELECT 
+    SCHEMA_NAME AS schemaname 
+FROM
+    information_schema.schemata 
+WHERE
+    SCHEMA_NAME NOT IN ({string.Join(",", NotCreateSchemas)}) 
+ORDER BY
+    SCHEMA_NAME;
+            
+";
             return GenericHelper<string>.Generic.ToListSingle<string>(PgSqlHelper.ExecuteDataReader(sql));
         }
     }

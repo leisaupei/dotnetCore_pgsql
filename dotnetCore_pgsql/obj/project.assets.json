@@ -28651,7 +28651,8 @@
     ]
   },
   "packageFolders": {
-    "/Users/mac/.nuget/packages/": {}
+    "/Users/mac/.nuget/packages/": {},
+    "/usr/local/share/dotnet/sdk/NuGetFallbackFolder": {}
   },
   "project": {
     "version": "1.0.0",
@@ -28662,6 +28663,9 @@
       "packagesPath": "/Users/mac/.nuget/packages/",
       "outputPath": "/Users/mac/Projects/dotnetCore_pgsql/dotnetCore_pgsql/obj",
       "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "/usr/local/share/dotnet/sdk/NuGetFallbackFolder"
+      ],
       "configFilePaths": [
         "/Users/mac/.config/NuGet/NuGet.Config"
       ],

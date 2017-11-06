@@ -19,10 +19,18 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
             modelPath = modelpath;
             projectName = projectname;
             string sqlText = @"
-                select a.oid,a.typname, b.nspname from pg_type a 
-                INNER JOIN pg_namespace b on a.typnamespace = b.oid 
-                where a.typtype = 'e' order by oid asc";
-            List<EnumTypeInfo> list = GenericHelper<EnumTypeInfo>.Generic.ToList<EnumTypeInfo>(PgSqlHelper.ExecuteDataReader(sqlText));
+SELECT 
+    A.oid,
+    A.typname,
+    b.nspname 
+FROM
+    pg_type A INNER JOIN pg_namespace b ON A.typnamespace = b.oid 
+WHERE
+    A.typtype = 'e' 
+ORDER BY
+    oid ASC
+";
+            List<EnumTypeInfo> list = GenericHelper<EnumTypeInfo>.Generic.ReaderToList<EnumTypeInfo>(PgSqlHelper.ExecuteDataReader(sqlText));
 
             string _fileName = Path.Combine(modelPath, "_Enums.cs");
             using (StreamWriter writer = new StreamWriter(File.Create(_fileName)))
@@ -47,6 +55,7 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
             }
 
             GenerateMapping(list);
+            GenerateRedisHepler();//Create RedisHelper
         }
 
         public static void GenerateMapping(List<EnumTypeInfo> list)
@@ -92,6 +101,59 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory.DAL
                 writer.WriteLine("\t}");
                 writer.WriteLine("}"); // namespace end
             }
+        }
+        public static void GenerateRedisHepler()
+        {
+            string _fileName = Path.Combine(rootPath, "RedisHelper.cs");
+            using (StreamWriter writer = new StreamWriter(File.Create(_fileName)))
+            {
+                writer.WriteLine("using System;");
+                writer.WriteLine("using System.Collections.Generic;");
+                writer.WriteLine("using Microsoft.Extensions.Configuration;");
+                writer.WriteLine("");
+                writer.WriteLine("namespace dotnetCore_pgsql_DevVersion.db");
+                writer.WriteLine("{");
+                writer.WriteLine("\tpublic  class RedisHelper : CSRedis.QuickHelperBase");
+                writer.WriteLine("\t{");
+                writer.WriteLine("\t\tpublic static IConfiguration Configuration { get; internal set; }");
+                writer.WriteLine("\t\tpublic static void InitializeConfiguration(IConfiguration cfg)");
+                writer.WriteLine("\t\t{");
+                //note: 
+                writer.WriteLine("/*");
+                writer.WriteLine("appsetting.json里面添加");
+                writer.WriteLine("\"ConnectionStrings\": {");
+                writer.WriteLine("\t\"redis\": {");
+                writer.WriteLine("\t\t\"ip\": \"127.0.0.1\",");
+                writer.WriteLine("\t\t\"port\": 6379,");
+                writer.WriteLine("\t\t\"pass\": \"123456\",");
+                writer.WriteLine("\t\t\"database\": 13,");
+                writer.WriteLine("\t\t\"poolsize\": 50,");
+                writer.WriteLine("\t\t\"name\": \"dev\"");
+                writer.WriteLine("\t}");
+                writer.WriteLine("}");
+                writer.WriteLine("*/");
+
+                writer.WriteLine("\t\t\tConfiguration = cfg;");
+                writer.WriteLine("\t\t\tint port, poolsize, database;");
+                writer.WriteLine("\t\t\tstring ip, pass;");
+                writer.WriteLine("\t\t\tif (!int.TryParse(cfg[\"ConnectionStrings:redis:port\"], out port)) port = 6379;");
+                writer.WriteLine("\t\t\tif (!int.TryParse(cfg[\"ConnectionStrings:redis:poolsize\"], out poolsize)) poolsize = 50;");
+                writer.WriteLine("\t\t\tif (!int.TryParse(cfg[\"ConnectionStrings:redis:database\"], out database)) database = 0;");
+                writer.WriteLine("\t\t\tip = cfg[\"ConnectionStrings:redis:ip\"];");
+                writer.WriteLine("\t\t\tpass = cfg[\"ConnectionStrings:redis:pass\"];");
+                writer.WriteLine("\t\t\tName = cfg[\"ConnectionStrings:redis:name\"];");
+                writer.WriteLine("");
+                writer.WriteLine("\t\t\tInstance = new CSRedis.ConnectionPool(ip, port, poolsize);");
+                writer.WriteLine("\t\t\tInstance.Connected += (s, o) =>");
+                writer.WriteLine("\t\t\t{");
+                writer.WriteLine("\t\t\t\tCSRedis.RedisClient rc = s as CSRedis.RedisClient;");
+                writer.WriteLine("\t\t\t\tif (!string.IsNullOrEmpty(pass)) rc.Auth(pass);");
+                writer.WriteLine("\t\t\t\tif (database > 0) rc.Select(database);");
+                writer.WriteLine("\t\t\t};");
+                writer.WriteLine("\t\t}");
+                writer.WriteLine("\t}");
+                writer.WriteLine("}");
+            };
         }
     }
 }

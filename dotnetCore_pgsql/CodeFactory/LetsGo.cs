@@ -75,7 +75,7 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory
             string common_file = Path.Combine(OutputDir, ProjectName, "Common.db");
             string system_directory = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).FullName, "Common.db");
             string common_directory = Path.Combine(system_directory.Substring(0, system_directory.IndexOf("dotnetCore_pgsql") + 16), "Common.db");
-            //Console.WriteLine(common_directory);
+            Console.WriteLine(common_directory);
             DirectoryCopy(common_directory, common_file);
 
             string sln_file = Path.Combine(OutputDir, ProjectName, $"{ProjectName}.sln");
@@ -122,9 +122,10 @@ namespace dotnetCore_pgsql_DevVersion.CodeFactory
         {
             string[] NotCreateSchemas = { "'pg_catalog'", "'information_schema'" };
             string[] NotCreateTables = { "'spatial_ref_sys'" };
-            string sqlText = $"select tablename as name, 'table' as type from pg_tables where schemaname not in ({string.Join(",", NotCreateTables)}) and tablename not in ({string.Join(",",NotCreateTables)})and  schemaname = '{schemaname}'";
-            return GenericHelper<TableViewModel>.Generic.ToList<TableViewModel>(PgSqlHelper.ExecuteDataReader(CommandType.Text, sqlText));
+            string sqlText = $"select tablename as name, 'table' as type from pg_tables where schemaname not in ({string.Join(",", NotCreateTables)}) and tablename not in ({string.Join(",", NotCreateTables)})and  schemaname = '{schemaname}'";
+            return GenericHelper<TableViewModel>.Generic.ReaderToList<TableViewModel>(PgSqlHelper.ExecuteDataReader(CommandType.Text, sqlText));
         }
+        //复制目录递归
         private static void DirectoryCopy(string sourceDirectory, string targetDirectory)
         {
             if (!Directory.Exists(targetDirectory))
