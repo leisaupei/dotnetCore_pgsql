@@ -24,3 +24,16 @@ C:/Users/Administrator/Documents/git/dotnetCore_pgsql/dotnetCore_pgsql/obj/Debug
 /Users/mac/Projects/dotnetCore_pgsql/dotnetCore_pgsql/obj/Debug/netcoreapp2.0/dotnetCore_pgsql.AssemblyInfo.cs
 /Users/mac/Projects/dotnetCore_pgsql/dotnetCore_pgsql/obj/Debug/netcoreapp2.0/dotnetCore_pgsql.dll
 /Users/mac/Projects/dotnetCore_pgsql/dotnetCore_pgsql/obj/Debug/netcoreapp2.0/dotnetCore_pgsql.pdb
+D:\workspace\dotnetCore_pgsql\dotnetCore_pgsql\obj\Debug\netcoreapp2.0\dotnetCore_pgsql.csprojResolveAssemblyReference.cache
+D:\workspace\dotnetCore_pgsql\dotnetCore_pgsql\obj\Debug\netcoreapp2.0\dotnetCore_pgsql.csproj.CoreCompileInputs.cache
+D:\workspace\dotnetCore_pgsql\dotnetCore_pgsql\obj\Debug\netcoreapp2.0\dotnetCore_pgsql.AssemblyInfoInputs.cache
+D:\workspace\dotnetCore_pgsql\dotnetCore_pgsql\obj\Debug\netcoreapp2.0\dotnetCore_pgsql.AssemblyInfo.cs
+D:\workspace\dotnetCore_pgsql\dotnetCore_pgsql\obj\Debug\netcoreapp2.0\dotnetCore_pgsql.dll
+D:\workspace\dotnetCore_pgsql\dotnetCore_pgsql\obj\Debug\netcoreapp2.0\dotnetCore_pgsql.pdb
+D:\workspace\dotnetCore_pgsql\dotnetCore_pgsql\bin\Debug\netcoreapp2.0\dotnetCore_pgsql.deps.json
+D:\workspace\dotnetCore_pgsql\dotnetCore_pgsql\bin\Debug\netcoreapp2.0\dotnetCore_pgsql.runtimeconfig.json
+D:\workspace\dotnetCore_pgsql\dotnetCore_pgsql\bin\Debug\netcoreapp2.0\dotnetCore_pgsql.runtimeconfig.dev.json
+D:\workspace\dotnetCore_pgsql\dotnetCore_pgsql\bin\Debug\netcoreapp2.0\dotnetCore_pgsql.dll
+D:\workspace\dotnetCore_pgsql\dotnetCore_pgsql\bin\Debug\netcoreapp2.0\dotnetCore_pgsql.pdb
+D:\workspace\dotnetCore_pgsql\dotnetCore_pgsql\bin\Debug\netcoreapp2.0\Common.dll
+D:\workspace\dotnetCore_pgsql\dotnetCore_pgsql\bin\Debug\netcoreapp2.0\Common.pdb

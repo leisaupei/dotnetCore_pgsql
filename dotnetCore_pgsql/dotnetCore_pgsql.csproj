@@ -6,11 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Npgsql" Version="3.2.5" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Common.db\Common.db.csproj" />
+    <ProjectReference Include="..\Common\Common.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,1 +1,1 @@
-dotnet dotnetCore_pgsql.dll -h 127.0.0.1 -p 5432 -u postgres -pw tanweijie -d postgres -pool 50 -o D:\TestProject -proj Test
+dotnet dotnetCore_pgsql.dll -h 172.16.1.220 -p 5432 -u postgres -pw 123456 -d superapp -pool 50 -o D:\\TestProject -proj Test
