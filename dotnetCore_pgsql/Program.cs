@@ -31,7 +31,7 @@ namespace dotnetCore_pgsql
 			}
 			PgSqlHelper.InitDBConnection(null, connection.ToString());
 			LetsGo.Build(outputPath, projName);
-			Console.WriteLine("successful");
+			Console.WriteLine("successful...");
 			Console.ReadLine();
 		}
 	}
