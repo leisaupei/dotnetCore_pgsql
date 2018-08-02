@@ -49,8 +49,6 @@ namespace Common.CodeFactory
 			model.ConnectionString = connection.ToString();
 			PgSqlHelper.InitDBConnection(32, model.ConnectionString, null);
 			Build(model.OutputPath, model.ProjectName);
-			Console.WriteLine("successful");
-			Console.ReadLine();
 		}
 		/// <summary>
 		/// 构建
