@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Data;
+﻿using System.Collections.Generic;
 using System.IO;
 using DBHelper;
 using System.Text;
@@ -34,18 +30,6 @@ namespace Common.CodeFactory.DAL
 			_rootPath = rootPath;
 			_modelPath = modelPath;
 			_projectName = projectName;
-			//string sqlText = @"
-			//	SELECT 
-			//	    A.oid,
-			//	    A.typname,
-			//	    b.nspname 
-			//	FROM
-			//	    pg_type A INNER JOIN pg_namespace b ON A.typnamespace = b.oid 
-			//	WHERE
-			//	    A.typtype = 'e' 
-			//	ORDER BY
-			//	    oid ASC
-			//";
 			var list = SQL.Select("a.oid,a.typname,b.nspname").From("pg_type", "a").InnerJoin("pg_namespace", "b", "a.typnamespace = b.oid").Where("a.typtype='e'").OrderBy("oid asc").ToList<EnumTypeInfo>();
 			string fileName = Path.Combine(_modelPath, "_Enums.cs");
 			using (StreamWriter writer = new StreamWriter(File.Create(fileName), Encoding.UTF8))
@@ -56,8 +40,6 @@ namespace Common.CodeFactory.DAL
 				writer.WriteLine("{");
 				foreach (var item in list)
 				{
-					//string sql = $"select enumlabel from pg_enum WHERE enumtypid = {item.Oid} ORDER BY oid asc";
-					//var enums = PgSqlHelper.ExecuteDataReaderList<string>(sql);
 					var enums = SQL.Select("enumlabel").From("pg_enum").Where($"enumtypid={item.Oid}").OrderBy("oid asc").ToList<string>();
 					if (enums.Count > 0)
 						enums[0] = enums[0] + " = 1";
@@ -65,13 +47,11 @@ namespace Common.CodeFactory.DAL
 					writer.WriteLine("\t{");
 					writer.WriteLine($"\t\t{string.Join(", ", enums)}");
 					writer.WriteLine("\t}");
-
 				}
-
 				writer.WriteLine("}");
 			}
 			GenerateMapping(list);
-			GenerateRedisHepler();//Create RedisHelper.cs
+			GenerateRedisHepler();
 			GenerateCsproj();
 		}
 		/// <summary>
@@ -122,7 +102,9 @@ namespace Common.CodeFactory.DAL
 				writer.WriteLine("}"); // namespace end
 			}
 		}
-
+		/// <summary>
+		/// 生成csproj文件
+		/// </summary>
 		public static void GenerateCsproj()
 		{
 
@@ -146,7 +128,6 @@ namespace Common.CodeFactory.DAL
 				writer.WriteLine();
 				writer.WriteLine("\t<ItemGroup>");
 				writer.WriteLine("\t\t<ProjectReference Include=\"..\\Common\\Common.csproj\" />");
-				//writer.WriteLine("<ProjectReference Include=""..\Infrastructure\Infrastructure.csproj"" />");
 				writer.WriteLine("\t</ItemGroup>");
 				writer.WriteLine();
 				writer.WriteLine("</Project>");

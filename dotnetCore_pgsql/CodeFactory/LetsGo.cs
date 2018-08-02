@@ -61,14 +61,12 @@ namespace Common.CodeFactory
 		{
 			if (string.IsNullOrEmpty(outputDir) || string.IsNullOrEmpty(projectName))
 				throw new ArgumentException("outputdir 或 projectname ", "不能为空");
-
 			OutputDir = outputDir;
 			ProjectName = projectName;
 			CreateDir();
 			CreateCsproj();
 			CreateSln();
 			EnumsDal.Generate(Path.Combine(OutputDir, ProjectName, ProjectName + ".db"), ModelPath, ProjectName);
-
 			List<string> schemaList = SchemaDal.GetSchemas();
 			foreach (var schemaName in schemaList)
 			{
@@ -96,19 +94,14 @@ namespace Common.CodeFactory
 			}
 		}
 		/// <summary>
-		/// 创建csproj文件
+		/// 复制Common目录
 		/// </summary>
 		static void CreateCsproj()
 		{
-			//copy common directory
 			string targetCommonDirectory = Path.Combine(OutputDir, ProjectName, "Common");
-			if (!Directory.Exists(targetCommonDirectory)) //if is not exist
+			if (!Directory.Exists(targetCommonDirectory))
 			{
-				string systemDirectory = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).FullName, "Common");//development environment
-				string commonDirectory = Path.Combine(systemDirectory.Substring(0, systemDirectory.IndexOf("dotnetCore_pgsql") + 16), "Common");//offical environment
-
-				if (!Directory.Exists(commonDirectory))
-					commonDirectory = systemDirectory;
+				string commonDirectory = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).FullName, "Common");
 				Console.WriteLine(commonDirectory);
 				DirectoryCopy(commonDirectory, targetCommonDirectory);
 			}
@@ -178,36 +171,6 @@ namespace Common.CodeFactory
 			.Union(SQL.Select("viewname AS name,'view' AS type ").From("pg_views")
 				.Where($"viewname NOT IN ({string.Join(", ", notCreateViews)})")
 				.Where($"schemaname = '{schemaName}'")).ToList<TableViewModel>();
-			//			string sqlText = $@"
-			//SELECT
-			//	tablename AS NAME,
-			//	'table' AS TYPE 
-			//FROM
-			//	pg_tables 
-			//WHERE
-			//	schemaname NOT IN ({string.Join(",", notCreateSchemas)}) 
-			//	AND tablename NOT IN ({string.Join(",", notCreateTables)}) 
-			//	AND schemaname = '{schemaName}' 
-			//UNION
-			//	SELECT
-			//		viewname AS NAME,
-			//		'view' AS TYPE 
-			//	FROM
-			//		pg_views 
-			//	WHERE
-			//		viewname NOT IN ({string.Join(",", notCreateViews)}) 
-			//		AND schemaname = '{schemaName}'
-			//";
-			//			List<TableViewModel> list = new List<TableViewModel>();
-			//			PgSqlHelper.ExecuteDataReader(dr =>
-			//			{
-			//				list.Add(new TableViewModel
-			//				{
-			//					Name = dr["name"].ToEmptyOrString(),
-			//					Type = dr["type"].ToEmptyOrString()
-			//				});
-			//			}, sqlText);
-			//			return list;
 		}
 		/// <summary>
 		/// 复制目录

@@ -67,57 +67,6 @@ namespace Common.CodeFactory
 		public string Nspname { get; set; }
 		public bool IsOneToOne { get; set; }
 	}
-	public class ConstraintMoreToMore
-	{
-		/// <summary>
-		/// 主要输出表
-		/// </summary>
-		public string MainTable { get; set; }
-		/// <summary>
-		/// 主要输出表的Schema名称
-		/// </summary>
-		public string MainNspname { get; set; }
-		/// <summary>
-		/// 主要输出表的主键
-		/// </summary>
-		public string MainField { get; set; }
-		/// <summary>
-		/// 当前表的字段名称
-		/// </summary>
-		public string MinorField { get; set; }
-		/// <summary>
-		/// 当前表的Schema名称
-		/// </summary>
-		public string MinorNspname { get; set; }
-		/// <summary>
-		/// 当前表名称
-		/// </summary>
-		public string MinorTable { get; set; }
-		/// <summary>
-		/// 中间表的Schema
-		/// </summary>
-		public string CenterNspname { get; set; }
-		/// <summary>
-		/// 中间表中主要输出表的主键字段名称
-		/// </summary>
-		public string CenterMainField { get; set; }
-		/// <summary>
-		/// 中间表中主要输出表的主键字段类型
-		/// </summary>
-		public string CenterMainType { get; set; }
-		/// <summary>
-		/// 中间表中当前表的主键字段名称
-		/// </summary>
-		public string CenterMinorField { get; set; }
-		/// <summary>
-		/// 中间表中当前表的主键字段类型
-		/// </summary>
-		public string CenterMinorType { get; set; }
-		/// <summary>
-		/// 中间表的表名
-		/// </summary>
-		public string CenterTable { get; set; }
-	}
 	public class EnumTypeInfo
 	{
 		public int Oid { get; set; }
