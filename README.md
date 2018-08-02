@@ -2,7 +2,8 @@
 >感谢两位给予的帮助</br>
 >https://github.com/2881099</br>
 >https://github.com/lianggx
-
+## 生成环境:
+.net core 2.1+npsql-4.0.2.dll
 ## 使用: 
 ### 环境配置: 
 #### Windows
@@ -14,7 +15,7 @@
 3. 编辑执行命令
 `dotnet dotnetCore_pgsql.dll host=localhost;port=5432;user=postgres;pwd=123456;db=superapp;maxpool=50;name=testnew1;path=d:\workspace`
 
-> 注意: Mac OS用的是路径用的是'/', Windows用的是'\'
+> 注意: Mac OS用的是路径用的是'/', Windows用的是'\\'
 
 #### 参数
 - `host` host
