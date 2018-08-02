@@ -7,26 +7,33 @@ using System.Data;
 using System.Reflection;
 using System.ComponentModel;
 using System.Linq;
+using Newtonsoft.Json.Linq;
+using Microsoft.AspNetCore.Server.Kestrel.Internal.System;
 
 namespace DBHelper
 {
 	public partial class PgSqlHelper
 	{
+		public static int DB_COUNT = 1;
 		public partial class _execute : PgExecute
 		{
-			public _execute() { }
+			public _execute(int poolSize, string connectionString, ILogger logger) : base(poolSize, connectionString, logger)
+			{
+			}
 		}
-		private static PgExecute Execute => new _execute();
-		private static ILogger _logger;
-		public static void InitDBConnection(ILogger logger, string connectionString)
+		static _execute _Execute;
+		static PgExecute Execute => _Execute;
+		static ILogger _logger;
+		public static void InitDBConnection(int poolSize, string connectionString, ILogger logger)
 		{
-			if (string.IsNullOrEmpty(connectionString))
-				throw new ArgumentNullException("connectionString is null");
+			if (connectionString.IsNullOrEmpty())
+				throw new ArgumentNullException("Connection String is null");
 			//mark: 日志 
 			_logger = logger;
-			PgExecute._logger = _logger;
-			DBConnection.ConnectionString = connectionString;
+			_Execute = new _execute(poolSize, connectionString, logger);
+
 		}
+
 		public static object ExecuteScalar(CommandType commandType, string commandText, params NpgsqlParameter[] commandParameters) =>
 			Execute.ExecuteScalar(commandType, commandText, commandParameters);
 		public static int ExecuteNonQuery(CommandType commandType, string commandText, params NpgsqlParameter[] commandParameters) =>
@@ -35,6 +42,10 @@ namespace DBHelper
 			Execute.ExecuteDataReader(action, CommandType.Text, commandText, commandParameters);
 		public static int ExecuteNonQuery(string commandText) =>
 			Execute.ExecuteNonQuery(CommandType.Text, commandText, null);
+		/// <summary>
+		/// 返回列表
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
 		public static List<T> ExecuteDataReaderList<T>(string commandText, params NpgsqlParameter[] commandParameters)
 		{
 			var list = new List<T>();
@@ -44,90 +55,46 @@ namespace DBHelper
 			}, CommandType.Text, commandText, commandParameters);
 			return list;
 		}
+		/// <summary>
+		/// 返回表的第一行
+		/// </summary>
 		public static T ExecuteDataReaderModel<T>(string commandText, params NpgsqlParameter[] commandParameters)
 		{
 			var list = ExecuteDataReaderList<T>(commandText, commandParameters);
 			return list.Count > 0 ? list[0] : default(T);
 		}
-		/// <summary>
-		/// 返回一列
-		/// </summary>
-		/// <typeparam name="T">数据类型</typeparam>
-		/// <returns></returns>
-		public static List<T> ExecuteDataReaderSingle<T>(string commandText, params NpgsqlParameter[] commandParameters)
+		public static List<T> ExecuteDataReaderList<T>(string commandText, Func<T, T> func, params NpgsqlParameter[] commandParameters)
 		{
 			var list = new List<T>();
 			Execute.ExecuteDataReader(dr =>
 			{
-				list.Add(ReaderToSingle<T>(dr));
+				var model = ReaderToModel<T>(dr);
+				if (func != null)
+				{
+					model = func(model);
+					if (model != null) list.Add(model);
+				}
+				else list.Add(model);
 			}, CommandType.Text, commandText, commandParameters);
 			return list;
 		}
+		public static T ExecuteDataReaderModel<T>(string commandText, Func<T, T> func, params NpgsqlParameter[] commandParameters)
+		{
+			var list = ExecuteDataReaderList<T>(commandText, func, commandParameters);
+			return list.Count > 0 ? list[0] : default(T);
+		}
 		#region ToList
-		//Tresult 必须是能实例化的类型  不支持基本数据类型  例如List<string> 用ToListSingle<TResult>()
-		//public static List<TResult> ReaderToList<TResult>(IDataReader objReader)
-		//{
-		//	using (objReader)
-		//	{
-		//		List<TResult> list = new List<TResult>();
-
-		//		//获取传入的数据类型
-		//		Type modelType = typeof(TResult);
-		//		bool isTuple = modelType.Namespace == "System" && modelType.Name.StartsWith("ValueTuple`", StringComparison.Ordinal);
-		//		//遍历DataReader对象
-		//		while (objReader.Read())
-		//		{
-		//			//if(modelType.Namespace == "System" && modelType.Name == "String)
-		//			//使用与指定参数匹配最高的构造函数，来创建指定类型的实例
-		//			TResult model = Activator.CreateInstance<TResult>();
-		//			FieldInfo[] fs = modelType.GetFields();
-		//			Type[] type = new Type[fs.Length];
-		//			object[] parms = new object[fs.Length];
-		//			for (int i = 0; i < objReader.FieldCount; i++)
-		//			{
-		//				if (isTuple)
-		//				{
-		//					type[i] = fs[i].FieldType;
-		//					parms[i] = objReader[i];
-		//				}
-		//				else
-		//				{
-		//					//判断字段值是否为空或不存在的值
-		//					if (!objReader[i].IsNullOrDBNull())
-		//					{
-		//						//匹配字段名
-		//						PropertyInfo pi = modelType.GetProperty(objReader.GetName(i), BindingFlags.Default | BindingFlags.GetProperty | BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-		//						if (pi != null)
-		//							//绑定实体对象中同名的字段  
-		//							pi.SetValue(model, CheckType(objReader[i], pi.PropertyType), null);
-		//					}
-		//				}
-		//			}
-		//			if (isTuple)
-		//			{
-		//				ConstructorInfo constructor = modelType.GetConstructor(type.ToArray());
-		//				model = (TResult)constructor.Invoke(parms);
-		//			}
-		//			list.Add(model);
-		//		}
-		//		if (objReader != null)
-		//		{
-		//			objReader.Close();
-		//			objReader.Dispose();
-		//		}
-		//		return list;
-		//	}
-		//}
-
-		public static TResult ReaderToModel<TResult>(IDataReader objReader)
+		private static TResult ReaderToModel<TResult>(IDataReader objReader)
 		{
 			//获取传入的数据类型
 			Type modelType = typeof(TResult);
-			bool isTuple = modelType.Namespace == "System" && modelType.Name.StartsWith("ValueTuple`", StringComparison.Ordinal);
-			//遍历DataReader对象
-			//if(modelType.Namespace == "System" && modelType.Name == "String)
-			//使用与指定参数匹配最高的构造函数，来创建指定类型的实例
-			TResult model = Activator.CreateInstance<TResult>();
+			bool isTuple = (modelType.Namespace == "System" && modelType.Name.StartsWith("ValueTuple`", StringComparison.Ordinal)); //判断是否元组类型
+			bool isValue = (modelType.Namespace == "System" && modelType.Name.StartsWith("String", StringComparison.Ordinal) || typeof(TResult).BaseType == typeof(ValueType));//判断是否值类型或者string类型
+
+			//默认值
+			TResult model = default(TResult);
+			//如果非值类型创建实例
+			if (!isValue) model = Activator.CreateInstance<TResult>();
 			FieldInfo[] fs = modelType.GetFields();
 			Type[] type = new Type[fs.Length];
 			object[] parms = new object[fs.Length];
@@ -138,7 +105,7 @@ namespace DBHelper
 					type[i] = fs[i].FieldType;
 					parms[i] = objReader[i];
 				}
-				else
+				else if (!isValue)
 				{
 					//判断字段值是否为空或不存在的值
 					if (!objReader[i].IsNullOrDBNull())
@@ -151,20 +118,16 @@ namespace DBHelper
 					}
 				}
 			}
-			if (isTuple)
+			if (isValue)
 			{
-				ConstructorInfo constructor = modelType.GetConstructor(type.ToArray());
+				var value = objReader[objReader.GetName(0)];
+				if (!value.IsNullOrDBNull()) model = (TResult)CheckType(value, typeof(TResult));
+			}
+			else if (isTuple)
+			{
+				ConstructorInfo constructor = modelType.GetConstructor(type);
 				model = (TResult)constructor.Invoke(parms);
 			}
-			return model;
-		}
-		//重写支持一列  支持List<string>  仅CodeFactory使用 接口可用ToTupleList()
-		public static TResult ReaderToSingle<TResult>(IDataReader objReader)
-		{
-			TResult model = default(TResult);
-			//判断字段值是否为空或不存在的值
-			if (!objReader[objReader.GetName(0)].IsNullOrDBNull())
-				model = (TResult)CheckType(objReader[objReader.GetName(0)], typeof(TResult));
 			return model;
 		}
 
@@ -183,6 +146,8 @@ namespace DBHelper
 				NullableConverter nullableConverter = new NullableConverter(conversionType);
 				conversionType = nullableConverter.UnderlyingType;
 			}
+			if (conversionType.Namespace == "Newtonsoft.Json.Linq")
+				return JToken.Parse(value.ToEmptyOrString());
 			return Convert.ChangeType(value, conversionType);
 		}
 		#endregion
@@ -200,7 +165,7 @@ namespace DBHelper
 			}
 			finally
 			{
-				Execute.Close(null, Execute._connection);
+				Execute.Close(null, Execute._transaction.Connection);
 			}
 		}
 	}

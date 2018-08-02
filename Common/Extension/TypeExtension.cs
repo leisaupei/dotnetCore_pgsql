@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using StackExchange.Redis;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -33,6 +34,8 @@ public static class TypeExtension
 	/// <param name="obj"></param>
 	/// <returns></returns>
 	public static bool IsNullOrDBNull(this object obj) => obj == null || obj is DBNull;
+	private const string _intRegex = @"^-?\d+$";
+	private const string _numberRegex = @"^-?\d+\.?\d*$";//^-?[0-9]+\.?\d*$
 	#endregion
 
 	#region Identity
@@ -40,7 +43,13 @@ public static class TypeExtension
 	public static DateTime Greenwich_Mean_Time = TimeZoneInfo.ConvertTime(new DateTime(1970, 1, 1), TimeZoneInfo.Local);
 
 	#endregion
-
+	private static List<string> ForEnum<T>()
+	{
+		List<string> list = new List<string>();
+		foreach (var item in Enum.GetValues(typeof(T)))
+			list.Add(item.ToString());
+		return list;
+	}
 	public static object Json(this Microsoft.AspNetCore.Mvc.Rendering.IHtmlHelper html, object obj)
 	{
 		string s = JsonConvert.SerializeObject(obj);
@@ -48,6 +57,28 @@ public static class TypeExtension
 		if (html == null) return s;
 		return html.Raw(s);
 	}
+
+	public static string ToJson<T>(this T val) => JsonConvert.SerializeObject(val);
+
+	public static T ToObject<T>(this string json) => JsonConvert.DeserializeObject<T>(json);
+
+	#region RedisValue
+	/// <summary>
+	/// RedisValue[]转化成List<T>
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+	/// <param name="values"></param>
+	/// <returns></returns>
+	public static List<T> ToObjectList<T>(this RedisValue[] values) => values.IsNullOrEmpty() ? new List<T>() : string.Concat("[", string.Join(",", values.Where(a => !a.IsNullOrEmpty).Select(a => a.ToString())), "]").ToObject<List<T>>();
+
+	/// <summary>
+	/// RedisValue[]转化成List<T>
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+	/// <param name="values"></param>
+	/// <returns></returns>
+	public static T ToObject<T>(this RedisValue value) => value.ToString().ToObject<T>();
+	#endregion
 
 	#region IDictionary
 	/// <summary>
@@ -62,10 +93,6 @@ public static class TypeExtension
 	#endregion
 
 	#region IEnumerable.To
-	/// <summary>
-	/// 返回Array基本类型的默认值或者第一个元素
-	/// </summary>
-	public static T ToArrayFirst<T>(this IEnumerable<T> arr) => arr == null || arr.Count() == 0 ? default(T) : arr.First();
 	/// <summary>
 	/// 在数组中插入分隔符
 	/// </summary>
@@ -153,12 +180,11 @@ public static class TypeExtension
 	#endregion
 
 	#region String.To
-
 	public static byte[] ToBytes(this string s) => s.IsNullOrEmpty() ? null : Encoding.UTF8.GetBytes(s);
-	public static int ToShortInt(this string s) => s.IsNullOrEmpty() ? 0 : (new Regex(@"^[0-9]+$").IsMatch(s) ? Convert.ToInt16(s) : 0);
-	public static int ToInt(this string s) => s.IsNullOrEmpty() ? 0 : (new Regex(@"^[0-9]+$").IsMatch(s) ? Convert.ToInt32(s) : 0);
-	public static long ToLong(this string s) => s.IsNullOrEmpty() ? 0 : (new Regex(@"^[0-9]+$").IsMatch(s) ? Convert.ToInt64(s) : 0);
-	public static decimal ToDecimal(this string s) => s.IsNullOrEmpty() ? 0 : (new Regex(@"[0-9]\d*[\.]?\d*|-0\.\d*[0-9]\d*$").IsMatch(s) ? Convert.ToDecimal(s) : 0);
+	public static int ToShortInt(this string s) => s.IsNullOrEmpty() ? 0 : (new Regex(_intRegex).IsMatch(s) ? Convert.ToInt16(s) : 0);
+	public static int ToInt(this string s) => s.IsNullOrEmpty() ? 0 : (new Regex(_intRegex).IsMatch(s) ? Convert.ToInt32(s) : 0);
+	public static long ToLong(this string s) => s.IsNullOrEmpty() ? 0 : (new Regex(_intRegex).IsMatch(s) ? Convert.ToInt64(s) : 0);
+	public static decimal ToDecimal(this string s) => s.IsNullOrEmpty() ? 0 : (new Regex(_numberRegex).IsMatch(s) ? Convert.ToDecimal(s) : 0);
 	public static Guid ToGuid(this string s)
 	{
 		Guid val = Guid.Empty;
@@ -167,7 +193,7 @@ public static class TypeExtension
 		Guid.TryParse(s, out val);
 		return val;
 	}
-	public static double ToDouble(this string s) => s.IsNullOrEmpty() ? 0 : (new Regex(@"[0-9]\d*[\.]?\d*|-0\.\d*[0-9]\d*$").IsMatch(s) ? Convert.ToDouble(s) : 0);
+	public static double ToDouble(this string s) => s.IsNullOrEmpty() ? 0 : (new Regex(_numberRegex).IsMatch(s) ? Convert.ToDouble(s) : 0);
 	public static double ToFloat(this string s) => (float)ToDecimal(s);
 	public static DateTime ToDateTime(this string s)
 	{
@@ -178,7 +204,6 @@ public static class TypeExtension
 	}
 	public static bool? ToBooleanNull(this string s)
 	{
-
 		bool? val = null;
 		try
 		{
@@ -187,7 +212,7 @@ public static class TypeExtension
 		catch { }
 		return val;
 	}
-	public static bool ToBoolean(this string s) => s.IsNullOrEmpty() ? false : (new Regex(@"[0-9]\d*[\.]?\d*|-0\.\d*[0-9]\d*$").IsMatch(s) ? Convert.ToInt64(s) > 0 : (new Regex(@"true|false").IsMatch(s.ToLower()) ? Convert.ToBoolean(s) : false));
+	public static bool ToBoolean(this string s) => s.IsNullOrEmpty() ? false : (new Regex(_numberRegex).IsMatch(s) ? Convert.ToInt64(s) > 0 : (new Regex(@"true|false").IsMatch(s.ToLower()) ? Convert.ToBoolean(s) : false));
 
 	/// <summary>
 	/// 截取字符串 用符号省略
@@ -214,7 +239,7 @@ public static class TypeExtension
 	/// </summary>
 	/// <param name="s"></param>
 	/// <returns></returns>
-	public static string ToFilterEmojiObj(this string s) => Regex.Replace(s, @"\p{Cs}|￼|\s", "");
+	public static string ToTrimEmojiObj(this string s) => Regex.Replace(s, @"\p{Cs}|￼|\s", "");
 
 	/**
 	 * @ 将位移编码的字母和数字进行解码
@@ -223,9 +248,7 @@ public static class TypeExtension
 	{
 		byte[] bytes = Encoding.ASCII.GetBytes(s);
 		for (int i = 0; i < bytes.Length; i++)
-		{
 			bytes[i] = Convert.ToByte(bytes[i] + 10 - 7);
-		}
 		string str = Encoding.ASCII.GetString(bytes);
 		return str;
 	}
@@ -237,16 +260,14 @@ public static class TypeExtension
 	{
 		byte[] bytes = Encoding.ASCII.GetBytes(s);
 		for (int i = 0; i < bytes.Length; i++)
-		{
 			bytes[i] = Convert.ToByte(bytes[i] - 10 + 7);
-		}
 		string str = Encoding.ASCII.GetString(bytes);
-
 		return str;
 	}
 	#endregion
 
 	#region DateTime.To
+
 	public static long DateDiff(this DateTime dt1, DateTime dt2, DateInterval di) => DateAndTime.DateDiff(di, dt1, dt2);
 
 	public static long ToUnixDateTime(this DateTime dt)
@@ -255,7 +276,7 @@ public static class TypeExtension
 		try
 		{
 			// 除以10000，保持13位
-			val = (dt.ToUniversalTime().Ticks - Greenwich_Mean_Time.Ticks) / 10000000;
+			val = (dt.ToUniversalTime().Ticks - Greenwich_Mean_Time.Ticks) / 10000;
 		}
 		catch { }
 		return val;
@@ -266,7 +287,7 @@ public static class TypeExtension
 		long val = 0;
 		try
 		{
-			val = ToUnixDateTime(Greenwich_Mean_Time);
+			val = ToUnixDateTime(dt);
 		}
 		catch { }
 		return val;
@@ -298,12 +319,12 @@ public static class TypeExtension
 	public static int ToInt(this float val) => Convert.ToInt16(val);
 	public static int ToInt(this double val) => Convert.ToInt16(val);
 
-	public static DateTime FromUnixDateTime(this long val)
+	public static DateTime ToDateTime(this long val)
 	{
 		DateTime dt = Greenwich_Mean_Time;
 		try
 		{
-			dt = dt.AddMilliseconds(val);
+			dt = new DateTime(Greenwich_Mean_Time.Ticks + val * 10000).ToLocalTime();
 		}
 		catch { }
 		return dt;
@@ -431,7 +452,13 @@ public static class TypeExtension
 			if (val == null)
 				return dt;
 			if (val is long)
-				dt = dt.AddMilliseconds(Convert.ToInt64(val));
+				dt = Convert.ToInt64(val).ToDateTime();
+			else if (val is string)
+			{
+				if (val.ToNullOrString().IsNullOrEmpty()) val = null;
+				if (DateTime.TryParse(val.ToString(), out DateTime dt1))
+					dt = dt1;
+			}
 			else
 				dt = Convert.ToDateTime(val);
 		}
@@ -488,7 +515,7 @@ public static class TypeExtension
 	/// object返回空字符串或者返回tostring()
 	/// </summary>
 	public static string ToEmptyOrString(this object s) => s == null ? "" : s.ToString();
-	public static string ToNullOrString(this object s) => s == null ? null : s.ToString();
+	public static string ToNullOrString(this object s) => s?.ToString();
 	#endregion
 
 	#region GetDateTime
@@ -561,6 +588,36 @@ public static class TypeExtension
 	}
 	#endregion
 
+	#region Sort
+	public static int[] BubbleSort(this int[] arr, bool isAsc = true)
+	{
+		for (int i = 0; i < arr.Length; i++)
+		{
+			for (int j = 0; j < arr.Length - 1; j++)
+			{
+				if (isAsc)
+				{
+					if (arr[j] >= arr[i])
+					{
+						var temp = arr[i];
+						arr[i] = arr[j];
+						arr[j] = temp;
+					}
+				}
+				else
+				{
+					if (arr[j] <= arr[i])
+					{
+						var temp = arr[i];
+						arr[i] = arr[j];
+						arr[j] = temp;
+					}
+				}
+			}
+		}
+		return arr;
+	}
+	#endregion
 }
 #region DateAndTime
 /// <summary>

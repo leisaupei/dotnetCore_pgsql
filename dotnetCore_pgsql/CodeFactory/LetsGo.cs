@@ -1,4 +1,4 @@
-﻿using DBHelper.CodeFactory.DAL;
+﻿using Common.CodeFactory.DAL;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,23 +6,67 @@ using System.Linq;
 using System.Threading.Tasks;
 using DBHelper;
 using System.Data;
-namespace DBHelper.CodeFactory
+using System.Text;
+
+namespace Common.CodeFactory
 {
-	public class LetsGo
+	public static class LetsGo
 	{
-		private static string ModelPath = string.Empty;
-		private static string DalPath = string.Empty;
-		private static string ProjectName = string.Empty;
-		private static string OutputDir = string.Empty;
+		static string ModelPath = string.Empty;
+		static string DalPath = string.Empty;
+		static string ProjectName = string.Empty;
+		static string OutputDir = string.Empty;
+		/// <summary>
+		/// 生成
+		/// </summary>
+		/// <param name="args"></param>
+		public static void Produce(string[] args)
+		{
+			Console.OutputEncoding = Encoding.UTF8;
+			GenerateModel model = new GenerateModel();
+			if (args.Length != 1) throw new Exception("Generate string is error");
+			var strings = args[0].Split(';');
+			if (strings.Length != 8) throw new Exception("Generate string is error");
+			StringBuilder connection = new StringBuilder();
+			foreach (var item in strings)
+			{
+				//host=localhost;port=5432;user=postgres;pwd=123456;db=postgres;maxpool=50;name=test;path=d:\workspace
+				var sp = item.Split('=');
+				var left = sp[0];
+				var right = sp[1];
+				switch (left.ToLower())
+				{
+					case "host": connection.Append($"host={right};"); break;
+					case "port": connection.Append($"port={right};"); break;
+					case "user": connection.Append($"username={right};"); break;
+					case "pwd": connection.Append($"password={right};"); break;
+					case "db": connection.Append($"database={right};"); break;
+					case "maxpool": connection.Append($"maximum pool size={right};pooling=true;"); break;
+					case "name": model.ProjectName = right; break;
+					case "path": model.OutputPath = right; break;
+				}
+			}
+			model.ConnectionString = connection.ToString();
+			PgSqlHelper.InitDBConnection(32, model.ConnectionString, null);
+			Build(model.OutputPath, model.ProjectName);
+			Console.WriteLine("successful");
+			Console.ReadLine();
+		}
+		/// <summary>
+		/// 构建
+		/// </summary>
+		/// <param name="outputDir"></param>
+		/// <param name="projectName"></param>e
 		public static void Build(string outputDir, string projectName)
 		{
 			if (string.IsNullOrEmpty(outputDir) || string.IsNullOrEmpty(projectName))
 				throw new ArgumentException("outputdir 或 projectname ", "不能为空");
 
-			OutputDir = outputDir; ProjectName = projectName;
-
-			CreateDir(); CreateCsproj();
-
+			OutputDir = outputDir;
+			ProjectName = projectName;
+			CreateDir();
+			CreateCsproj();
+			CreateSln();
 			EnumsDal.Generate(Path.Combine(OutputDir, ProjectName, ProjectName + ".db"), ModelPath, ProjectName);
 
 			List<string> schemaList = SchemaDal.GetSchemas();
@@ -36,8 +80,12 @@ namespace DBHelper.CodeFactory
 				}
 			}
 		}
-		private static void CreateDir()
+		/// <summary>
+		/// 创建目录
+		/// </summary>
+		static void CreateDir()
 		{
+
 			ModelPath = Path.Combine(OutputDir, ProjectName, ProjectName + ".db", "Model", "Build");
 			DalPath = Path.Combine(OutputDir, ProjectName, ProjectName + ".db", "DAL", "Build");
 			string[] ps = { ModelPath, DalPath };
@@ -47,48 +95,34 @@ namespace DBHelper.CodeFactory
 					Directory.CreateDirectory(ps[i]);
 			}
 		}
-		private static void CreateCsproj()
+		/// <summary>
+		/// 创建csproj文件
+		/// </summary>
+		static void CreateCsproj()
 		{
-			string path = Path.Combine(OutputDir, ProjectName, $"{ProjectName}.db");
-
-			string csproj = Path.Combine(path, $"{ProjectName}.db.csproj");
-
-			if (File.Exists(csproj))
-				return;
-			using (StreamWriter writer = new StreamWriter(File.Create(csproj)))
-			{
-				writer.WriteLine(@"<Project Sdk=""Microsoft.NET.Sdk"">");
-				writer.WriteLine();
-				writer.WriteLine("\t<PropertyGroup>");
-				writer.WriteLine("\t\t<TargetFramework>netcoreapp2.0</TargetFramework>");
-				writer.WriteLine("\t</PropertyGroup>");
-				writer.WriteLine();
-				writer.WriteLine("\t<ItemGroup>");
-				writer.WriteLine("\t\t<Folder Include= \"DAL\\Build\\\" />");
-				writer.WriteLine("\t\t<Folder Include= \"Model\\Build\\\" />");
-				writer.WriteLine("\t</ItemGroup>");
-				writer.WriteLine();
-				writer.WriteLine("\t<ItemGroup>");
-				writer.WriteLine("\t\t<ProjectReference Include=\"..\\Common\\Common.csproj\" />");
-				//writer.WriteLine("<ProjectReference Include=""..\Infrastructure\Infrastructure.csproj"" />");
-				writer.WriteLine("\t</ItemGroup>");
-				writer.WriteLine();
-				writer.WriteLine("</Project>");
-
-			}
-			//unzip
+			//copy common directory
 			string targetCommonDirectory = Path.Combine(OutputDir, ProjectName, "Common");
-			string systemDirectory = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).FullName, "Common");//开发环境
-			string commonDirectory = Path.Combine(systemDirectory.Substring(0, systemDirectory.IndexOf("dotnetCore_pgsql") + 16), "Common");//正式环境
-			if (!Directory.Exists(commonDirectory))
-				commonDirectory = systemDirectory;
-			Console.WriteLine(commonDirectory);
-			DirectoryCopy(commonDirectory, targetCommonDirectory);
+			if (!Directory.Exists(targetCommonDirectory)) //if is not exist
+			{
+				string systemDirectory = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).FullName, "Common");//development environment
+				string commonDirectory = Path.Combine(systemDirectory.Substring(0, systemDirectory.IndexOf("dotnetCore_pgsql") + 16), "Common");//offical environment
 
+				if (!Directory.Exists(commonDirectory))
+					commonDirectory = systemDirectory;
+				Console.WriteLine(commonDirectory);
+				DirectoryCopy(commonDirectory, targetCommonDirectory);
+			}
+
+		}
+		/// <summary>
+		/// 创建sln解决方案文件
+		/// </summary>
+		static void CreateSln()
+		{
 			string sln_file = Path.Combine(OutputDir, ProjectName, $"{ProjectName}.sln");
 			if (!File.Exists(sln_file))
 			{
-				using (StreamWriter writer = new StreamWriter(File.Create(sln_file)))
+				using (StreamWriter writer = new StreamWriter(File.Create(sln_file), Encoding.UTF8))
 				{
 					writer.WriteLine("Microsoft Visual Studio Solution File, Format Version 12.00");
 					writer.WriteLine("# Visual Studio 15>");
@@ -125,61 +159,95 @@ namespace DBHelper.CodeFactory
 				}
 			}
 		}
-		private static List<TableViewModel> GetTables(string schemaName)
+
+		/// <summary>
+		/// 获取所有表
+		/// </summary>
+		/// <param name="schemaName"></param>
+		/// <returns></returns>
+		static List<TableViewModel> GetTables(string schemaName)
 		{
 			string[] notCreateSchemas = { "'pg_catalog'", "'information_schema'" };
 			string[] notCreateTables = { "'spatial_ref_sys'" };
 			string[] notCreateViews = { "'raster_columns'", "'raster_overviews'", "'geometry_columns'", "'geography_columns'" };
-			string sqlText = $@"
-SELECT
-	tablename AS NAME,
-	'table' AS TYPE 
-FROM
-	pg_tables 
-WHERE
-	schemaname NOT IN ({string.Join(",", notCreateSchemas)}) 
-	AND tablename NOT IN ({string.Join(",", notCreateTables)}) 
-	AND schemaname = '{schemaName}' 
-UNION
-	SELECT
-		viewname AS NAME,
-		'view' AS TYPE 
-	FROM
-		pg_views 
-	WHERE
-		viewname NOT IN ({string.Join(",", notCreateViews)}) 
-		AND schemaname = '{schemaName}'
-";
-			List<TableViewModel> list = new List<TableViewModel>();
-			PgSqlHelper.ExecuteDataReader(dr =>
-			{
-				list.Add(new TableViewModel
-				{
-					Name = dr["name"].ToEmptyOrString(),
-					Type = dr["type"].ToEmptyOrString()
-				});
-			}, sqlText);
-			return list;
+
+			return SQL.Select("tablename AS name,'table' AS type").From("pg_tables")
+				.Where($"schemaname NOT IN({ string.Join(",", notCreateSchemas)})")
+				.Where($"tablename NOT IN ({string.Join(",", notCreateTables)})")
+				.Where($"schemaname = '{schemaName}'")
+			.Union(SQL.Select("viewname AS name,'view' AS type ").From("pg_views")
+				.Where($"viewname NOT IN ({string.Join(", ", notCreateViews)})")
+				.Where($"schemaname = '{schemaName}'")).ToList<TableViewModel>();
+			//			string sqlText = $@"
+			//SELECT
+			//	tablename AS NAME,
+			//	'table' AS TYPE 
+			//FROM
+			//	pg_tables 
+			//WHERE
+			//	schemaname NOT IN ({string.Join(",", notCreateSchemas)}) 
+			//	AND tablename NOT IN ({string.Join(",", notCreateTables)}) 
+			//	AND schemaname = '{schemaName}' 
+			//UNION
+			//	SELECT
+			//		viewname AS NAME,
+			//		'view' AS TYPE 
+			//	FROM
+			//		pg_views 
+			//	WHERE
+			//		viewname NOT IN ({string.Join(",", notCreateViews)}) 
+			//		AND schemaname = '{schemaName}'
+			//";
+			//			List<TableViewModel> list = new List<TableViewModel>();
+			//			PgSqlHelper.ExecuteDataReader(dr =>
+			//			{
+			//				list.Add(new TableViewModel
+			//				{
+			//					Name = dr["name"].ToEmptyOrString(),
+			//					Type = dr["type"].ToEmptyOrString()
+			//				});
+			//			}, sqlText);
+			//			return list;
 		}
-		//复制目录递归
-		private static void DirectoryCopy(string sourceDirectory, string targetDirectory)
+		/// <summary>
+		/// 复制目录
+		/// </summary>
+		/// <param name="sourceDirectory"></param>
+		/// <param name="targetDirectory"></param>
+		static void DirectoryCopy(string sourceDirectory, string targetDirectory)
 		{
+			DirectoryInfo sourceInfo = new DirectoryInfo(sourceDirectory);
+			if (ExceptDir.Contains(sourceInfo.Name))
+				return;
 			if (!Directory.Exists(targetDirectory))
 				Directory.CreateDirectory(targetDirectory);
 			if (!Directory.Exists(sourceDirectory))
 				return;
-			DirectoryInfo sourceInfo = new DirectoryInfo(sourceDirectory);
 			FileInfo[] fileInfo = sourceInfo.GetFiles();
 			foreach (FileInfo fiTemp in fileInfo)
-				File.Copy(Path.Combine(sourceDirectory, fiTemp.Name), Path.Combine(targetDirectory, fiTemp.Name), true);
+			{
+				if (ExceptFile.Contains(fiTemp.Name))
+					continue;
+				var sourcePath = Path.Combine(sourceDirectory, fiTemp.Name);
+				var targetPath = Path.Combine(targetDirectory, fiTemp.Name);
+				File.Copy(sourcePath, targetPath, true);
+			}
+
 			DirectoryInfo[] diInfo = sourceInfo.GetDirectories();
 			foreach (DirectoryInfo diTemp in diInfo)
 			{
 				string sourcePath = diTemp.FullName;
 				string targetPath = diTemp.FullName.Replace(sourceDirectory, targetDirectory);
-				Directory.CreateDirectory(targetPath);
 				DirectoryCopy(sourcePath, targetPath);
 			}
 		}
+		/// <summary>
+		/// 不复制的目录
+		/// </summary>
+		static readonly string[] ExceptDir = { "CodeFactory", "CSRedis", "MQHelper" };
+		/// <summary>
+		/// 不复制的文件
+		/// </summary>
+		static readonly string[] ExceptFile = { "Redis.zip" };
 	}
 }

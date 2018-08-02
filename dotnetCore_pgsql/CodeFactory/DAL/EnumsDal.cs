@@ -5,34 +5,50 @@ using System.Threading.Tasks;
 using System.Data;
 using System.IO;
 using DBHelper;
+using System.Text;
 
-namespace DBHelper.CodeFactory.DAL
+namespace Common.CodeFactory.DAL
 {
 	public class EnumsDal
 	{
-		private static string _projectName = string.Empty;
-		private static string _modelPath = string.Empty;
-		private static string _rootPath = string.Empty;
+		/// <summary>
+		/// 项目名称
+		/// </summary>
+		static string _projectName = string.Empty;
+		/// <summary>
+		/// model目录
+		/// </summary>
+		static string _modelPath = string.Empty;
+		/// <summary>
+		/// 根目录
+		/// </summary>
+		static string _rootPath = string.Empty;
+		/// <summary>
+		/// 生成枚举数据库枚举类型(覆盖生成)
+		/// </summary>
+		/// <param name="rootPath">根目录</param>
+		/// <param name="modelPath">Model目录</param>
+		/// <param name="projectName">项目名称</param>
 		public static void Generate(string rootPath, string modelPath, string projectName)
 		{
 			_rootPath = rootPath;
 			_modelPath = modelPath;
 			_projectName = projectName;
-			string sqlText = @"
-				SELECT 
-				    A.oid,
-				    A.typname,
-				    b.nspname 
-				FROM
-				    pg_type A INNER JOIN pg_namespace b ON A.typnamespace = b.oid 
-				WHERE
-				    A.typtype = 'e' 
-				ORDER BY
-				    oid ASC
-			";
-			var list = PgSqlHelper.ExecuteDataReaderList<EnumTypeInfo>(sqlText);
+			//string sqlText = @"
+			//	SELECT 
+			//	    A.oid,
+			//	    A.typname,
+			//	    b.nspname 
+			//	FROM
+			//	    pg_type A INNER JOIN pg_namespace b ON A.typnamespace = b.oid 
+			//	WHERE
+			//	    A.typtype = 'e' 
+			//	ORDER BY
+			//	    oid ASC
+			//";
+			var list = SQL.Select("a.oid,a.typname,b.nspname").From("pg_type", "a").InnerJoin("pg_namespace", "b", "a.typnamespace = b.oid").Where("a.typtype='e'").OrderBy("oid asc").ToList<EnumTypeInfo>();
 			string fileName = Path.Combine(_modelPath, "_Enums.cs");
-			using (StreamWriter writer = new StreamWriter(File.Create(fileName)))
+			using (StreamWriter writer = new StreamWriter(File.Create(fileName), Encoding.UTF8))
 			{
 				writer.WriteLine("using System;");
 				writer.WriteLine();
@@ -40,27 +56,32 @@ namespace DBHelper.CodeFactory.DAL
 				writer.WriteLine("{");
 				foreach (var item in list)
 				{
-					string sql = $"select enumlabel from pg_enum WHERE enumtypid = {item.Oid} ORDER BY oid asc";
-					var enums = PgSqlHelper.ExecuteDataReaderSingle<string>(sql);
+					//string sql = $"select enumlabel from pg_enum WHERE enumtypid = {item.Oid} ORDER BY oid asc";
+					//var enums = PgSqlHelper.ExecuteDataReaderList<string>(sql);
+					var enums = SQL.Select("enumlabel").From("pg_enum").Where($"enumtypid={item.Oid}").OrderBy("oid asc").ToList<string>();
 					if (enums.Count > 0)
 						enums[0] = enums[0] + " = 1";
-					writer.WriteLine($"\tpublic enum {item.Typname.ToUpperPascal()}ENUM");
+					writer.WriteLine($"\tpublic enum {item.Typname.ToUpperPascal()}");
 					writer.WriteLine("\t{");
 					writer.WriteLine($"\t\t{string.Join(", ", enums)}");
 					writer.WriteLine("\t}");
+
 				}
 
 				writer.WriteLine("}");
 			}
-
 			GenerateMapping(list);
-			GenerateRedisHepler();//Create RedisHelper
+			GenerateRedisHepler();//Create RedisHelper.cs
+			GenerateCsproj();
 		}
-
+		/// <summary>
+		/// 生成初始化文件(覆盖生成)
+		/// </summary>
+		/// <param name="list"></param>
 		public static void GenerateMapping(List<EnumTypeInfo> list)
 		{
 			string fileName = Path.Combine(_rootPath, "_Startup.cs");
-			using (StreamWriter writer = new StreamWriter(File.Create(fileName)))
+			using (StreamWriter writer = new StreamWriter(File.Create(fileName), Encoding.UTF8))
 			{
 				writer.WriteLine($"using {_projectName}.Model;");
 				writer.WriteLine("using System;");
@@ -72,14 +93,15 @@ namespace DBHelper.CodeFactory.DAL
 				writer.WriteLine("{");
 				writer.WriteLine("\tpublic class _Startup");
 				writer.WriteLine("\t{");
-				writer.WriteLine("\t\tpublic static void Init(ILogger logger, string connectionString)");
+				writer.WriteLine();
+				writer.WriteLine("\t\tpublic static void Init(int poolSize, string connectionSring, ILogger logger)");
 				writer.WriteLine("\t\t{");
-				writer.WriteLine("\t\t\tPgSqlHelper.InitDBConnection(logger, connectionString);");
+				writer.WriteLine("\t\t\tPgSqlHelper.InitDBConnection(poolSize, connectionSring, logger);");
 				writer.WriteLine();
 				writer.WriteLine("\t\t\tNpgsqlNameTranslator translator = new NpgsqlNameTranslator();");
+				writer.WriteLine("\t\t\tNpgsqlConnection.GlobalTypeMapper.UseJsonNet();");
 				foreach (var item in list)
-					writer.WriteLine($"\t\t\tNpgsqlConnection.MapEnumGlobally<{item.Typname.ToUpperPascal()}ENUM>(\"{item.Nspname}.{item.Typname}\", translator);");
-
+					writer.WriteLine($"\t\t\tNpgsqlConnection.GlobalTypeMapper.MapEnum<{item.Typname.ToUpperPascal()}>(\"{item.Nspname}.{item.Typname}\", translator);");
 				writer.WriteLine("\t\t}");
 				writer.WriteLine("\t}");
 				writer.WriteLine("\tpublic partial class NpgsqlNameTranslator : INpgsqlNameTranslator");
@@ -100,18 +122,54 @@ namespace DBHelper.CodeFactory.DAL
 				writer.WriteLine("}"); // namespace end
 			}
 		}
+
+		public static void GenerateCsproj()
+		{
+
+			string csproj = Path.Combine(_rootPath, $"{_projectName}.db.csproj");
+			if (File.Exists(csproj))
+				return;
+			using (StreamWriter writer = new StreamWriter(File.Create(csproj), Encoding.UTF8))
+			{
+				writer.WriteLine(@"<Project Sdk=""Microsoft.NET.Sdk"">");
+				writer.WriteLine();
+				writer.WriteLine("\t<PropertyGroup>");
+				writer.WriteLine("\t\t<TargetFramework>netcoreapp2.1</TargetFramework>");
+				writer.WriteLine("\t</PropertyGroup>");
+				writer.WriteLine();
+				writer.WriteLine("\t<ItemGroup>");
+
+				writer.WriteLine("\t\t<Folder Include= \"DAL\\Build\\\" />");
+				writer.WriteLine("\t\t<Folder Include= \"Model\\Build\\\" />");
+
+				writer.WriteLine("\t</ItemGroup>");
+				writer.WriteLine();
+				writer.WriteLine("\t<ItemGroup>");
+				writer.WriteLine("\t\t<ProjectReference Include=\"..\\Common\\Common.csproj\" />");
+				//writer.WriteLine("<ProjectReference Include=""..\Infrastructure\Infrastructure.csproj"" />");
+				writer.WriteLine("\t</ItemGroup>");
+				writer.WriteLine();
+				writer.WriteLine("</Project>");
+
+			}
+		}
+		/// <summary>
+		/// 生成RedisHelper.cs(存在不生成)
+		/// </summary>
 		public static void GenerateRedisHepler()
 		{
 			string fileName = Path.Combine(_rootPath, "RedisHelper.cs");
-			using (StreamWriter writer = new StreamWriter(File.Create(fileName)))
+			if (File.Exists(fileName)) return;
+			using (StreamWriter writer = new StreamWriter(File.Create(fileName), Encoding.UTF8))
 			{
 				writer.WriteLine("using System;");
 				writer.WriteLine("using System.Collections.Generic;");
 				writer.WriteLine("using Microsoft.Extensions.Configuration;");
+				writer.WriteLine("using StackExchange.Redis;");
 				writer.WriteLine("");
-				writer.WriteLine("namespace dotnetCore_pgsql_DevVersion.db");
+				writer.WriteLine($"namespace {_projectName}.db");
 				writer.WriteLine("{");
-				writer.WriteLine("\tpublic  class RedisHelper : CSRedis.QuickHelperBase");
+				writer.WriteLine("\tpublic class RedisHelper");
 				writer.WriteLine("\t{");
 				writer.WriteLine("\t\tpublic static IConfiguration Configuration { get; internal set; }");
 				writer.WriteLine("\t\tpublic static void InitializeConfiguration(IConfiguration cfg)");
@@ -120,35 +178,16 @@ namespace DBHelper.CodeFactory.DAL
 				writer.WriteLine("/*");
 				writer.WriteLine("appsetting.json里面添加");
 				writer.WriteLine("\"ConnectionStrings\": {");
-				writer.WriteLine("\t\"redis\": {");
-				writer.WriteLine("\t\t\"ip\": \"127.0.0.1\",");
-				writer.WriteLine("\t\t\"port\": 6379,");
-				writer.WriteLine("\t\t\"pass\": \"123456\",");
-				writer.WriteLine("\t\t\"database\": 13,");
-				writer.WriteLine("\t\t\"poolsize\": 50,");
-				writer.WriteLine("\t\t\"name\": \"dev\"");
-				writer.WriteLine("\t}");
+				writer.WriteLine("\t\"redis\": \"127.0.0.1:6379,defaultDatabase=13,name = dev,abortConnect=false,password=123456\",");
 				writer.WriteLine("}");
 				writer.WriteLine("*/");
 
 				writer.WriteLine("\t\t\tConfiguration = cfg;");
-				writer.WriteLine("\t\t\tint port, poolsize, database;");
-				writer.WriteLine("\t\t\tstring ip, pass;");
-				writer.WriteLine("\t\t\tif (!int.TryParse(cfg[\"ConnectionStrings:redis:port\"], out port)) port = 6379;");
-				writer.WriteLine("\t\t\tif (!int.TryParse(cfg[\"ConnectionStrings:redis:poolsize\"], out poolsize)) poolsize = 50;");
-				writer.WriteLine("\t\t\tif (!int.TryParse(cfg[\"ConnectionStrings:redis:database\"], out database)) database = 0;");
-				writer.WriteLine("\t\t\tip = cfg[\"ConnectionStrings:redis:ip\"];");
-				writer.WriteLine("\t\t\tpass = cfg[\"ConnectionStrings:redis:pass\"];");
-				writer.WriteLine("\t\t\tName = cfg[\"ConnectionStrings:redis:name\"];");
-				writer.WriteLine("");
-				writer.WriteLine("\t\t\tInstance = new CSRedis.ConnectionPool(ip, port, poolsize);");
-				writer.WriteLine("\t\t\tInstance.Connected += (s, o) =>");
-				writer.WriteLine("\t\t\t{");
-				writer.WriteLine("\t\t\t\tCSRedis.RedisClient rc = s as CSRedis.RedisClient;");
-				writer.WriteLine("\t\t\t\tif (!string.IsNullOrEmpty(pass)) rc.Auth(pass);");
-				writer.WriteLine("\t\t\t\tif (database > 0) rc.Select(database);");
-				writer.WriteLine("\t\t\t};");
+				writer.WriteLine("\t\t\tMultiplexer = ConnectionMultiplexer.Connect(cfg[\"ConnectionStrings:redis\"]);");
 				writer.WriteLine("\t\t}");
+				writer.WriteLine("\t\tpublic static IDatabase DbClient => Multiplexer.GetDatabase();");
+				writer.WriteLine("\t\tpublic static ConnectionMultiplexer Multiplexer { get; internal set; }");
+				writer.WriteLine("\t\tpublic static IDatabase GetDatabase(int db = -1) => Multiplexer.GetDatabase(db);");
 				writer.WriteLine("\t}");
 				writer.WriteLine("}");
 			};
