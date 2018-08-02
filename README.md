@@ -6,25 +6,25 @@
 ## 使用: 
 ### 环境配置: 
 #### Windows
-1. 直接进入dotnetCore_pgsql/bin/Debug/netcoreapp2.0/
+1. 直接进入dotnetCore_pgsql/bin/Debug/netcoreapp2.1/
 2. 编辑build.bat 运行 (参照以下命令)
 #### Mac OS
 1. 打开终端terminal
-2. cd 到目录 dotnetCore_pgsql/bin/Debug/netcoreapp2.0/
+2. cd 到目录 dotnetCore_pgsql/bin/Debug/netcoreapp2.1/
 3. 编辑执行命令
-`dotnet dotnetCore_pgsql.dll -h 127.0.0.1 -p 5432 -u postgres -pw 123456 -d postgres -pool 50 -o /Users/mac/Projects -proj Test`
+`dotnet dotnetCore_pgsql.dll host=localhost;port=5432;user=postgres;pwd=123456;db=superapp;maxpool=50;name=testnew1;path=d:\workspace`
 
-> 注意: Mac OS用的是路径用的是'/', Windows用的是'\\'
+> 注意: Mac OS用的是路径用的是'/', Windows用的是'\'
 
 #### 参数
-- -h host
-- -p port
-- -u pgsql用户名
-- -pw pgsql密码
-- -d datebase
-- -pool 数据库连接池
-- -o 输出路径output directory
-- -proj 项目名称
+- host host
+- port port
+- user pgsql用户名
+- pwd pgsql密码
+- db 数据库名称
+- maxpool 数据库连接池
+- path 输出路径
+- name 项目名称
 
 ## 数据库支持: 
 #### 字段
@@ -38,8 +38,8 @@
 | text            | string        |               | 
 | varchar         | string        |               | 
 | bpchar(char)    | string        |               | 
-| float4          | decimal       |               | 
-| float8          | decimal       |               | 
+| float4          | float         |               | 
+| float8          | double        |               | 
 | numeric         | decimal       |               | 
 | money           | decimal       |               | 
 | json            | JToken        |               | 
@@ -65,8 +65,7 @@
 | 事务     | √      |
 | 主键     | √      |
 | 外键     | √      |
-| 一对多   | √      |
+| 一对一   | √      |
 | 多对一   | √      |
-| 多对多   | √      |
 | 视图     | √      |
 | 存储过程  | -       |
