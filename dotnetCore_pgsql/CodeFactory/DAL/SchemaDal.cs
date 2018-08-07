@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using DBHelper;
-namespace Common.CodeFactory.DAL
+namespace CodeFactory.DAL
 {
 	public class SchemaDal
 	{

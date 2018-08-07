@@ -1,7 +1,12 @@
-﻿using System;
+﻿/* ##########################################################
+ * #         .net core 2.1+postgres Code Maker              #
+ * #                author by leisaupei                     #
+ * ##########################################################
+ */
+using System;
 using DBHelper;
 using System.Text;
-using Common.CodeFactory;
+using CodeFactory;
 
 namespace dotnetCore_pgsql
 {
@@ -9,7 +14,21 @@ namespace dotnetCore_pgsql
 	{
 		static void Main(string[] args)
 		{
-			//@"host=localhost;port=5432;user=postgres;pwd=123456;db=superapp;maxpool=50;name=testnew1;path=d:\workspace"
+			Console.WriteLine(@"
+##########################################################
+#         .net core 2.1+postgres Code Maker              #
+#                author by leisaupei                     #
+##########################################################
+> Parameters description:
+  - host	host
+  - port	port
+  - user	pgsql username
+  - pwd		pgsql password
+  - db		database name
+  - path	output path
+  - name	project name
+> Example: host=localhost;port=5432;user=postgres;pwd=123456;db=superapp;name=testnew1;path=d:\workspace
+");
 			LetsGo.Produce(args);
 			Console.WriteLine("successful...");
 			Console.ReadLine();

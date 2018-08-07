@@ -6,7 +6,7 @@ using System.Text;
 
 namespace DBHelper
 {
-	public abstract class UpdateBuilder<TSQL> : BuilderBase<TSQL>, IGetReturn where TSQL : class, new()
+	public abstract class UpdateBuilder<TSQL> : WhereBase<TSQL>, IGetReturn where TSQL : class, new()
 	{
 		protected List<string> _setList = new List<string>();
 		public bool IsReturn { get; set; } = false;

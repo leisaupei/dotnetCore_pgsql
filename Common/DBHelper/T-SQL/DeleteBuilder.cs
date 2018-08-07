@@ -4,7 +4,7 @@ using System.Text;
 
 namespace DBHelper
 {
-	public class DeleteBuilder : BuilderBase<DeleteBuilder>
+	public class DeleteBuilder : WhereBase<DeleteBuilder>
 	{
 		/// <summary>
 		/// 初始化Table

@@ -48,6 +48,8 @@ namespace DBHelper
 		{
 			_valueList.Add(field);
 			_paramList.Add(paramStr);
+			//_paramList.AddRange(nps.Select(p => $"@{p.ParameterName}"));
+
 			_params.AddRange(nps);
 			return this;
 		}

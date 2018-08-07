@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 
 namespace DBHelper
 {
-	public abstract class SelectBuilder<TSQL> : BuilderBase<TSQL> where TSQL : class, new()
+	public abstract class SelectBuilder<TSQL> : WhereBase<TSQL> where TSQL : class, new()
 	{
 		List<Union> _listUnion { get; set; } = new List<Union>();
 		string _groupBy = string.Empty;
@@ -19,6 +19,11 @@ namespace DBHelper
 		string _offset = string.Empty;
 		string _having = string.Empty;
 		string _union = string.Empty;
+		protected SelectBuilder(string fields, string alias)
+		{
+			_fields = fields;
+			_mainAlias = alias;
+		}
 		public SelectBuilder(string fields) => _fields = fields;
 		public SelectBuilder() => _fields = "*";
 		TSQL _this => this as TSQL;

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-namespace Common.CodeFactory.DAL
+namespace CodeFactory.DAL
 {
 	public class TablesDal
 	{
@@ -34,8 +34,37 @@ namespace Common.CodeFactory.DAL
 			}
 			GetFieldList();
 		}
-
+		/// <summary>
+		/// wipe public prefix and name it.
+		/// </summary>
+		/// <param name="schemaName"></param>
+		/// <param name="tableName"></param>
+		/// <param name="isTableName"></param>
+		/// <returns></returns>
+		string DeletePublic(string schemaName, string tableName, bool isTableName = false)
+		{
+			if (isTableName)
+				return schemaName.ToLower() == "public" ? tableName.ToUpperPascal() : schemaName.ToLower() + "." + tableName;
+			return schemaName.ToLower() == "public" ? tableName.ToUpperPascal() : schemaName.ToUpperPascal() + "_" + tableName;
+		}
+		/// <summary>
+		/// Model postfix
+		/// </summary>
+		readonly string _modelName = "Model";
+		/// <summary>
+		/// Model name.
+		/// </summary>
+		string ModelClassName => DalClassName + _modelName;
+		/// <summary>
+		/// DAL name.
+		/// </summary>
+		string DalClassName => $"{DeletePublic(_schemaName, _table.Name)}";
+		/// <summary>
+		/// 表名
+		/// </summary>
+		string TableName => $"{DeletePublic(_schemaName, _table.Name, true).ToLowerPascal()}";
 		#region Get
+
 		public void GetFieldList()
 		{
 			fieldList = SQL.Select(@"a.oid,c.attnum as num,c.attname AS field,c.attnotnull AS isnotnull,d.description AS comment,e.typcategory,
@@ -65,6 +94,7 @@ namespace Common.CodeFactory.DAL
 				   return fi;
 			   });
 		}
+
 		public void GetConstraint()
 		{
 			//多对一关系
@@ -78,9 +108,7 @@ namespace Common.CodeFactory.DAL
 					.InnerJoin("pg_namespace", "b", "a.relnamespace = b.oid")
 					.Where($"b.nspname = '{_schemaName}' AND A .relname = '{_table.Name}'"))
 				.ToList<ConstraintMoreToOne>();
-
-
-			//一对多关系
+			//一对一关系
 			consListOneToMore = SQL.Select($@"DISTINCT x.TABLE_NAME as tablename, x.COLUMN_NAME as refcolumn, x.CONSTRAINT_SCHEMA as nspname, tp.typname as contype, tp.attname as conname,
 				({SQL.Select("COUNT(1)=1").From("pg_index")
 					.InnerJoin("pg_attribute", "b", "b.attrelid = a.indrelid AND b.attnum = ANY (a.indkey)")
@@ -98,10 +126,11 @@ namespace Common.CodeFactory.DAL
 				"tp", "x. TABLE_NAME = tp.relname AND x. CONSTRAINT_NAME = tp.conname")
 				.ToList<ConstraintOneToMore>(fi =>
 				{
-					if (fi.IsOneToOne) return fi;
+					if (fi.IsOneToOne) return fi;//只添加一对一关系
 					else return null;
 				});
 		}
+
 		public void GetPrimaryKey()
 		{
 			pkList = SQL.Select("b.attname AS field,format_type (b.atttypid, b.atttypmod) AS typename").From("pg_index")
@@ -109,21 +138,12 @@ namespace Common.CodeFactory.DAL
 				.Where($"a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary").ToList<PrimarykeyInfo>();
 		}
 		#endregion
-		string DeletePublic(string schemaName, string tableName, bool isTableName = false)
-		{
-			if (isTableName)
-				return schemaName.ToLower() == "public" ? tableName.ToUpperPascal() : schemaName.ToLower() + "." + tableName;
 
-			return schemaName.ToLower() == "public" ? tableName.ToUpperPascal() : schemaName.ToUpperPascal() + "_" + tableName;
-		}
-		readonly string _modelName = "Model";
-		string ModelClassName => DalClassName + _modelName;
-		string DalClassName => $"{DeletePublic(_schemaName, _table.Name)}";
-		string TableName => $"{DeletePublic(_schemaName, _table.Name, true).ToLowerPascal()}";
+		#region Generator
 		/// <summary>
-		/// 生成Model.cs文件
+		/// Generate model files(Model.cs). 
 		/// </summary>
-		public void Generate()
+		public void ModelGenerator()
 		{
 			string _filename = $"{_modelPath}/{ModelClassName}.cs";
 
@@ -150,13 +170,7 @@ namespace Common.CodeFactory.DAL
 				{
 					if (Types.NotCreateModelFieldDbType(item.DbType, item.Typcategory))
 					{
-						if (!string.IsNullOrEmpty(item.Comment))
-						{
-							writer.WriteLine("\t\t/// <summary>");
-							writer.WriteLine($"\t\t/// {item.Comment}");
-							writer.WriteLine("\t\t/// </summary>");
-						}
-
+						WriteComment(writer, item.Comment);
 						writer.WriteLine($"\t\t[JsonProperty] public {item.RelType} {item.Field.ToUpperPascal()} {{ get; set; }}");
 					}
 					if (item.DbType == "geometry")
@@ -170,12 +184,7 @@ namespace Common.CodeFactory.DAL
 						};
 						foreach (var field in str_field)
 						{
-							if (!string.IsNullOrEmpty(item.Comment))
-							{
-								writer.WriteLine("\t\t/// <summary>");
-								writer.WriteLine($"\t\t/// {field.Comment}");
-								writer.WriteLine("\t\t/// </summary>");
-							}
+							WriteComment(writer, item.Comment);
 							if (field.Field == item.Field + "_srid")
 								writer.WriteLine($"\t\tpublic {field.RelType} {field.Field.ToUpperPascal()} {{ get; set;}} = 4326;");
 							else
@@ -239,13 +248,13 @@ namespace Common.CodeFactory.DAL
 
 				writer.Flush();
 
-				CreateDal();
+				DalGenerator();
 			}
 		}
 		/// <summary>
-		/// 生成DAL.cs文件
+		/// Generate dal files(DAL.cs). 
 		/// </summary>
-		private void CreateDal()
+		private void DalGenerator()
 		{
 			string _filename = $"{_dalPath}/{DalClassName}.cs";
 
@@ -302,6 +311,7 @@ namespace Common.CodeFactory.DAL
 				writer.WriteLine("}");
 			}
 		}
+		#endregion
 
 		#region Dal Property
 		private void PropertiesGenerator(StreamWriter writer)
@@ -338,7 +348,8 @@ namespace Common.CodeFactory.DAL
 				writer.WriteLine($"\t\tpublic {DalClassName}() => _fields = _field;");
 			}
 			writer.WriteLine($"\t\tpublic static {DalClassName} Select => new {DalClassName}();");
-
+			writer.WriteLine($"\t\tpublic static {DalClassName} SelectDiy(string fields) => new SelectExchange<{DalClassName}, {ModelClassName}>(fields) as {DalClassName};");
+			writer.WriteLine($"\t\tpublic static {DalClassName} SelectDiy(string fields, string alias) => new SelectExchange<{DalClassName}, {ModelClassName}>(fields, alias) as {DalClassName};");
 			if (_table.Type == "table")
 			{
 				writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder UpdateDiy => new {DalClassName}UpdateBuilder();");
@@ -418,6 +429,7 @@ namespace Common.CodeFactory.DAL
 		#region Select
 		private void SelectGenerator(StreamWriter writer)
 		{
+			StringBuilder sbEx = new StringBuilder();
 			if (pkList.Count > 0)
 			{
 				List<string> d_key = new List<string>(), s_key = new List<string>();
@@ -431,6 +443,9 @@ namespace Common.CodeFactory.DAL
 						types += ", ";
 					d_key.Add(fs.RelType + " " + fs.Field);
 					where += $".Where{fs.Field.ToUpperPascal()}({fs.Field})";
+					string cSharpType = Types.ConvertPgDbTypeToCSharpType(fs.RelType).Replace("?", "");
+					if (cSharpType.ToLower() == "datetime")
+						sbEx.AppendLine($"\t\tpublic {DalClassName} Where{fs.Field.ToUpperPascal()}({Types.GetWhereTypeFromDbType(fs.RelType, fs.IsNotNull)} {fs.Field}) => WhereOr(\"a.{fs.Field} = {{0}}\", {fs.Field});");
 				}
 				writer.WriteLine($"\t\tpublic static {ModelClassName} GetItem({string.Join(",", d_key)}) => Select{where}.ToOne();");
 
@@ -473,7 +488,9 @@ namespace Common.CodeFactory.DAL
 					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Any({Types.GetWhereTypeFromDbType(item.RelType, item.IsNotNull)} {item.Field}) => WhereOr(\"a.{item.Field} @> array[{{0}}::{item.DbType}]\", {item.Field});");
 					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Null(bool isNull = true) => Where($\"array_length(a.{item.Field}, 1) {{(isNull ? \"=\" : \"<>\")}} {{{{0}}}}\", null);");
 				}
+
 			}
+			writer.WriteLine(sbEx);
 		}
 		#endregion
 
@@ -563,6 +580,22 @@ namespace Common.CodeFactory.DAL
 		#endregion
 
 		#region Private Method
+
+		private static void WriteComment(StreamWriter writer, string comment)
+		{
+			if (!string.IsNullOrEmpty(comment))
+			{
+				writer.WriteLine("\t\t/// <summary>");
+				writer.WriteLine($"\t\t/// {comment}");
+				writer.WriteLine("\t\t/// </summary>");
+			}
+		}
+		/// <summary>
+		/// optional field improve .Value postfix
+		/// </summary>
+		/// <param name="conname"></param>
+		/// <param name="fields"></param>
+		/// <returns></returns>
 		public static string DotValueHelper(string conname, List<FieldInfo> fields)
 		{
 			conname = conname.ToUpperPascal();
@@ -572,21 +605,19 @@ namespace Common.CodeFactory.DAL
 						conname += ".Value";
 			return conname;
 		}
+		/// <summary>
+		/// Give a default value when this field is null and the NotNull property is false too.
+		/// </summary>
+		/// <param name="field"></param>
+		/// <param name="cSharpType"></param>
+		/// <param name="isNotNull"></param>
+		/// <returns></returns>
 		public static string SetInsertDefaultValue(string field, string cSharpType, bool isNotNull)
 		{
-			if (!isNotNull)
-			{
-				if (cSharpType == "JToken") return " ?? JToken.Parse(\"{}\") ";
-				switch (field)
-				{
-					case "create_time":
-						if (cSharpType == "DateTime") return " ?? DateTime.Now";
-						break;
-					case "id":
-						if (cSharpType == "Guid") return " ?? Guid.NewGuid()";
-						break;
-				}
-			}
+			if (isNotNull) return "";
+			if (cSharpType == "JToken") return " ?? JToken.Parse(\"{}\") ";
+			if (field == "create_time" && cSharpType == "DateTime") return " ?? DateTime.Now";
+			if (field == "id" && cSharpType == "Guid") return " ?? Guid.NewGuid()";
 			return "";
 		}
 		#endregion

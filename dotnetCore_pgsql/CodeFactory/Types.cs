@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Common.CodeFactory
+namespace CodeFactory
 {
 	public static class Types
 	{

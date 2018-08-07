@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using NpgsqlTypes;
 
-namespace Common.CodeFactory
+namespace CodeFactory
 {
 	public class GenerateModel
 	{

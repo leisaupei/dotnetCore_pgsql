@@ -1,4 +1,4 @@
-﻿using Common.CodeFactory.DAL;
+﻿using CodeFactory.DAL;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,7 +8,7 @@ using DBHelper;
 using System.Data;
 using System.Text;
 
-namespace Common.CodeFactory
+namespace CodeFactory
 {
 	public static class LetsGo
 	{
@@ -17,7 +17,7 @@ namespace Common.CodeFactory
 		static string ProjectName = string.Empty;
 		static string OutputDir = string.Empty;
 		/// <summary>
-		/// 生成
+		/// Produce
 		/// </summary>
 		/// <param name="args"></param>
 		public static void Produce(string[] args)
@@ -26,7 +26,7 @@ namespace Common.CodeFactory
 			GenerateModel model = new GenerateModel();
 			if (args.Length != 1) throw new Exception("Generate string is error");
 			var strings = args[0].Split(';');
-			if (strings.Length != 8) throw new Exception("Generate string is error");
+			if (strings.Length != 7) throw new Exception("Generate string is error");
 			StringBuilder connection = new StringBuilder();
 			foreach (var item in strings)
 			{
@@ -41,7 +41,6 @@ namespace Common.CodeFactory
 					case "user": connection.Append($"username={right};"); break;
 					case "pwd": connection.Append($"password={right};"); break;
 					case "db": connection.Append($"database={right};"); break;
-					case "maxpool": connection.Append($"maximum pool size={right};pooling=true;"); break;
 					case "name": model.ProjectName = right; break;
 					case "path": model.OutputPath = right; break;
 				}
@@ -51,7 +50,7 @@ namespace Common.CodeFactory
 			Build(model.OutputPath, model.ProjectName);
 		}
 		/// <summary>
-		/// 构建
+		/// Build
 		/// </summary>
 		/// <param name="outputDir"></param>
 		/// <param name="projectName"></param>e
@@ -72,7 +71,7 @@ namespace Common.CodeFactory
 				foreach (var item in tableList)
 				{
 					TablesDal td = new TablesDal(ProjectName, ModelPath, DalPath, schemaName, item);
-					td.Generate();
+					td.ModelGenerator();
 				}
 			}
 		}

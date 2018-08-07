@@ -3,28 +3,28 @@ using System.IO;
 using DBHelper;
 using System.Text;
 
-namespace Common.CodeFactory.DAL
+namespace CodeFactory.DAL
 {
 	public class EnumsDal
 	{
 		/// <summary>
-		/// 项目名称
+		/// Project name
 		/// </summary>
 		static string _projectName = string.Empty;
 		/// <summary>
-		/// model目录
+		/// Model path
 		/// </summary>
 		static string _modelPath = string.Empty;
 		/// <summary>
-		/// 根目录
+		/// Root path
 		/// </summary>
 		static string _rootPath = string.Empty;
 		/// <summary>
-		/// 生成枚举数据库枚举类型(覆盖生成)
+		/// Generate and cover database enum type.
 		/// </summary>
-		/// <param name="rootPath">根目录</param>
-		/// <param name="modelPath">Model目录</param>
-		/// <param name="projectName">项目名称</param>
+		/// <param name="rootPath">Root path</param>
+		/// <param name="modelPath">Model path</param>
+		/// <param name="projectName">Project name</param>
 		public static void Generate(string rootPath, string modelPath, string projectName)
 		{
 			_rootPath = rootPath;
@@ -53,9 +53,10 @@ namespace Common.CodeFactory.DAL
 			GenerateMapping(list);
 			GenerateRedisHepler();
 			GenerateCsproj();
+
 		}
 		/// <summary>
-		/// 生成初始化文件(覆盖生成)
+		/// Generate and cover initialization file(_Startup.cs).
 		/// </summary>
 		/// <param name="list"></param>
 		public static void GenerateMapping(List<EnumTypeInfo> list)
@@ -103,7 +104,7 @@ namespace Common.CodeFactory.DAL
 			}
 		}
 		/// <summary>
-		/// 生成csproj文件
+		/// Generate project file({projectName}.csproj).
 		/// </summary>
 		public static void GenerateCsproj()
 		{
@@ -135,7 +136,7 @@ namespace Common.CodeFactory.DAL
 			}
 		}
 		/// <summary>
-		/// 生成RedisHelper.cs(存在不生成)
+		/// Create RedisHelper.cs, not create if already exists.
 		/// </summary>
 		public static void GenerateRedisHepler()
 		{
