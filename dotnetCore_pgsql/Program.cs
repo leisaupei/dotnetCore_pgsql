@@ -1,6 +1,7 @@
 ﻿/* ##########################################################
- * #         .net core 2.1+postgres Code Maker              #
+ * #     .net core 2.1+npsql 4.0.2 Postgresql Code Maker    #
  * #                author by leisaupei                     #
+ * #      https://github.com/leisaupei/dotnetCore_pgsql     #
  * ##########################################################
  */
 using System;
@@ -16,8 +17,9 @@ namespace dotnetCore_pgsql
 		{
 			Console.WriteLine(@"
 ##########################################################
-#         .net core 2.1+postgres Code Maker              #
+#     .net core 2.1+npsql 4.0.2 Postgresql Code Maker    #
 #                author by leisaupei                     #
+#      https://github.com/leisaupei/dotnetCore_pgsql     #
 ##########################################################
 > Parameters description:
   - host	host
@@ -29,7 +31,11 @@ namespace dotnetCore_pgsql
   - name	project name
 > Example: host=localhost;port=5432;user=postgres;pwd=123456;db=superapp;name=testnew1;path=d:\workspace
 ");
-			LetsGo.Produce(args);
+
+			if (!args.IsNullOrEmpty())
+				LetsGo.Produce(args[0]);
+			else
+				LetsGo.Produce(Console.ReadLine());
 			Console.WriteLine("successful...");
 			Console.ReadLine();
 		}

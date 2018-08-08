@@ -403,24 +403,23 @@ namespace CodeFactory.DAL
 		#region Insert
 		private void InsertGenerator(StreamWriter writer)
 		{
-			var valuename = DalClassName.ToLowerPascal();
 			writer.WriteLine($"\t\tpublic static {ModelClassName} Insert({ModelClassName} model)");
 			writer.WriteLine("\t\t{");
-			writer.WriteLine($"\t\t\tInsertBuilder {valuename} = InsertDiy;");
+			writer.WriteLine($"\t\t\tInsertBuilder insert = InsertDiy;");
 			foreach (var item in fieldList)
 			{
 				if (item.IsIdentity) continue;
 				string cSharpType = Types.ConvertPgDbTypeToCSharpType(item.DbType);
 				if (Types.NotCreateModelFieldDbType(item.DbType, item.Typcategory))
-					writer.WriteLine($"\t\t\t{valuename}.Set(\"{item.Field}\", model.{item.Field.ToUpperPascal()}{SetInsertDefaultValue(item.Field, cSharpType, item.IsNotNull)}, {item.Length});");
+					writer.WriteLine($"\t\t\tinsert.Set(\"{item.Field}\", model.{item.Field.ToUpperPascal()}{SetInsertDefaultValue(item.Field, cSharpType, item.IsNotNull)}, {item.Length});");
 
 				if (item.DbType == "geometry")
 				{
-					writer.WriteLine($"\t\t\tmyvcard_swap_vcard.Set(\"{item.Field}\", \"ST_GeomFromText(@{item.Field}_point0, @{item.Field}_srid0)\",");
+					writer.WriteLine($"\t\t\tinsert.Set(\"{item.Field}\", \"ST_GeomFromText(@{item.Field}_point0, @{item.Field}_srid0)\",");
 					writer.WriteLine($"\t\t\t\tnew List<NpgsqlParameter> {{ new NpgsqlParameter(\"{item.Field}_point0\", $\"POINT({{model.{item.Field.ToUpperPascal()}_x}} {{model.{item.Field.ToUpperPascal()}_y}})\"),new NpgsqlParameter(\"{item.Field}_srid0\", model.{item.Field.ToUpperPascal()}_srid) }});");
 				}
 			}
-			writer.WriteLine($"\t\t\treturn {valuename}.Commit<{ModelClassName}>();");
+			writer.WriteLine($"\t\t\treturn insert.Commit<{ModelClassName}>();");
 			writer.WriteLine("\t\t}");
 
 		}

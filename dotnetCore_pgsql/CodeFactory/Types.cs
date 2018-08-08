@@ -9,7 +9,7 @@ namespace CodeFactory
 	public static class Types
 	{
 		/// <summary>
-		/// 数据库类型转化成C#类型String
+		/// Convert pgsql type to C# type string
 		/// </summary>
 		/// <param name="dbType"></param>
 		/// <returns></returns>
@@ -79,7 +79,7 @@ namespace CodeFactory
 			}
 		}
 		/// <summary>
-		/// 转化数据库字段为数据库字段NpgsqlDbType枚举
+		/// Convert dbtype to NpgsqlDbType enum type. 
 		/// </summary>
 		/// <param name="dataType"></param>
 		/// <param name="dbType"></param>
@@ -104,7 +104,7 @@ namespace CodeFactory
 
 		}
 		/// <summary>
-		/// 排除生成whereor条件的字段类型
+		/// Except produce whereor expression type.
 		/// </summary>
 		public static bool MakeWhereOrExceptType(string type)
 		{
@@ -113,12 +113,6 @@ namespace CodeFactory
 				return false;
 			return true;
 		}
-		/// <summary>
-		/// 从数据库类型获取where条件字段类型
-		/// </summary>
-		/// <param name="type"></param>
-		/// <param name="isNotNull"></param>
-		/// <returns></returns>
 		public static string GetWhereTypeFromDbType(string type, bool isNotNull)
 		{
 			string _type = ConvertPgDbTypeToCSharpType(type).Replace("?", "");
@@ -132,12 +126,7 @@ namespace CodeFactory
 				default: return "params " + _type + ques + brackets;
 			}
 		}
-		/// <summary>
-		/// 从数据库类型获取设置的数据库类型
-		/// </summary>
-		/// <param name="type"></param>
-		/// <param name="isArray"></param>
-		/// <returns></returns>
+
 		public static string GetSetTypeFromDbType(string type, bool isArray)
 		{
 			string _type = ConvertPgDbTypeToCSharpType(type);
@@ -147,12 +136,6 @@ namespace CodeFactory
 				default: return _type + "?" + (isArray ? "[]" : "");
 			}
 		}
-		/// <summary>
-		/// 根据数据库类型判断不生成模型的字段
-		/// </summary>
-		/// <param name="dbType"></param>
-		/// <param name="typcategory"></param>
-		/// <returns></returns>
 		public static bool NotCreateModelFieldDbType(string dbType, string typcategory)
 		{
 			if (typcategory.ToLower() == "u" && dbType.Replace("?", "") == "geometry")

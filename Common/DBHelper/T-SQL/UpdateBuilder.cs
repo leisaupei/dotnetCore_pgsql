@@ -12,17 +12,17 @@ namespace DBHelper
 		public bool IsReturn { get; set; } = false;
 		TSQL _this => this as TSQL;
 		/// <summary>
-		/// 初始化Table
+		/// Initialize table
 		/// </summary>
 		/// <param name="table"></param>
 		public UpdateBuilder(string table) : base(table) { }
 		public UpdateBuilder(string table, string alias) : base(table, alias) { }
 		public UpdateBuilder() { }
 		/// <summary>
-		/// 字段自增
+		/// Increment
 		/// </summary>
-		/// <param name="field">字段名称</param>
-		/// <param name="increment">自增值</param>
+		/// <param name="field">field name</param>
+		/// <param name="increment">increment value</param>
 		/// <param name="size"></param>
 		/// <returns></returns>
 		public TSQL SetIncrement(string field, object increment, int? size = null)
@@ -34,10 +34,10 @@ namespace DBHelper
 
 		}
 		/// <summary>
-		/// 添加元素到数组
+		/// Add element to the array
 		/// </summary>
-		/// <param name="field">字段名称</param>
-		/// <param name="value">值或数组</param>
+		/// <param name="field">field name</param>
+		/// <param name="value">value or array</param>
 		/// <param name="size"></param>
 		/// <returns></returns>
 		public TSQL SetJoin(string field, object value, int? size = null)
@@ -46,12 +46,12 @@ namespace DBHelper
 			return Set($"{field} = {field} || @{param_name}", param_name, value, size);
 		}
 		/// <summary>
-		/// geometry字段
+		/// geometry 
 		/// </summary>
-		/// <param name="field">字段名称</param>
-		/// <param name="x">经度</param>
-		/// <param name="y">纬度</param>
-		/// <param name="srid">空间坐标系唯一标识</param>
+		/// <param name="field">field name</param>
+		/// <param name="x">longitude</param>
+		/// <param name="y">latitude</param>
+		/// <param name="srid">Unique identification of space coordinate system</param>
 		/// <returns></returns>
 		protected TSQL SetGeometry(string field, float x, float y, int srid)
 		{
@@ -63,10 +63,10 @@ namespace DBHelper
 			return _this;
 		}
 		/// <summary>
-		/// 从数组移除元素
+		/// Remove value from array
 		/// </summary>
-		/// <param name="field">字段名称</param>
-		/// <param name="value">需要移除的值</param>
+		/// <param name="field">field name</param>
+		/// <param name="value">value</param>
 		/// <param name="size"></param>
 		/// <returns></returns>
 		public TSQL SetRemove(string field, object value, int? size = null)
@@ -75,11 +75,11 @@ namespace DBHelper
 			return Set($"{field} = array_remove({field}, @{param_name})", param_name, value, size);
 		}
 		/// <summary>
-		/// 设置字段
+		/// set field
 		/// </summary>
-		/// <param name="exp">带@param的表达式</param>
-		/// <param name="param">param名称</param>
-		/// <param name="value">值</param>
+		/// <param name="exp">expression with @param</param>
+		/// <param name="param">parameter name</param>
+		/// <param name="value">value</param>
 		/// <param name="size"></param>
 		/// <returns></returns>
 		public TSQL Set(string exp, string param, object value, int? size = null)
@@ -89,10 +89,10 @@ namespace DBHelper
 			return _this;
 		}
 		/// <summary>
-		/// 设置字段等于value(同一个update语句不能调用置两次)
+		///  set ffield = value (only once for same update sql)
 		/// </summary>
-		/// <param name="field">字段名称</param>
-		/// <param name="value">值</param>
+		/// <param name="field">field name</param>
+		/// <param name="value">value </param>
 		/// <returns></returns>
 		public TSQL Set(string field, object value, int? size = null)
 		{
@@ -100,10 +100,10 @@ namespace DBHelper
 			return Set($"{field} = @{param_name}", param_name, value, size);
 		}
 		/// <summary>
-		/// 设置字段等于SQL
+		/// set field = sql 
 		/// </summary>
-		/// <param name="columnName">字段名字</param>
-		/// <param name="sqlStr">SQL语句</param>
+		/// <param name="columnName">field name</param>
+		/// <param name="sqlStr">sql</param>
 		/// <returns></returns>
 		public TSQL Set(string columnName, string sqlStr)
 		{
@@ -111,12 +111,12 @@ namespace DBHelper
 			return _this;
 		}
 		/// <summary>
-		/// 返回修改行数
+		/// return execute rows
 		/// </summary>
 		/// <returns></returns>
 		public int Commit() => ToRows();
 		/// <summary>
-		/// 返回修改后的对象(建议返回一行)
+		/// return model (suggested return one row)
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
@@ -129,7 +129,7 @@ namespace DBHelper
 		public override string ToString() => base.ToString();
 		protected override string SetCommandString()
 		{
-			if (_where.Count < 1) throw new ArgumentException("update语句必须带where条件");
+			if (_where.Count < 1) throw new ArgumentNullException("where expression is null or empty");
 			if (!_fields.IsNullOrEmpty())
 			{
 				if (_fields.IndexOf($"{_mainAlias}.update_time", StringComparison.Ordinal) > 0

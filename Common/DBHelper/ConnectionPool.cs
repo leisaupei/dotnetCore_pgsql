@@ -10,39 +10,39 @@ namespace DBHelper
 	public class ConnectionPool
 	{
 		/// <summary>
-		/// 响应队列锁
+		/// Lock of Queue<ManualResetEvent>.
 		/// </summary>
 		static readonly object _lock = new object();
 		/// <summary>
-		/// 连接池锁
+		/// Lock of Queue<NpgsqlConnection>.
 		/// </summary>
 		static readonly object _lockGetConn = new object();
 		/// <summary>
-		/// 默认连接池大小
+		/// Default pool size.
 		/// </summary>
 		const int DEFAULT_POOL_SIZE = 32;
 		/// <summary>
-		/// 连接池队列
+		/// Connection pool queue.
 		/// </summary>
 		readonly Queue<NpgsqlConnection> _poolFree;
 		/// <summary>
-		/// 连接池总数
+		/// All connection of the pool.
 		/// </summary>
 		readonly List<NpgsqlConnection> _poolAll;
 		/// <summary>
-		/// connection string
+		/// Connection string
 		/// </summary>
 		readonly string _connectionString;
 		/// <summary>
-		/// 当前连接池大小
+		/// Current connection pool size.
 		/// </summary>
 		readonly int _poolSize = 0;
 		/// <summary>
-		/// 等待响应队列
+		/// ManualResetEvent queue.
 		/// </summary>
 		readonly Queue<ManualResetEvent> _wait;
 		/// <summary>
-		/// 初始化连接池大小
+		/// Initialize connection pool size and connection string.
 		/// </summary>
 		/// <param name="poolSize"></param>
 		public ConnectionPool(int poolSize, string connectionString)
@@ -55,7 +55,7 @@ namespace DBHelper
 			_wait = new Queue<ManualResetEvent>(_poolSize);
 		}
 		/// <summary>
-		/// 释放连接池
+		/// Release connection.
 		/// </summary>
 		/// <param name="conn"></param>
 		public void ReleaseConnection(NpgsqlConnection conn)
@@ -71,7 +71,7 @@ namespace DBHelper
 			}
 		}
 		/// <summary>
-		/// Get连接
+		/// Get connection.
 		/// </summary>
 		/// <returns></returns>
 		public NpgsqlConnection GetConnection()
@@ -82,7 +82,7 @@ namespace DBHelper
 				canGet = _poolFree.TryDequeue(out conn);
 			if (!canGet)
 			{
-				if (_poolAll.Count < _poolSize) //如果当前连接池没有满 
+				if (_poolAll.Count < _poolSize) //if the connection pool is not full
 					lock (_lockGetConn)
 						_poolAll.Add(conn = CreateConnection());
 				else
@@ -90,7 +90,7 @@ namespace DBHelper
 					var wait = new ManualResetEvent(false);
 					lock (_lock)
 						_wait.Enqueue(wait);
-					wait.WaitOne(5000); //无通知等待5秒
+					wait.WaitOne(5000); //wait 5 seconds without notification
 					lock (_lockGetConn)
 						canGet = _poolFree.TryDequeue(out conn);
 					if (!canGet)
@@ -102,13 +102,13 @@ namespace DBHelper
 			return conn;
 		}
 		/// <summary>
-		/// 创建连接
+		/// Create connection.
 		/// </summary>
 		/// <returns></returns>
 		NpgsqlConnection CreateConnection() => !_connectionString.IsNullOrEmpty() ? new NpgsqlConnection(_connectionString) : throw new ArgumentNullException("Connection String is null.");
 
 		/// <summary>
-		/// 打开连接
+		/// Open connection.
 		/// </summary>
 		/// <param name="conn"></param>
 		public void OpenConnection(NpgsqlConnection conn)
@@ -117,7 +117,7 @@ namespace DBHelper
 			if (conn?.State != ConnectionState.Open) conn.Open();
 		}
 		/// <summary>
-		/// 关闭连接
+		/// Close connection.
 		/// </summary>
 		/// <param name="conn"></param>
 		public void CloseConnection(NpgsqlConnection conn)

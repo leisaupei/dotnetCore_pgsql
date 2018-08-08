@@ -19,7 +19,7 @@ namespace DBHelper
 
 
 		/// <summary>
-		/// 执行命令前准备
+		/// Prepare until execute command.
 		/// </summary>
 		protected void PrepareCommand(NpgsqlCommand command, CommandType commandType, string commandText, NpgsqlParameter[] commandParameters)
 		{
@@ -41,7 +41,7 @@ namespace DBHelper
 			}
 		}
 		/// <summary>
-		/// 返回一行数据
+		/// Return scalar.
 		/// </summary>
 		public object ExecuteScalar(CommandType commandType, string commandText, params NpgsqlParameter[] commandParameters)
 		{
@@ -66,7 +66,7 @@ namespace DBHelper
 			return ret;
 		}
 		/// <summary>
-		/// 执行sql语句
+		/// Execute non query.
 		/// </summary>
 		public int ExecuteNonQuery(CommandType commandType, string commandText, params NpgsqlParameter[] commandParameters)
 		{
@@ -90,7 +90,7 @@ namespace DBHelper
 			return ret;
 		}
 		/// <summary>
-		/// 重构读取数据库数据
+		/// Execute data reader with action.
 		/// </summary>
 		public void ExecuteDataReader(Action<NpgsqlDataReader> action, CommandType commandType, string commandText, params NpgsqlParameter[] commandParameters)
 		{
@@ -116,7 +116,7 @@ namespace DBHelper
 			}
 		}
 		/// <summary>
-		/// 抛出异常
+		/// Throw exception.
 		/// </summary>
 		protected void ThrowException(NpgsqlCommand cmd, Exception ex)
 		{
@@ -127,12 +127,12 @@ namespace DBHelper
 			if (_transaction != null)
 				RollBackTransaction();
 			Close(cmd, cmd.Connection);
-			//done: 输出错误日志
+			//done: export error.
 			_logger.LogError(new EventId(111111), ex, "数据库执行出错：===== \n {0}\n{1}\n{2}", cmd.CommandText, cmd.Parameters, str);//输出日志
 
 		}
 		/// <summary>
-		/// 关闭命令及连接
+		/// Close command and current connection
 		/// </summary>
 		public void Close(NpgsqlCommand cmd, NpgsqlConnection connection)
 		{
@@ -146,9 +146,9 @@ namespace DBHelper
 			if (_transaction != null)
 				_transaction.Dispose();
 		}
-		#region 事务
+		#region Transaction
 		/// <summary>
-		/// 开启事务
+		/// Open transaction.
 		/// </summary>
 		public void BeginTransaction()
 		{
@@ -158,7 +158,7 @@ namespace DBHelper
 			_transaction = conn.BeginTransaction();
 		}
 		/// <summary>
-		/// 确认事务
+		/// Commit transaction.
 		/// </summary>
 		public void CommitTransaction()
 		{
@@ -170,7 +170,7 @@ namespace DBHelper
 			Close(null, _transaction.Connection);
 		}
 		/// <summary>
-		/// 回滚事务
+		/// Rollback transaction.
 		/// </summary>
 		public void RollBackTransaction()
 		{

@@ -60,45 +60,14 @@ namespace DBHelper
 			_params.Add(p);
 			return _this;
 		}
-
-		/// <summary>
-		/// 返回第一个元素
-		/// </summary>
-		/// <returns></returns>
 		public object ToScalar() => PgSqlHelper.ExecuteScalar(CommandType.Text, _cmdStr, _params.ToArray());
-		/// <summary>
-		/// 返回自定义类型
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <returns></returns>
 		public T ToScalar<T>() => (T)PgSqlHelper.ExecuteScalar(CommandType.Text, _cmdStr, _params.ToArray());
-		/// <summary>
-		/// 返回List<Model>
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <returns></returns>
 		public List<T> ToList<T>() => PgSqlHelper.ExecuteDataReaderList<T>(_cmdStr, _params.ToArray());
 		public List<T> ToList<T>(Func<T, T> func = null) => PgSqlHelper.ExecuteDataReaderList<T>(_cmdStr, func, _params.ToArray());
-		/// <summary>
-		/// 返回一个Model
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <returns></returns>
 		public T ToOne<T>() => PgSqlHelper.ExecuteDataReaderModel<T>(_cmdStr, _params.ToArray());
 		public T ToOne<T>(Func<T, T> func = null) => PgSqlHelper.ExecuteDataReaderModel<T>(_cmdStr, func, _params.ToArray());
-		/// <summary>
-		/// 返回修改行数
-		/// </summary>
-		/// <param name="cmdText"></param>
-		/// <returns></returns>
 		public int ToRows() => PgSqlHelper.ExecuteNonQuery(CommandType.Text, _cmdStr, _params.ToArray());
-
 		public override string ToString() => ToString(null);
-		/// <summary>
-		/// 调试或输出用
-		/// </summary>
-		/// <param name="field"></param>
-		/// <returns></returns>
 		public string ToString(string field)
 		{
 			if (!string.IsNullOrEmpty(field)) _fields = field;
@@ -109,9 +78,6 @@ namespace DBHelper
 
 	public interface IGetReturn
 	{
-		/// <summary>
-		/// 修改后是否返回
-		/// </summary>
 		bool IsReturn { get; set; }
 	}
 }

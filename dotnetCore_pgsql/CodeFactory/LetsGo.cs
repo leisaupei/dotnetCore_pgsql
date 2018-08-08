@@ -20,13 +20,12 @@ namespace CodeFactory
 		/// Produce
 		/// </summary>
 		/// <param name="args"></param>
-		public static void Produce(string[] args)
+		public static void Produce(string args)
 		{
 			Console.OutputEncoding = Encoding.UTF8;
 			GenerateModel model = new GenerateModel();
-			if (args.Length != 1) throw new Exception("Generate string is error");
-			var strings = args[0].Split(';');
-			if (strings.Length != 7) throw new Exception("Generate string is error");
+			var strings = args.Split(';');
+			if (strings.Length != 7) throw new ArgumentException("Generate string is error");
 			StringBuilder connection = new StringBuilder();
 			foreach (var item in strings)
 			{

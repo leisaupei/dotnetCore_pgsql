@@ -90,16 +90,16 @@ namespace DBHelper
 		public TSQL Where(string filter, params object[] val)
 		{
 			if (val == null) val = new object[] { null };
-			if (new Regex(@"\{\d\}").Matches(filter).Count < val.Length)//参数个数不匹配
-				throw new ArgumentException("where 参数错误");
-			if (val.IsNullOrEmpty())//参数不能为空
-				throw new ArgumentException("where 参数错误");
+			if (new Regex(@"\{\d\}").Matches(filter).Count < val.Length)
+				throw new ArgumentException("where expression error");
+			if (val.IsNullOrEmpty())
+				throw new ArgumentException("where expression error");
 
 			for (int i = 0; i < val.Length; i++)
 			{
 				var index = string.Concat("{", i, "}");
-				if (filter.IndexOf(index, StringComparison.Ordinal) == -1) throw new ArgumentException("where 参数错误");
-				if (val[i] == null) //支持 Where("id = {0}", null)与Where("id != {0}", null); 写法
+				if (filter.IndexOf(index, StringComparison.Ordinal) == -1) throw new ArgumentException("where expression error");
+				if (val[i] == null) //support Where("id = {0}", null) and Where("id != {0}", null); 
 				{
 					if (filter.Contains("!=") || filter.Contains("<>"))
 						filter = Regex.Replace(filter, @"\s+!=\s+\{" + i + @"\}", " IS NOT NULL");

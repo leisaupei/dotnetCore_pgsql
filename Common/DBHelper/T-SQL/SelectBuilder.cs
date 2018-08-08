@@ -92,15 +92,15 @@ namespace DBHelper
 		public TSQL Join<TTarget>(UnionEnum unionType, string alias, string on) => Join(unionType, MappingHelper.GetMapping(typeof(TTarget)), alias, on);
 		public TSQL Join(UnionEnum unionType, string table, string aliasName, string on)
 		{
-			if (new Regex(@"\{\d\}").Matches(on).Count > 0)//参数个数不匹配
-				throw new ArgumentException("on 参数不支持存在参数");
+			if (new Regex(@"\{\d\}").Matches(on).Count > 0)
+				throw new ArgumentException("on expression is error");
 			_listUnion.Add(new Union(aliasName, table, on, unionType));
 			return _this;
 		}
 		#endregion
 
 		/// <summary>
-		/// 返回列表
+		/// return list.
 		/// </summary>
 		public List<TResult> ToList<TResult>(string fields = null)
 		{
@@ -108,7 +108,7 @@ namespace DBHelper
 			return base.ToList<TResult>();
 		}
 		/// <summary>
-		/// 返回一行
+		/// Retrun model.
 		/// </summary>
 		public TResult ToOne<TResult>(string fields = null)
 		{
@@ -117,7 +117,7 @@ namespace DBHelper
 			return base.ToOne<TResult>();
 		}
 		/// <summary>
-		/// 返回第一个元素
+		/// return first element.
 		/// </summary>
 		public TResult ToScalar<TResult>(string fields)
 		{

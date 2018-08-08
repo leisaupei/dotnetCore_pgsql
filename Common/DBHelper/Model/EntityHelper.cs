@@ -8,7 +8,7 @@ using System.Text;
 namespace DBHelper
 {
 	/// <summary>
-	/// 数据库表特性
+	/// Table attribute.
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Property | AttributeTargets.Class, Inherited = true)]
 	public class MappingAttribute : Attribute
@@ -17,22 +17,22 @@ namespace DBHelper
 		public MappingAttribute(string tableName) => TableName = tableName;
 	}
 	/// <summary>
-	/// 方法属性特性
+	/// Mothod attribute.
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Property, Inherited = true)]
 	public class MethodPropertyAttribute : Attribute { }
 	/// <summary>
-	/// 主键特性
+	/// Primary key attribute
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Property, Inherited = true)]
 	public class PrimaryKeyAttribute : Attribute { }
 	/// <summary>
-	/// 外键属性特性
+	/// Foreign attribute.
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Property, Inherited = true)]
 	public class ForeignKeyPropertyAttribute : Attribute { }
 	/// <summary>
-	/// 字段特性
+	/// Field attribute.
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
 	public class FieldAttribute : ColumnAttribute
@@ -47,7 +47,7 @@ namespace DBHelper
 	public class MappingHelper
 	{
 		/// <summary>
-		/// 当前类的表
+		/// Table of current class.
 		/// </summary>
 		/// <param name="t"></param>
 		/// <returns></returns>
@@ -69,7 +69,7 @@ namespace DBHelper
 	public class EntityHelper
 	{
 		/// <summary>
-		/// 不输出的特性
+		/// Do not output attribute
 		/// </summary>
 		/// <param name="item"></param>
 		/// <returns></returns>
@@ -81,7 +81,7 @@ namespace DBHelper
 			return false;
 		}
 		/// <summary>
-		/// 获取当前所有字段列表
+		/// Get all fields of this class.
 		/// </summary>
 		/// <param name="type"></param>
 		/// <param name="alias"></param>
@@ -97,7 +97,7 @@ namespace DBHelper
 			return list;
 		}
 		/// <summary>
-		/// 获取当前类字段的字符串
+		/// Get string of all fields of current class.
 		/// </summary>
 		/// <param name="type"></param>
 		/// <param name="alias"></param>

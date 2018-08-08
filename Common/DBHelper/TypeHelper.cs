@@ -40,8 +40,6 @@ namespace DBHelper
 		}
 		public static NpgsqlDbType? GetDbType(Type type)
 		{
-			//if (type.BaseType.Name.ToLower() == "enum")
-			//return NpgsqlDbType.Unknown;
 			string type_name = type.Name.ToLower();
 			switch (type_name)
 			{
@@ -60,7 +58,6 @@ namespace DBHelper
 				case "jtoken": return NpgsqlDbType.Jsonb;
 				case "timespan": return NpgsqlDbType.Interval;
 				case "byte[]": return NpgsqlDbType.Bytea;
-				//case "enum": return NpgsqlDbType.Unknown;
 				default: return null;
 			}
 		}

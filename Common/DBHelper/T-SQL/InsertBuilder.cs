@@ -20,7 +20,7 @@ namespace DBHelper
 		/// <param name="fields"></param>
 		public InsertBuilder(string table, string fields) : base(table) => _fields = fields;
 		/// <summary>
-		/// 设置一个列表
+		/// set a dictionary
 		/// </summary>
 		/// <param name="values"></param>
 		/// <returns></returns>
@@ -32,7 +32,7 @@ namespace DBHelper
 			return this;
 		}
 		/// <summary>
-		/// 设置一个字段
+		/// set a field
 		/// </summary>
 		/// <param name="field"></param>
 		/// <param name="value"></param>
@@ -48,14 +48,12 @@ namespace DBHelper
 		{
 			_valueList.Add(field);
 			_paramList.Add(paramStr);
-			//_paramList.AddRange(nps.Select(p => $"@{p.ParameterName}"));
-
 			_params.AddRange(nps);
 			return this;
 		}
 		public int Commit() => ToRows();
 		/// <summary>
-		/// 插入数据库并返回数据
+		/// insert and return model
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
