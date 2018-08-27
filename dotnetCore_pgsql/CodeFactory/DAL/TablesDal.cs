@@ -45,22 +45,27 @@ namespace CodeFactory.DAL
 		{
 			if (isTableName)
 				return schemaName.ToLower() == "public" ? tableName.ToUpperPascal() : schemaName.ToLower() + "." + tableName;
-			return schemaName.ToLower() == "public" ? tableName.ToUpperPascal() : schemaName.ToUpperPascal() + "_" + tableName;
+			var tableNameArr = tableName.Split('_');
+			tableName = string.Empty;
+			foreach (var item in tableNameArr)
+				tableName = string.Concat(tableName, item.ToUpperPascal());
+			return schemaName.ToLower() == "public" ? tableName.ToUpperPascal() : schemaName.ToUpperPascal() + tableName;
 		}
 		/// <summary>
 		/// Model postfix
 		/// </summary>
-		readonly string _modelName = "Model";
+		readonly string _modelSuffix = "Model";
+		readonly string _foreignKeyPrefix = "Obj";
 		/// <summary>
 		/// Model name.
 		/// </summary>
-		string ModelClassName => DalClassName + _modelName;
+		string ModelClassName => DalClassName + _modelSuffix;
 		/// <summary>
 		/// DAL name.
 		/// </summary>
 		string DalClassName => $"{DeletePublic(_schemaName, _table.Name)}";
 		/// <summary>
-		/// 表名
+		/// table name.
 		/// </summary>
 		string TableName => $"{DeletePublic(_schemaName, _table.Name, true).ToLowerPascal()}";
 		#region Get
@@ -201,7 +206,7 @@ namespace CodeFactory.DAL
 					foreach (var item in consListMoreToOne)
 					{
 						string tablename = DeletePublic(item.Nspname, item.TableName);
-						string propertyName = $"Obj_{tablename.ToLowerPascal()}";
+						string propertyName = $"{_foreignKeyPrefix}{tablename}";
 
 						if (ht.ContainsKey(propertyName))
 							propertyName += "By" + item.Conname;
@@ -209,26 +214,26 @@ namespace CodeFactory.DAL
 						string tmp_var = $"_{propertyName.ToLowerPascal()}";
 
 						writer.WriteLine();
-						writer.WriteLine($"\t\tprivate {tablename}{_modelName} {tmp_var} = null;");
+						writer.WriteLine($"\t\tprivate {tablename}{_modelSuffix} {tmp_var} = null;");
 						writer.WriteLine($"\t\t[ForeignKeyProperty]");
-						writer.WriteLine($"\t\tpublic {tablename}{_modelName} {propertyName} => {tmp_var} = {tmp_var} ?? {tablename}.GetItem({DotValueHelper(item.Conname, fieldList)});");
+						writer.WriteLine($"\t\tpublic {tablename}{_modelSuffix} {propertyName} => {tmp_var} = {tmp_var} ?? {tablename}.GetItem({DotValueHelper(item.Conname, fieldList)});");
 
 						ht.Add(propertyName, "");
 					}
 					foreach (var item in consListOneToMore)
 					{
 						string tablename = DeletePublic(item.Nspname, item.TableName);
-						string propertyName = $"Obj_{tablename.ToLowerPascal()}s";
+						string propertyName = $"{_foreignKeyPrefix}{tablename}s";
 						if (consListOneToMore.Count(a => a.Nspname == item.Nspname && a.TableName == item.TableName && a.IsOneToOne == item.IsOneToOne) > 1) propertyName = propertyName + $"By{ item.RefColumn.ToLowerPascal()}";
 						string tmp_var = $"_{propertyName.ToLowerPascal()}";
 						if (item.IsOneToOne)
 						{
 							writer.WriteLine();
-							tmp_var = tmp_var.Substring(0, tmp_var.Length - 1);
-							propertyName = propertyName.Substring(0, propertyName.Length - 1);
-							writer.WriteLine($"\t\tprivate {tablename}{_modelName} {tmp_var} = null;");
+							tmp_var = tmp_var.Trim('s');
+							propertyName = propertyName.Trim('s');
+							writer.WriteLine($"\t\tprivate {tablename}{_modelSuffix} {tmp_var} = null;");
 							writer.WriteLine($"\t\t[ForeignKeyProperty]");
-							writer.WriteLine($"\t\tpublic {tablename}{_modelName} {propertyName} => {tmp_var} = {tmp_var} ?? {tablename}.GetItem({DotValueHelper(item.Conname, fieldList)});");
+							writer.WriteLine($"\t\tpublic {tablename}{_modelSuffix} {propertyName} => {tmp_var} = {tmp_var} ?? {tablename}.GetItem({DotValueHelper(item.Conname, fieldList)});");
 						}
 					}
 					writer.WriteLine("\t\t#endregion");
@@ -365,7 +370,6 @@ namespace CodeFactory.DAL
 		{
 			if (pkList.Count > 0)
 			{
-
 				List<string> d_key = new List<string>(), s_key = new List<string>();
 				string where = string.Empty, where1 = string.Empty, types = string.Empty;
 				for (int i = 0; i < pkList.Count; i++)
@@ -377,7 +381,9 @@ namespace CodeFactory.DAL
 					where1 += $"model.{fs.Field.ToUpperPascal()}";
 					where += $"{fs.Field}";
 					if (i + 1 != pkList.Count)
+					{
 						types += ", "; where1 += ", "; where += ", ";
+					}
 				}
 				where1 = where1.Contains(",") ? $"({where1})" : where1;
 				where = where.Contains(",") ? $"({where})" : where;
@@ -385,12 +391,12 @@ namespace CodeFactory.DAL
 				writer.WriteLine($"\t\tpublic static int Delete({string.Join(", ", d_key)}) => Delete(new[] {{ {where} }});");
 				if (pkList.Count == 1)
 				{
-					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<{DalClassName}{_modelName}> models) => Delete(models.Select(a => a.{s_key[0].ToUpperPascal()}));");
+					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<{DalClassName}{_modelSuffix}> models) => Delete(models.Select(a => a.{s_key[0].ToUpperPascal()}));");
 					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<{types}> {s_key[0]}) => DeleteDiy.WhereOr(\"{s_key[0]} = {{0}}\", {s_key[0]}).Commit();");
 				}
 				else if (pkList.Count > 1)
 				{
-					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<{DalClassName}{_modelName}> models) =>  Delete(models.Select(a => ({s_key.Select(a => $"a.{a.ToUpperPascal()}").Join(", ")})));");
+					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<{DalClassName}{_modelSuffix}> models) =>  Delete(models.Select(a => ({s_key.Select(a => $"a.{a.ToUpperPascal()}").Join(", ")})));");
 					writer.WriteLine($"\t\t/// <summary>");
 					writer.WriteLine($"\t\t/// ({s_key.Select(a => $"{a}").Join(", ")})");
 					writer.WriteLine($"\t\t/// </summary>");
@@ -461,31 +467,35 @@ namespace CodeFactory.DAL
 			foreach (var item in fieldList)
 			{
 				if (item.IsIdentity) continue;
-				string cSharpType = Types.ConvertPgDbTypeToCSharpType(item.RelType).Replace("?", "");
-				if (Types.MakeWhereOrExceptType(cSharpType))
-					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}({Types.GetWhereTypeFromDbType(item.RelType, item.IsNotNull)} {item.Field}) => WhereOr(\"a.{item.Field} = {{0}}\", {item.Field});");
-				switch (cSharpType.ToLower())
+				if (!item.IsArray)
 				{
-					case "string":
-						writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Like({Types.GetWhereTypeFromDbType(item.RelType, item.IsNotNull)} {item.Field}) => WhereOr(\"a.{item.Field} LIKE {{{0}}}\", {item.Field}.Select(a => $\"%{{a}}%\"));");
-						break;
-					case "datetime":
-						writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Range(DateTime dt1, DateTime dt2) => Where(\"a.{item.Field} BETWEEN {{0}} AND {{1}}\", dt1, dt2);");
-						break;
-					case "int":
-					case "short":
-					case "long":
-					case "decimal":
-					case "float":
-					case "double":
-						writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Than({cSharpType} val, bool isGreater, bool isEquals = false) => Where($\"a.{item.Field} {{(isGreater ? \">\" : \"<\")}}{{(isEquals ? \"=\" : \"\")}} {{{{0}}}}\", val);");
-						break;
-					default: break;
+					string cSharpType = Types.ConvertPgDbTypeToCSharpType(item.RelType).Replace("?", "");
+					if (Types.MakeWhereOrExceptType(cSharpType))
+						writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}({Types.GetWhereTypeFromDbType(item.RelType, item.IsNotNull)} {item.Field}) => WhereOr(\"a.{item.Field} = {{0}}\", {item.Field});");
+					switch (cSharpType.ToLower())
+					{
+						case "string":
+							writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Like({Types.GetWhereTypeFromDbType(item.RelType, item.IsNotNull)} {item.Field}) => WhereOr(\"a.{item.Field} LIKE {{0}}\", {item.Field}.Select(a => $\"%{{a}}%\"));");
+							break;
+						case "datetime":
+							writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Range(DateTime dt1, DateTime dt2) => Where(\"a.{item.Field} BETWEEN {{0}} AND {{1}}\", dt1, dt2);");
+							break;
+						case "int":
+						case "short":
+						case "long":
+						case "decimal":
+						case "float":
+						case "double":
+							writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Than({cSharpType} val, bool isGreater, bool isEquals = false) => Where($\"a.{item.Field} {{(isGreater ? \">\" : \"<\")}}{{(isEquals ? \"=\" : \"\")}} {{{{0}}}}\", val);");
+							break;
+						default: break;
+					}
 				}
-				if (item.IsArray)
+				else
 				{
+					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}({Types.GetWhereTypeFromDbType(item.RelType, item.IsNotNull).Substring(7)} {item.Field}) => Where(\"a.{item.Field} = {{0}}\", {item.Field});");
 					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Any({Types.GetWhereTypeFromDbType(item.RelType, item.IsNotNull)} {item.Field}) => WhereOr(\"a.{item.Field} @> array[{{0}}::{item.DbType}]\", {item.Field});");
-					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Null(bool isNull = true) => Where($\"array_length(a.{item.Field}, 1) {{(isNull ? \"=\" : \"<>\")}} {{{{0}}}}\", null);");
+					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Length(string sqlOperator, object value) => Where($\"array_length(a.{item.Field}, 1) {{sqlOperator}} {{{{0}}}}\", value);");
 				}
 
 			}
@@ -520,12 +530,12 @@ namespace CodeFactory.DAL
 				writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder Update({string.Join(",", d_key)}) => Update(new[] {{ {where2} }});");
 				if (pkList.Count == 1)
 				{
-					writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder Update(IEnumerable<{DalClassName}{_modelName}> models) => Update(models.Select(a => a.{s_key[0].ToUpperPascal()}));");
+					writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder Update(IEnumerable<{DalClassName}{_modelSuffix}> models) => Update(models.Select(a => a.{s_key[0].ToUpperPascal()}));");
 					writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder Update(IEnumerable<{types}> {s_key[0]}s) => UpdateDiy.WhereOr(\"{s_key[0]} = {{0}}\", {s_key[0]}s);");
 				}
 				else if (pkList.Count > 1)
 				{
-					writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder Update(IEnumerable<{DalClassName}{_modelName}> models) => Update(models.Select(a => ({s_key.Select(a => $"a.{a.ToUpperPascal()}").Join(", ")})));");
+					writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder Update(IEnumerable<{DalClassName}{_modelSuffix}> models) => Update(models.Select(a => ({s_key.Select(a => $"a.{a.ToUpperPascal()}").Join(", ")})));");
 					writer.WriteLine($"\t\t/// <summary>");
 					writer.WriteLine($"\t\t/// ({s_key.Select(a => $"{a}").Join(", ")})");
 					writer.WriteLine($"\t\t/// </summary>");

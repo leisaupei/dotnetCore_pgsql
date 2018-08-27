@@ -84,10 +84,8 @@ namespace CodeFactory
 			DalPath = Path.Combine(OutputDir, ProjectName, ProjectName + ".db", "DAL", "Build");
 			string[] ps = { ModelPath, DalPath };
 			for (int i = 0; i < ps.Length; i++)
-			{
 				if (!Directory.Exists(ps[i]))
 					Directory.CreateDirectory(ps[i]);
-			}
 		}
 		/// <summary>
 		/// 复制Common目录
@@ -97,7 +95,8 @@ namespace CodeFactory
 			string targetCommonDirectory = Path.Combine(OutputDir, ProjectName, "Common");
 			if (!Directory.Exists(targetCommonDirectory))
 			{
-				string commonDirectory = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).FullName, "Common");
+				var path = Path.Combine("..", "..", "..", "..", "Common");
+				string commonDirectory = new DirectoryInfo(path).FullName;
 				Console.WriteLine(commonDirectory);
 				DirectoryCopy(commonDirectory, targetCommonDirectory);
 			}

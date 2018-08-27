@@ -32,6 +32,7 @@ namespace CodeFactory.DAL
 			_projectName = projectName;
 			var list = SQL.Select("a.oid,a.typname,b.nspname").From("pg_type", "a").InnerJoin("pg_namespace", "b", "a.typnamespace = b.oid").Where("a.typtype='e'").OrderBy("oid asc").ToList<EnumTypeInfo>();
 			string fileName = Path.Combine(_modelPath, "_Enums.cs");
+		
 			using (StreamWriter writer = new StreamWriter(File.Create(fileName), Encoding.UTF8))
 			{
 				writer.WriteLine("using System;");

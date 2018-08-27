@@ -90,31 +90,37 @@ namespace DBHelper
 		public TSQL Where(string filter, params object[] val)
 		{
 			if (val == null) val = new object[] { null };
-			if (new Regex(@"\{\d\}").Matches(filter).Count < val.Length)
-				throw new ArgumentException("where expression error");
+
 			if (val.IsNullOrEmpty())
 				throw new ArgumentException("where expression error");
-
-			for (int i = 0; i < val.Length; i++)
+			if (new Regex(@"\{\d\}").Matches(filter).Count == 1)
+				filter = Add(filter, 0, val);
+			else
 			{
-				var index = string.Concat("{", i, "}");
-				if (filter.IndexOf(index, StringComparison.Ordinal) == -1) throw new ArgumentException("where expression error");
-				if (val[i] == null) //support Where("id = {0}", null) and Where("id != {0}", null); 
+				for (int i = 0; i < val.Length; i++)
 				{
-					if (filter.Contains("!=") || filter.Contains("<>"))
-						filter = Regex.Replace(filter, @"\s+!=\s+\{" + i + @"\}", " IS NOT NULL");
-					else if (filter.Contains("="))
-						filter = Regex.Replace(filter, @"\s+=\s+\{" + i + @"\}", " IS NULL");
-				}
-				else
-				{
-					var paramsName = ParamsIndex;
-					filter = filter.Replace(index, "@" + paramsName);
-					AddParameter(paramsName, val[i]);
+					var index = string.Concat("{", i, "}");
+					if (filter.IndexOf(index, StringComparison.Ordinal) == -1) throw new ArgumentException("where expression error");
+					if (val[i] == null) //support Where("id = {0}", null) and Where("id != {0}", null); 
+					{
+						if (filter.Contains("!=") || filter.Contains("<>"))
+							filter = Regex.Replace(filter, @"\s+!=\s+\{" + i + @"\}", " IS NOT NULL");
+						else if (filter.Contains("="))
+							filter = Regex.Replace(filter, @"\s+=\s+\{" + i + @"\}", " IS NULL");
+					}
+					else
+						filter = Add(filter, i, val[i]);
 				}
 			}
 			Where($"{filter}");
 			return _this;
+		}
+		string Add(string filter, int i, object val)
+		{
+			var paramsName = ParamsIndex;
+			filter = filter.Replace($"{{{i}}}", "@" + paramsName);
+			AddParameter(paramsName, val);
+			return filter;
 		}
 		#endregion
 	}

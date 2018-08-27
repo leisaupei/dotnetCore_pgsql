@@ -1,1 +1,1 @@
-dotnet dotnetCore_pgsql.dll host=localhost;port=5432;user=postgres;pwd=123456;db=postgres;maxpool=50;name=test;path=d:\workspace
+dotnet dotnetCore_pgsql.dll host=localhost;port=5432;user=postgres;pwd=123456;db=postgres;name=test;path=d:\workspace

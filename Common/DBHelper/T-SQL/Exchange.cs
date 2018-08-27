@@ -4,7 +4,7 @@ using System.Text;
 
 namespace DBHelper
 {
-	public abstract class SelectExchange<TDAL, TModel> : SelectBuilder<TDAL> where TDAL : class, new()
+	public class SelectExchange<TDAL, TModel> : SelectBuilder<TDAL> where TDAL : class, new()
 	{
 		public SelectExchange(string fields, string alias) : base(fields, alias) => Mapping();
 		public SelectExchange(string fields) : base(fields) => Mapping();

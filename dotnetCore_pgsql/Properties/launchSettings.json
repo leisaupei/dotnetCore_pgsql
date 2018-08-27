@@ -2,7 +2,7 @@
   "profiles": {
     "dotnetCore_pgsql": {
       "commandName": "Project",
-      "commandLineArgs": "host=localhost;port=5432;user=postgres;pwd=123456;db=postgres;maxpool=50;name=test;path=d:\\workspace"
+      "commandLineArgs": "host=localhost;port=5432;user=postgres;pwd=123456;db=postgres;name=test;path=d:\\workspace"
     }
   }
 }
