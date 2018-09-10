@@ -12,29 +12,64 @@ namespace DBHelper
 	{
 		public static string SqlToString(string sql, List<NpgsqlParameter> nps)
 		{
+			NpgsqlDbType[] isString = { NpgsqlDbType.Char, NpgsqlDbType.Varchar, NpgsqlDbType.Text };
 			foreach (var p in nps)
 			{
-				var value = GetParamValue(p.Value);
+				var value = GetParamValue(p);
 				var key = string.Concat("@", p.ParameterName);
 				if (value == null)
-				{
-					if (sql.Contains("=")) sql = Regex.Replace(sql, @"\s+=\s+\" + key, " IS NULL");
-					if (sql.Contains("!=")) sql = Regex.Replace(sql, @"\s+!=\s+\" + key, " IS NOT NULL");
-				}
+					sql = GetNullSql(sql, key);
 				else if (Regex.IsMatch(value, @"(^(\-|\+)?\d+(\.\d+)?$)|(^SELECT\s.+\sFROM\s)|(true)|(false)",
-					RegexOptions.IgnoreCase)) sql = sql.Replace(key, value);
+					RegexOptions.IgnoreCase) && !isString.Contains(NpgsqlDbType.Varchar)) sql = sql.Replace(key, value);
 				else sql = sql.Replace(key, $"'{value}'");
 			}
 			return sql.Replace("\r", " ").Replace("\n", " ");
 		}
+		public static string GetNullSql(string sql, string key)
+		{
+			var equalsReg = new Regex(@"=\s*" + key);
+			var notEqualsReg = new Regex(@"(!=|<>)\s*" + key);
+			if (notEqualsReg.IsMatch(sql))
+				return notEqualsReg.Replace(sql, " IS NOT NULL");
+			else return equalsReg.Replace(sql, " IS NULL");
+		}
+		/// <summary>
+		/// wipe public prefix and name it.
+		/// </summary>
+		/// <param name="schemaName"></param>
+		/// <param name="tableName"></param>
+		/// <param name="isTableName"></param>
+		/// <returns></returns>
+		public static string DeletePublic(string schemaName, string tableName, bool isTableName = false, bool isView = false)
+		{
+			if (isTableName)
+				return schemaName.ToLower() == "public" ? tableName.ToUpperPascal() : schemaName.ToLower() + "." + tableName;
+			tableName = ExceptUnderlineToUpper(tableName);
+			if (isView == true)
+				tableName += "View";
+			return schemaName.ToLower() == "public" ? tableName.ToUpperPascal() : schemaName.ToUpperPascal() + tableName;
+		}
+		public static string ExceptUnderlineToUpper(string str, int? len = null)
+		{
+			var strArr = str.Split('_');
+			str = string.Empty;
+			var index = 1;
+			foreach (var item in strArr)
+			{
+				str = string.Concat(str, item.ToUpperPascal());
+				if (len != null && len == index)
+					break;
+				index++;
+			}
+			return str;
+		}
 		public static string GetParamValue(object value)
 		{
 			Type type = value.GetType();
-			if (type.BaseType.FullName == "System.Array")
+			if (type.BaseType.IsArray)
 			{
-				var arr = value as object[];
-				var arrStr = arr.Select(a => a.ToEmptyOrString());
-				return $"{{{string.Join(",", arr)}}}";
+				var arrStr = (value as object[]).Select(a => a.ToEmptyOrString());
+				return $"{{{string.Join(",", arrStr)}}}";
 			}
 			return value.ToNullOrString();
 		}
@@ -42,8 +77,7 @@ namespace DBHelper
 		{
 			NpgsqlDbType? pgsqlDbType = null;
 			string type_name = type.Name.ToLower();
-			if (type_name.EndsWith("[]"))
-				type_name = type_name.Trim(']', '[');
+			type_name = type_name.EndsWith("[]") ? type_name.TrimEnd(']', '[') : type_name;
 			switch (type_name)
 			{
 				case "guid": pgsqlDbType = NpgsqlDbType.Uuid; break;
@@ -64,9 +98,8 @@ namespace DBHelper
 				case "timespan": pgsqlDbType = NpgsqlDbType.Interval; break;
 				case "byte[]": pgsqlDbType = NpgsqlDbType.Bytea; break;
 			}
-			if (type.BaseType.Name.ToLower() == "array")
-				if (pgsqlDbType == null) pgsqlDbType = NpgsqlDbType.Array;
-				else pgsqlDbType = pgsqlDbType | NpgsqlDbType.Array;
+			if (type.BaseType.IsArray)
+				pgsqlDbType = pgsqlDbType == null ? NpgsqlDbType.Array : pgsqlDbType | NpgsqlDbType.Array;
 			return pgsqlDbType;
 		}
 	}

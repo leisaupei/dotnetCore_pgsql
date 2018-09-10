@@ -104,14 +104,10 @@ namespace DBHelper
 		/// <returns></returns>
 		public static string GetAllSelectFieldsString(Type type, string alias)
 		{
-			string ret = string.Empty;
+			StringBuilder ret = new StringBuilder();
 			alias = !string.IsNullOrEmpty(alias) ? alias + "." : "";
-			GetAllFields(type, (p) =>
-			{
-				ret += (alias + p.Name.ToLower());
-				ret += ", ";
-			});
-			return ret.Substring(0, ret.Length - 1);
+			GetAllFields(type, p => ret.Append(alias).Append(p.Name.ToLower()).Append(", "));
+			return ret.Remove(ret.Length - 1, 1).ToString();
 		}
 
 		public static void GetAllFields(Type type, Action<PropertyInfo> action)

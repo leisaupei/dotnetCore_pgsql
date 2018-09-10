@@ -33,9 +33,8 @@ namespace dotnetCore_pgsql
   - db		database name
   - path	output path
   - name	project name
-> Example: host=localhost;port=5432;user=postgres;pwd=123456;db=superapp;name=test;path=d:\workspace
+> Example: host=localhost;port=5432;user=postgres;pwd=123456;db=postgres;name=test;path=d:\workspace
 ");
-
 			if (!args.IsNullOrEmpty())
 				LetsGo.Produce(args[0]);
 			else

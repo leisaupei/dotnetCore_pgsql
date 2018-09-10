@@ -12,9 +12,10 @@ namespace CodeFactory.DAL
 		readonly string _projectName;
 		readonly string _modelPath;
 		readonly string _dalPath;
-		string _schemaName;
+		readonly string _schemaName;
 		TableViewModel _table;
 		bool _isGeometryTable = false;
+		bool _isView = false;
 		public List<FieldInfo> fieldList = new List<FieldInfo>();
 		public List<PrimarykeyInfo> pkList = new List<PrimarykeyInfo>();
 		public List<ConstraintMoreToOne> consListMoreToOne = new List<ConstraintMoreToOne>();
@@ -32,30 +33,17 @@ namespace CodeFactory.DAL
 				GetPrimaryKey();
 				GetConstraint();
 			}
+			if (table.Type == "view")
+				_isView = true;
 			GetFieldList();
 		}
-		/// <summary>
-		/// wipe public prefix and name it.
-		/// </summary>
-		/// <param name="schemaName"></param>
-		/// <param name="tableName"></param>
-		/// <param name="isTableName"></param>
-		/// <returns></returns>
-		string DeletePublic(string schemaName, string tableName, bool isTableName = false)
-		{
-			if (isTableName)
-				return schemaName.ToLower() == "public" ? tableName.ToUpperPascal() : schemaName.ToLower() + "." + tableName;
-			var tableNameArr = tableName.Split('_');
-			tableName = string.Empty;
-			foreach (var item in tableNameArr)
-				tableName = string.Concat(tableName, item.ToUpperPascal());
-			return schemaName.ToLower() == "public" ? tableName.ToUpperPascal() : schemaName.ToUpperPascal() + tableName;
-		}
+
+
 		/// <summary>
 		/// Model postfix
 		/// </summary>
 		readonly string _modelSuffix = "Model";
-		readonly string _foreignKeyPrefix = "Obj";
+		readonly string _foreignKeyPrefix = "Get";
 		/// <summary>
 		/// Model name.
 		/// </summary>
@@ -63,11 +51,11 @@ namespace CodeFactory.DAL
 		/// <summary>
 		/// DAL name.
 		/// </summary>
-		string DalClassName => $"{DeletePublic(_schemaName, _table.Name)}";
+		string DalClassName => $"{TypeHelper.DeletePublic(_schemaName, _table.Name)}";
 		/// <summary>
 		/// table name.
 		/// </summary>
-		string TableName => $"{DeletePublic(_schemaName, _table.Name, true).ToLowerPascal()}";
+		string TableName => $"{TypeHelper.DeletePublic(_schemaName, _table.Name, _isView).ToLowerPascal()}";
 		#region Get
 
 		public void GetFieldList()
@@ -76,13 +64,14 @@ namespace CodeFactory.DAL
 				(f.is_identity = 'YES') as isidentity,format_type(c.atttypid,c.atttypmod) AS type_comment,
 				(CASE WHEN f.character_maximum_length IS NULL THEN	c.attlen ELSE f.character_maximum_length END) AS length,
 				(CASE WHEN e.typelem = 0 THEN e.typname WHEN e.typcategory = 'G' THEN format_type (c.atttypid, c.atttypmod) ELSE e2.typname END ) AS dbtype,
-				(CASE WHEN e.typelem = 0 THEN e.typtype ELSE e2.typtype END) AS datatype").From("pg_class")
+				(CASE WHEN e.typelem = 0 THEN e.typtype ELSE e2.typtype END) AS datatype, ns.nspname").From("pg_class")
 			   .InnerJoin("pg_namespace", "b", "a.relnamespace = b.oid")
 			   .InnerJoin("pg_attribute", "c", "attrelid = a.oid")
 			   .Join(UnionEnum.LEFT_OUTER_JOIN, "pg_description", "d", "c.attrelid = d.objoid AND c.attnum = d.objsubid AND c.attnum > 0")
 			   .InnerJoin("pg_type", "e", "e.oid = c.atttypid")
 			   .LeftJoin("pg_type", "e2", "e2.oid = e.typelem")
 			   .InnerJoin("information_schema.COLUMNS", "f", "f.table_schema = b.nspname AND f.TABLE_NAME = a.relname AND COLUMN_NAME = c.attname")
+			   .LeftJoin("pg_namespace", "ns", "ns.oid = e.typnamespace and ns.nspname <> 'pg_catalog'")
 			   .Where($"b.nspname='{_schemaName}' and a.relname='{_table.Name}'").ToList<FieldInfo>(fi =>
 			   {
 				   fi.IsArray = fi.Typcategory == "A";
@@ -90,13 +79,18 @@ namespace CodeFactory.DAL
 				   fi.PgDbType = Types.ConvertDbTypeToNpgsqlDbTypeEnum(fi.DataType, fi.DbType);
 				   fi.IsEnum = fi.DataType == "e";
 				   string _type = Types.ConvertPgDbTypeToCSharpType(fi.DbType);
-				   if (fi.IsEnum) _type = _type.ToUpperPascal();
-				   string _notnull = "";
-				   if (_type != "string" && _type != "JToken" && _type != "byte[]" && !fi.IsArray && _type != "object")
-					   _notnull = fi.IsNotNull ? "" : "?";
-				   string _array = fi.IsArray ? "[]" : "";
-				   fi.RelType = $"{_type}{_notnull}{_array}";
+				   if (fi.IsEnum) _type = TypeHelper.DeletePublic(fi.Nspname, _type);
+				   if (fi.DataType == "c") fi.RelType = TypeHelper.DeletePublic(fi.Nspname, _type);
+				   else
+				   {
+					   string _notnull = "";
+					   if (_type != "string" && _type != "JToken" && _type != "byte[]" && !fi.IsArray && _type != "object")
+						   _notnull = fi.IsNotNull ? "" : "?";
+					   string _array = fi.IsArray ? "[]" : "";
+					   fi.RelType = $"{_type}{_notnull}{_array}";
+				   }
 				   return fi;
+
 			   });
 		}
 
@@ -203,13 +197,14 @@ namespace CodeFactory.DAL
 				{
 					writer.WriteLine("\t\t#region Foreign Key");
 					Hashtable ht = new Hashtable();
-					foreach (var item in consListMoreToOne)
+
+					void WriteForeignKey(ConstraintMoreToOne item)
 					{
-						string tablename = DeletePublic(item.Nspname, item.TableName);
+						string tablename = TypeHelper.DeletePublic(item.Nspname, item.TableName);
 						string propertyName = $"{_foreignKeyPrefix}{tablename}";
 
 						if (ht.ContainsKey(propertyName))
-							propertyName += "By" + item.Conname;
+							propertyName = propertyName + "By" + TypeHelper.ExceptUnderlineToUpper(item.Conname);
 
 						string tmp_var = $"_{propertyName.ToLowerPascal()}";
 
@@ -220,20 +215,30 @@ namespace CodeFactory.DAL
 
 						ht.Add(propertyName, "");
 					}
+					foreach (var item in consListMoreToOne.Where(f => $"{f.TableName}_{f.RefColumn}" == f.Conname))
+						WriteForeignKey(item);
+
+					consListMoreToOne.RemoveAll(f => $"{f.TableName}_{f.RefColumn}" == f.Conname);
+					foreach (var item in consListMoreToOne)
+						WriteForeignKey(item);
+
+
 					foreach (var item in consListOneToMore)
 					{
-						string tablename = DeletePublic(item.Nspname, item.TableName);
+						string tablename = TypeHelper.DeletePublic(item.Nspname, item.TableName);
 						string propertyName = $"{_foreignKeyPrefix}{tablename}s";
-						if (consListOneToMore.Count(a => a.Nspname == item.Nspname && a.TableName == item.TableName && a.IsOneToOne == item.IsOneToOne) > 1) propertyName = propertyName + $"By{ item.RefColumn.ToLowerPascal()}";
+						if (ht.Contains(propertyName))
+							propertyName = propertyName + "By" + TypeHelper.ExceptUnderlineToUpper(item.Conname);
 						string tmp_var = $"_{propertyName.ToLowerPascal()}";
 						if (item.IsOneToOne)
 						{
 							writer.WriteLine();
-							tmp_var = tmp_var.Trim('s');
-							propertyName = propertyName.Trim('s');
+							tmp_var = tmp_var.TrimEnd('s');
+							propertyName = propertyName.TrimEnd('s');
 							writer.WriteLine($"\t\tprivate {tablename}{_modelSuffix} {tmp_var} = null;");
 							writer.WriteLine($"\t\t[ForeignKeyProperty]");
 							writer.WriteLine($"\t\tpublic {tablename}{_modelSuffix} {propertyName} => {tmp_var} = {tmp_var} ?? {tablename}.GetItem({DotValueHelper(item.Conname, fieldList)});");
+							ht.Add(propertyName, "");
 						}
 					}
 					writer.WriteLine("\t\t#endregion");
@@ -280,7 +285,7 @@ namespace CodeFactory.DAL
 				writer.WriteLine($"namespace {_projectName}.DAL");
 				writer.WriteLine("{");
 				writer.WriteLine($"\t[Mapping(\"{TableName}\")]");
-				writer.WriteLine($"\tpublic class {DalClassName} : SelectExchange<{DalClassName}, {ModelClassName}>");
+				writer.WriteLine($"\tpublic partial class {DalClassName} : SelectExchange<{DalClassName}, {ModelClassName}>");
 				writer.WriteLine("\t{");
 
 				writer.WriteLine("\t\t#region Properties");
@@ -467,6 +472,7 @@ namespace CodeFactory.DAL
 			foreach (var item in fieldList)
 			{
 				if (item.IsIdentity) continue;
+				if (item.DataType == "c") continue;
 				if (!item.IsArray)
 				{
 					string cSharpType = Types.ConvertPgDbTypeToCSharpType(item.RelType).Replace("?", "");
@@ -493,7 +499,7 @@ namespace CodeFactory.DAL
 				}
 				else
 				{
-					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}({Types.GetWhereTypeFromDbType(item.RelType, item.IsNotNull).Substring(7)} {item.Field}) => Where(\"a.{item.Field} = {{0}}\", {item.Field});");
+					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}({Types.GetWhereTypeFromDbType(item.RelType, item.IsNotNull).Substring(7)} {item.Field}) => WhereArray(\"a.{item.Field} = {{0}}\", {item.Field});");
 					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Any({Types.GetWhereTypeFromDbType(item.RelType, item.IsNotNull)} {item.Field}) => WhereOr(\"a.{item.Field} @> array[{{0}}::{item.DbType}]\", {item.Field});");
 					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Length(string sqlOperator, object value) => Where($\"array_length(a.{item.Field}, 1) {{sqlOperator}} {{{{0}}}}\", value);");
 				}

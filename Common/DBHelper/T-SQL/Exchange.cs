@@ -6,9 +6,9 @@ namespace DBHelper
 {
 	public class SelectExchange<TDAL, TModel> : SelectBuilder<TDAL> where TDAL : class, new()
 	{
-		public SelectExchange(string fields, string alias) : base(fields, alias) => Mapping();
-		public SelectExchange(string fields) : base(fields) => Mapping();
-		public SelectExchange() => Mapping(true);
+		public SelectExchange(string fields, string alias) : base(fields, alias) => Mapping(true);
+		public SelectExchange(string fields) : base(fields) => Mapping(true);
+		public SelectExchange() => Mapping();
 		private void Mapping(bool hasField = false)
 		{
 			Type type = typeof(TModel);

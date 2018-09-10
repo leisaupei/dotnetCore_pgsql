@@ -8,7 +8,7 @@ namespace CodeFactory.DAL
 		{
 			string[] notCreateSchemas = { "'pg_toast'", "'pg_temp_1'", "'pg_toast_temp_1'", "'pg_catalog'", "'information_schema'", "'topology'" };
 			return SQL.Select("SCHEMA_NAME AS schemaname").From("information_schema.schemata")
-				.Where($"SCHEMA_NAME NOT IN ({notCreateSchemas.Join(", ")})").OrderBy("SCHEMA_NAME").ToList<string>();
+				.WhereNotIn("SCHEMA_NAME", notCreateSchemas).OrderBy("SCHEMA_NAME").ToList<string>();
 		}
 	}
 }

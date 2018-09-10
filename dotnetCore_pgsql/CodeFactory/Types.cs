@@ -86,8 +86,8 @@ namespace CodeFactory
 		/// <returns></returns>
 		public static NpgsqlDbType ConvertDbTypeToNpgsqlDbTypeEnum(string dataType, string dbType)
 		{
-			if (dataType == "e")
-				return NpgsqlDbType.Unknown;  //   _dbtype = item.Db_type.ToUpperPascal();
+			if (dataType == "e" || dataType == "c")
+				return NpgsqlDbType.Unknown;
 			switch (dbType)
 			{
 				case "int2": return NpgsqlDbType.Smallint;

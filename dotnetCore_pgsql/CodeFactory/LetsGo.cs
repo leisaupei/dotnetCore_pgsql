@@ -62,8 +62,9 @@ namespace CodeFactory
 			CreateDir();
 			CreateCsproj();
 			CreateSln();
-			EnumsDal.Generate(Path.Combine(OutputDir, ProjectName, ProjectName + ".db"), ModelPath, ProjectName);
 			List<string> schemaList = SchemaDal.GetSchemas();
+			EnumsDal.Generate(Path.Combine(OutputDir, ProjectName, ProjectName + ".db"), ModelPath, ProjectName, schemaList);
+
 			foreach (var schemaName in schemaList)
 			{
 				List<TableViewModel> tableList = GetTables(schemaName);
@@ -149,7 +150,7 @@ namespace CodeFactory
 		}
 
 		/// <summary>
-		/// 获取所有表
+		/// get all tables
 		/// </summary>
 		/// <param name="schemaName"></param>
 		/// <returns></returns>
@@ -160,15 +161,15 @@ namespace CodeFactory
 			string[] notCreateViews = { "'raster_columns'", "'raster_overviews'", "'geometry_columns'", "'geography_columns'" };
 
 			return SQL.Select("tablename AS name,'table' AS type").From("pg_tables")
-				.Where($"schemaname NOT IN({ string.Join(",", notCreateSchemas)})")
-				.Where($"tablename NOT IN ({string.Join(",", notCreateTables)})")
+				.WhereNotIn($"schemaname", notCreateSchemas)
+				.WhereNotIn($"tablename", notCreateTables)
 				.Where($"schemaname = '{schemaName}'")
 			.Union(SQL.Select("viewname AS name,'view' AS type ").From("pg_views")
-				.Where($"viewname NOT IN ({string.Join(", ", notCreateViews)})")
+				.WhereNotIn($"viewname", notCreateViews)
 				.Where($"schemaname = '{schemaName}'")).ToList<TableViewModel>();
 		}
 		/// <summary>
-		/// 复制目录
+		/// copy common
 		/// </summary>
 		/// <param name="sourceDirectory"></param>
 		/// <param name="targetDirectory"></param>
@@ -200,11 +201,11 @@ namespace CodeFactory
 			}
 		}
 		/// <summary>
-		/// 不复制的目录
+		/// except directory
 		/// </summary>
 		static readonly string[] ExceptDir = { "CodeFactory", "CSRedis", "MQHelper" };
 		/// <summary>
-		/// 不复制的文件
+		/// except file
 		/// </summary>
 		static readonly string[] ExceptFile = { "Redis.zip" };
 	}

@@ -44,6 +44,7 @@ namespace CodeFactory
 		public bool IsNotNull { get; set; }
 		public NpgsqlDbType PgDbType { get; set; }
 		public string Typcategory { get; set; }
+		public string Nspname { get; set; }
 	}
 	public class PrimarykeyInfo
 	{
@@ -70,6 +71,11 @@ namespace CodeFactory
 	public class EnumTypeInfo
 	{
 		public int Oid { get; set; }
+		public string Typname { get; set; }
+		public string Nspname { get; set; }
+	}
+	public class CompositeTypeInfo
+	{
 		public string Typname { get; set; }
 		public string Nspname { get; set; }
 	}
