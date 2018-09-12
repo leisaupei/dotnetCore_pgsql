@@ -45,6 +45,7 @@ namespace CodeFactory
 		public NpgsqlDbType PgDbType { get; set; }
 		public string Typcategory { get; set; }
 		public string Nspname { get; set; }
+		public bool IsUnique { get; set; }
 	}
 	public class PrimarykeyInfo
 	{

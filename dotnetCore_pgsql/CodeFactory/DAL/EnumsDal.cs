@@ -56,7 +56,7 @@ namespace CodeFactory.DAL
 					var enums = SQL.Select("enumlabel").From("pg_enum").Where($"enumtypid={item.Oid}").OrderBy("oid asc").ToList<string>();
 					if (enums.Count > 0)
 						enums[0] += " = 1";
-					writer.WriteLine($"\tpublic enum {TypeHelper.DeletePublic(item.Nspname, item.Typname)}");
+					writer.WriteLine($"\tpublic enum {Types.DeletePublic(item.Nspname, item.Typname)}");
 					writer.WriteLine("\t{");
 					writer.WriteLine($"\t\t{string.Join(", ", enums)}");
 					writer.WriteLine("\t}");
@@ -98,7 +98,7 @@ namespace CodeFactory.DAL
 						isFoot = false;
 					}
 					str += $"\t[JsonObject(MemberSerialization.OptIn)]\n";
-					str += $"\tpublic partial struct {TypeHelper.DeletePublic(composite.Nspname, composite.Typname)}\n";
+					str += $"\tpublic partial struct {Types.DeletePublic(composite.Nspname, composite.Typname)}\n";
 					str += "\t{";
 					dic.Add(temp, str);
 					composites.Add(composite);
@@ -159,9 +159,9 @@ namespace CodeFactory.DAL
 				writer.WriteLine("\t\t\tNpgsqlNameTranslator translator = new NpgsqlNameTranslator();");
 				writer.WriteLine("\t\t\tNpgsqlConnection.GlobalTypeMapper.UseJsonNet();");
 				foreach (var item in list)
-					writer.WriteLine($"\t\t\tNpgsqlConnection.GlobalTypeMapper.MapEnum<{TypeHelper.DeletePublic(item.Nspname, item.Typname)}>(\"{item.Nspname}.{item.Typname}\", translator);");
+					writer.WriteLine($"\t\t\tNpgsqlConnection.GlobalTypeMapper.MapEnum<{Types.DeletePublic(item.Nspname, item.Typname)}>(\"{item.Nspname}.{item.Typname}\", translator);");
 				foreach (var item in listComposite)
-					writer.WriteLine($"\t\t\tNpgsqlConnection.GlobalTypeMapper.MapComposite<{TypeHelper.DeletePublic(item.Nspname, item.Typname)}>(\"{item.Nspname}.{item.Typname}\");");
+					writer.WriteLine($"\t\t\tNpgsqlConnection.GlobalTypeMapper.MapComposite<{Types.DeletePublic(item.Nspname, item.Typname)}>(\"{item.Nspname}.{item.Typname}\");");
 				writer.WriteLine("\t\t}");
 				writer.WriteLine("\t}");
 				writer.WriteLine("\tpublic partial class NpgsqlNameTranslator : INpgsqlNameTranslator");

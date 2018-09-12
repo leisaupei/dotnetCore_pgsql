@@ -142,5 +142,35 @@ namespace CodeFactory
 				return false;
 			return true;
 		}
+		/// <summary>
+		/// wipe public prefix and name it.
+		/// </summary>
+		/// <param name="schemaName"></param>
+		/// <param name="tableName"></param>
+		/// <param name="isTableName"></param>
+		/// <returns></returns>
+		public static string DeletePublic(string schemaName, string tableName, bool isTableName = false, bool isView = false)
+		{
+			if (isTableName)
+				return schemaName.ToLower() == "public" ? tableName.ToUpperPascal() : schemaName.ToLower() + "." + tableName;
+			tableName = ExceptUnderlineToUpper(tableName);
+			if (isView == true)
+				tableName += "View";
+			return schemaName.ToLower() == "public" ? tableName.ToUpperPascal() : schemaName.ToUpperPascal() + tableName;
+		}
+		public static string ExceptUnderlineToUpper(string str, int? len = null)
+		{
+			var strArr = str.Split('_');
+			str = string.Empty;
+			var index = 1;
+			foreach (var item in strArr)
+			{
+				str = string.Concat(str, item.ToUpperPascal());
+				if (len != null && len == index)
+					break;
+				index++;
+			}
+			return str;
+		}
 	}
 }

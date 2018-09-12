@@ -51,12 +51,11 @@ namespace CodeFactory.DAL
 		/// <summary>
 		/// DAL name.
 		/// </summary>
-		string DalClassName => $"{TypeHelper.DeletePublic(_schemaName, _table.Name)}";
+		string DalClassName => $"{Types.DeletePublic(_schemaName, _table.Name)}";
 		/// <summary>
 		/// table name.
 		/// </summary>
-		string TableName => $"{TypeHelper.DeletePublic(_schemaName, _table.Name, _isView).ToLowerPascal()}";
-		#region Get
+		string TableName => $"{Types.DeletePublic(_schemaName, _table.Name, _isView).ToLowerPascal()}";
 
 		public void GetFieldList()
 		{
@@ -72,6 +71,7 @@ namespace CodeFactory.DAL
 			   .LeftJoin("pg_type", "e2", "e2.oid = e.typelem")
 			   .InnerJoin("information_schema.COLUMNS", "f", "f.table_schema = b.nspname AND f.TABLE_NAME = a.relname AND COLUMN_NAME = c.attname")
 			   .LeftJoin("pg_namespace", "ns", "ns.oid = e.typnamespace and ns.nspname <> 'pg_catalog'")
+			   .LeftJoin("pg_constraint", "pc", "pc.conrelid = a.oid and pc.conkey[1] = c.attnum")
 			   .Where($"b.nspname='{_schemaName}' and a.relname='{_table.Name}'").ToList<FieldInfo>(fi =>
 			   {
 				   fi.IsArray = fi.Typcategory == "A";
@@ -79,8 +79,8 @@ namespace CodeFactory.DAL
 				   fi.PgDbType = Types.ConvertDbTypeToNpgsqlDbTypeEnum(fi.DataType, fi.DbType);
 				   fi.IsEnum = fi.DataType == "e";
 				   string _type = Types.ConvertPgDbTypeToCSharpType(fi.DbType);
-				   if (fi.IsEnum) _type = TypeHelper.DeletePublic(fi.Nspname, _type);
-				   if (fi.DataType == "c") fi.RelType = TypeHelper.DeletePublic(fi.Nspname, _type);
+				   if (fi.IsEnum) _type = Types.DeletePublic(fi.Nspname, _type);
+				   if (fi.DataType == "c") fi.RelType = Types.DeletePublic(fi.Nspname, _type);
 				   else
 				   {
 					   string _notnull = "";
@@ -136,9 +136,7 @@ namespace CodeFactory.DAL
 				.InnerJoin("pg_attribute", "b", "b.attrelid = a.indrelid AND b.attnum = ANY (a.indkey)")
 				.Where($"a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary").ToList<PrimarykeyInfo>();
 		}
-		#endregion
 
-		#region Generator
 		/// <summary>
 		/// Generate model files(Model.cs). 
 		/// </summary>
@@ -200,11 +198,11 @@ namespace CodeFactory.DAL
 
 					void WriteForeignKey(ConstraintMoreToOne item)
 					{
-						string tablename = TypeHelper.DeletePublic(item.Nspname, item.TableName);
+						string tablename = Types.DeletePublic(item.Nspname, item.TableName);
 						string propertyName = $"{_foreignKeyPrefix}{tablename}";
 
 						if (ht.ContainsKey(propertyName))
-							propertyName = propertyName + "By" + TypeHelper.ExceptUnderlineToUpper(item.Conname);
+							propertyName = propertyName + "By" + Types.ExceptUnderlineToUpper(item.Conname);
 
 						string tmp_var = $"_{propertyName.ToLowerPascal()}";
 
@@ -225,10 +223,10 @@ namespace CodeFactory.DAL
 
 					foreach (var item in consListOneToMore)
 					{
-						string tablename = TypeHelper.DeletePublic(item.Nspname, item.TableName);
+						string tablename = Types.DeletePublic(item.Nspname, item.TableName);
 						string propertyName = $"{_foreignKeyPrefix}{tablename}s";
 						if (ht.Contains(propertyName))
-							propertyName = propertyName + "By" + TypeHelper.ExceptUnderlineToUpper(item.Conname);
+							propertyName = propertyName + "By" + Types.ExceptUnderlineToUpper(item.Conname);
 						string tmp_var = $"_{propertyName.ToLowerPascal()}";
 						if (item.IsOneToOne)
 						{
@@ -321,9 +319,10 @@ namespace CodeFactory.DAL
 				writer.WriteLine("}");
 			}
 		}
-		#endregion
-
-		#region Dal Property
+		/// <summary>
+		/// Generator DAL properties.
+		/// </summary>
+		/// <param name="writer"></param>
 		private void PropertiesGenerator(StreamWriter writer)
 		{
 			StringBuilder sb_field = new StringBuilder();
@@ -368,9 +367,10 @@ namespace CodeFactory.DAL
 				writer.WriteLine($"\t\tpublic static InsertBuilder InsertDiy => new InsertBuilder(\"{TableName}\"{(_isGeometryTable ? ", _field" : "")});");
 			}
 		}
-		#endregion
-
-		#region Delete
+		/// <summary>
+		/// Generator delete method.
+		/// </summary>
+		/// <param name="writer"></param>
 		private void DeleteGenerator(StreamWriter writer)
 		{
 			if (pkList.Count > 0)
@@ -409,9 +409,10 @@ namespace CodeFactory.DAL
 				}
 			}
 		}
-		#endregion
-
-		#region Insert
+		/// <summary>
+		/// Generator insert method.
+		/// </summary>
+		/// <param name="writer"></param>
 		private void InsertGenerator(StreamWriter writer)
 		{
 			writer.WriteLine($"\t\tpublic static {ModelClassName} Insert({ModelClassName} model)");
@@ -434,9 +435,10 @@ namespace CodeFactory.DAL
 			writer.WriteLine("\t\t}");
 
 		}
-		#endregion
-
-		#region Select
+		/// <summary>
+		/// Generator select method.
+		/// </summary>
+		/// <param name="writer"></param>
 		private void SelectGenerator(StreamWriter writer)
 		{
 			StringBuilder sbEx = new StringBuilder();
@@ -458,7 +460,10 @@ namespace CodeFactory.DAL
 						sbEx.AppendLine($"\t\tpublic {DalClassName} Where{fs.Field.ToUpperPascal()}({Types.GetWhereTypeFromDbType(fs.RelType, fs.IsNotNull)} {fs.Field}) => WhereOr(\"a.{fs.Field} = {{0}}\", {fs.Field});");
 				}
 				writer.WriteLine($"\t\tpublic static {ModelClassName} GetItem({string.Join(",", d_key)}) => Select{where}.ToOne();");
-
+				foreach (var u in fieldList.Where(f => f.IsUnique == true))
+				{
+					writer.WriteLine($"\t\tpublic static {ModelClassName} GetItemBy{u.Field.ToUpperPascal()}({Types.GetWhereTypeFromDbType(u.RelType, u.IsNotNull)} {u.Field}) => Select.Where{u.Field.ToUpperPascal()}({u.Field}).ToOne();");
+				}
 				if (pkList.Count == 1)
 					writer.WriteLine($"\t\tpublic static List<{ModelClassName}> GetItems(IEnumerable<{types}> {s_key[0]}) => Select.WhereOr(\"{s_key[0]} = {{0}}\", {s_key[0]}).ToList();");
 				else if (pkList.Count > 1)
@@ -507,9 +512,10 @@ namespace CodeFactory.DAL
 			}
 			writer.WriteLine(sbEx);
 		}
-		#endregion
-
-		#region Update
+		/// <summary>
+		/// Generator update method.
+		/// </summary>
+		/// <param name="writer"></param>
 		private void UpdateGenerator(StreamWriter writer)
 		{
 
@@ -592,9 +598,7 @@ namespace CodeFactory.DAL
 			writer.WriteLine("\t\t}");
 
 		}
-		#endregion
 
-		#region Private Method
 
 		private static void WriteComment(StreamWriter writer, string comment)
 		{
@@ -635,6 +639,5 @@ namespace CodeFactory.DAL
 			if (field == "id" && cSharpType == "Guid") return " ?? Guid.NewGuid()";
 			return "";
 		}
-		#endregion
 	}
 }
