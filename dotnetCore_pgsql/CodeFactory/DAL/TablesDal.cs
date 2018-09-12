@@ -71,7 +71,7 @@ namespace CodeFactory.DAL
 			   .LeftJoin("pg_type", "e2", "e2.oid = e.typelem")
 			   .InnerJoin("information_schema.COLUMNS", "f", "f.table_schema = b.nspname AND f.TABLE_NAME = a.relname AND COLUMN_NAME = c.attname")
 			   .LeftJoin("pg_namespace", "ns", "ns.oid = e.typnamespace and ns.nspname <> 'pg_catalog'")
-			   .LeftJoin("pg_constraint", "pc", "pc.conrelid = a.oid and pc.conkey[1] = c.attnum")
+			   .LeftJoin("pg_constraint", "pc", "pc.conrelid = a.oid and pc.conkey[1] = c.attnum and pc.contype = 'u'")
 			   .Where($"b.nspname='{_schemaName}' and a.relname='{_table.Name}'").ToList<FieldInfo>(fi =>
 			   {
 				   fi.IsArray = fi.Typcategory == "A";
@@ -462,7 +462,7 @@ namespace CodeFactory.DAL
 				writer.WriteLine($"\t\tpublic static {ModelClassName} GetItem({string.Join(",", d_key)}) => Select{where}.ToOne();");
 				foreach (var u in fieldList.Where(f => f.IsUnique == true))
 				{
-					writer.WriteLine($"\t\tpublic static {ModelClassName} GetItemBy{u.Field.ToUpperPascal()}({Types.GetWhereTypeFromDbType(u.RelType, u.IsNotNull)} {u.Field}) => Select.Where{u.Field.ToUpperPascal()}({u.Field}).ToOne();");
+					writer.WriteLine($"\t\tpublic static {ModelClassName} GetItemBy{u.Field.ToUpperPascal()}({Types.ConvertPgDbTypeToCSharpType(u.RelType)} {u.Field}) => Select.Where{u.Field.ToUpperPascal()}({u.Field}).ToOne();");
 				}
 				if (pkList.Count == 1)
 					writer.WriteLine($"\t\tpublic static List<{ModelClassName}> GetItems(IEnumerable<{types}> {s_key[0]}) => Select.WhereOr(\"{s_key[0]} = {{0}}\", {s_key[0]}).ToList();");
