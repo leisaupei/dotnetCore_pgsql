@@ -80,14 +80,17 @@ namespace DBHelper
 		}
 
 		#region Union
+		public TSQL InnerJoin<T>(SelectBuilder<T> selectBuilder, string alias, string on) where T : class, new()
+					=> Join(UnionEnum.INNER_JOIN, $"({selectBuilder})", alias, on);
+		public TSQL LeftJoin<T>(SelectBuilder<T> selectBuilder, string alias, string on) where T : class, new()
+			=> Join(UnionEnum.LEFT_JOIN, $"({selectBuilder})", alias, on);
+		public TSQL RightJoin<T>(SelectBuilder<T> selectBuilder, string alias, string on) where T : class, new()
+			=> Join(UnionEnum.RIGHT_JOIN, $"({selectBuilder})", alias, on);
 		public TSQL InnerJoin(string table, string alias, string on) => Join(UnionEnum.INNER_JOIN, table, alias, on);
-		public TSQL InnerJoin(TSQL selectBuilder, string alias, string on) => Join(UnionEnum.INNER_JOIN, $"({selectBuilder})", alias, on);
-		public TSQL InnerJoin<TTarget>(string alias, string on) => Join<TTarget>(UnionEnum.INNER_JOIN, alias, on);
 		public TSQL LeftJoin(string table, string alias, string on) => Join(UnionEnum.LEFT_JOIN, table, alias, on);
-		public TSQL LeftJoin(TSQL selectBuilder, string alias, string on) => Join(UnionEnum.LEFT_JOIN, $"({selectBuilder})", alias, on);
-		public TSQL LeftJoin<TTarget>(string alias, string on) => Join<TTarget>(UnionEnum.LEFT_JOIN, alias, on);
 		public TSQL RightJoin(string table, string alias, string on) => Join(UnionEnum.RIGHT_JOIN, table, alias, on);
-		public TSQL RightJoin(TSQL selectBuilder, string alias, string on) => Join(UnionEnum.RIGHT_JOIN, $"({selectBuilder})", alias, on);
+		public TSQL InnerJoin<TTarget>(string alias, string on) => Join<TTarget>(UnionEnum.INNER_JOIN, alias, on);
+		public TSQL LeftJoin<TTarget>(string alias, string on) => Join<TTarget>(UnionEnum.LEFT_JOIN, alias, on);
 		public TSQL RightJoin<TTarget>(string alias, string on) => Join<TTarget>(UnionEnum.RIGHT_JOIN, alias, on);
 		public TSQL Join<TTarget>(UnionEnum unionType, string alias, string on) => Join(unionType, MappingHelper.GetMapping(typeof(TTarget)), alias, on);
 		public TSQL Join(UnionEnum unionType, string table, string aliasName, string on)
@@ -126,10 +129,10 @@ namespace DBHelper
 		}
 
 		public long Count() => ToScalar<long>("COUNT(1)");
-		public TResult Max<TResult>(string field) => ToScalar<TResult>($"COALESCE(MAX({field}),0)");
-		public TResult Min<TResult>(string field) => ToScalar<TResult>($"COALESCE(MIN({field}),0)");
-		public TResult Sum<TResult>(string field) => ToScalar<TResult>($"COALESCE(SUM({field}),0)");
-		public TResult Avg<TResult>(string field) => ToScalar<TResult>($"COALESCE(AVG({field}),0)");
+		public TResult Max<TResult>(string field, string coalesce = "0") => ToScalar<TResult>($"COALESCE(MAX({field}),{coalesce})");
+		public TResult Min<TResult>(string field, string coalesce = "0") => ToScalar<TResult>($"COALESCE(MIN({field}),{coalesce})");
+		public TResult Sum<TResult>(string field, string coalesce = "0") => ToScalar<TResult>($"COALESCE(SUM({field}),{coalesce})");
+		public TResult Avg<TResult>(string field, string coalesce = "0") => ToScalar<TResult>($"COALESCE(AVG({field}),{coalesce})");
 
 		#region Override
 		public override string ToString() => base.ToString();

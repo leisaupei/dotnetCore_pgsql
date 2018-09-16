@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Hosting;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -16,34 +17,6 @@ namespace DBHelper
 		public string TableName { get; set; }
 		public MappingAttribute(string tableName) => TableName = tableName;
 	}
-	/// <summary>
-	/// Mothod attribute.
-	/// </summary>
-	[AttributeUsage(AttributeTargets.Property, Inherited = true)]
-	public class MethodPropertyAttribute : Attribute { }
-	/// <summary>
-	/// Primary key attribute
-	/// </summary>
-	[AttributeUsage(AttributeTargets.Property, Inherited = true)]
-	public class PrimaryKeyAttribute : Attribute { }
-	/// <summary>
-	/// Foreign attribute.
-	/// </summary>
-	[AttributeUsage(AttributeTargets.Property, Inherited = true)]
-	public class ForeignKeyPropertyAttribute : Attribute { }
-	/// <summary>
-	/// Field attribute.
-	/// </summary>
-	[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
-	public class FieldAttribute : ColumnAttribute
-	{
-		public FieldAttribute(string name, string dbtype, int length) : base(name)
-		{
-			TypeName = dbtype;
-			Order = length;
-		}
-	}
-
 	public class MappingHelper
 	{
 		/// <summary>
@@ -73,13 +46,8 @@ namespace DBHelper
 		/// </summary>
 		/// <param name="item"></param>
 		/// <returns></returns>
-		public static bool InspectionAttribute(PropertyInfo item)
-		{
-			if (item.GetCustomAttribute(typeof(MethodPropertyAttribute)) == null &&
-				item.GetCustomAttribute(typeof(ForeignKeyPropertyAttribute)) == null)
-				return true;
-			return false;
-		}
+		public static bool InspectionAttribute(PropertyInfo item) => item.GetCustomAttribute(typeof(JsonPropertyAttribute)) != null;
+
 		/// <summary>
 		/// Get all fields of this class.
 		/// </summary>
@@ -107,7 +75,7 @@ namespace DBHelper
 			StringBuilder ret = new StringBuilder();
 			alias = !string.IsNullOrEmpty(alias) ? alias + "." : "";
 			GetAllFields(type, p => ret.Append(alias).Append(p.Name.ToLower()).Append(", "));
-			return ret.Remove(ret.Length - 1, 1).ToString();
+			return ret.Remove(ret.Length - 2, 2).ToString();
 		}
 
 		public static void GetAllFields(Type type, Action<PropertyInfo> action)

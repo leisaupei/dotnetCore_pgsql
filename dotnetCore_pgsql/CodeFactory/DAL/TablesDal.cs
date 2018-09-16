@@ -208,7 +208,6 @@ namespace CodeFactory.DAL
 
 						writer.WriteLine();
 						writer.WriteLine($"\t\tprivate {tablename}{_modelSuffix} {tmp_var} = null;");
-						writer.WriteLine($"\t\t[ForeignKeyProperty]");
 						writer.WriteLine($"\t\tpublic {tablename}{_modelSuffix} {propertyName} => {tmp_var} = {tmp_var} ?? {tablename}.GetItem({DotValueHelper(item.Conname, fieldList)});");
 
 						ht.Add(propertyName, "");
@@ -234,7 +233,6 @@ namespace CodeFactory.DAL
 							tmp_var = tmp_var.TrimEnd('s');
 							propertyName = propertyName.TrimEnd('s');
 							writer.WriteLine($"\t\tprivate {tablename}{_modelSuffix} {tmp_var} = null;");
-							writer.WriteLine($"\t\t[ForeignKeyProperty]");
 							writer.WriteLine($"\t\tpublic {tablename}{_modelSuffix} {propertyName} => {tmp_var} = {tmp_var} ?? {tablename}.GetItem({DotValueHelper(item.Conname, fieldList)});");
 							ht.Add(propertyName, "");
 						}
@@ -243,7 +241,7 @@ namespace CodeFactory.DAL
 					writer.WriteLine();
 					writer.WriteLine("\t\t#region Update/Insert");
 					if (pkList.Count > 0)
-						writer.WriteLine($"\t\t[MethodProperty] public {DalClassName}.{DalClassName}UpdateBuilder Update => DAL.{DalClassName}.Update(this);");
+						writer.WriteLine($"\t\tpublic {DalClassName}.{DalClassName}UpdateBuilder Update => DAL.{DalClassName}.Update(this);");
 					writer.WriteLine();
 					writer.WriteLine($"\t\tpublic {ModelClassName} Insert() => DAL.{DalClassName}.Insert(this);");
 					writer.WriteLine("\t\t#endregion");
@@ -462,7 +460,7 @@ namespace CodeFactory.DAL
 				writer.WriteLine($"\t\tpublic static {ModelClassName} GetItem({string.Join(",", d_key)}) => Select{where}.ToOne();");
 				foreach (var u in fieldList.Where(f => f.IsUnique == true))
 				{
-					writer.WriteLine($"\t\tpublic static {ModelClassName} GetItemBy{u.Field.ToUpperPascal()}({Types.ConvertPgDbTypeToCSharpType(u.RelType)} {u.Field}) => Select.Where{u.Field.ToUpperPascal()}({u.Field}).ToOne();");
+					writer.WriteLine($"\t\tpublic static {ModelClassName} GetItemBy{u.Field.ToUpperPascal()}({u.RelType.Replace("?", "")} {u.Field}) => Select.Where{u.Field.ToUpperPascal()}({u.Field}).ToOne();");
 				}
 				if (pkList.Count == 1)
 					writer.WriteLine($"\t\tpublic static List<{ModelClassName}> GetItems(IEnumerable<{types}> {s_key[0]}) => Select.WhereOr(\"{s_key[0]} = {{0}}\", {s_key[0]}).ToList();");
@@ -489,7 +487,7 @@ namespace CodeFactory.DAL
 							writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Like({Types.GetWhereTypeFromDbType(item.RelType, item.IsNotNull)} {item.Field}) => WhereOr(\"a.{item.Field} LIKE {{0}}\", {item.Field}.Select(a => $\"%{{a}}%\"));");
 							break;
 						case "datetime":
-							writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Range(DateTime dt1, DateTime dt2) => Where(\"a.{item.Field} BETWEEN {{0}} AND {{1}}\", dt1, dt2);");
+							writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Range(DateTime? begin = null, DateTime? end = null) => Where(\"a.{item.Field} BETWEEN {{0}} AND {{1}}\", begin ?? DateTime.Parse(\"1970-1-1\"), end ?? DateTime.Now);");
 							break;
 						case "int":
 						case "short":
@@ -497,7 +495,7 @@ namespace CodeFactory.DAL
 						case "decimal":
 						case "float":
 						case "double":
-							writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Than({cSharpType} val, bool isGreater, bool isEquals = false) => Where($\"a.{item.Field} {{(isGreater ? \">\" : \"<\")}}{{(isEquals ? \"=\" : \"\")}} {{{{0}}}}\", val);");
+							writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Than({cSharpType} val, string sqlOperator = \">\") => Where($\"a.{item.Field} {{sqlOperator}} {{{{0}}}}\", val);");
 							break;
 						default: break;
 					}
@@ -506,7 +504,7 @@ namespace CodeFactory.DAL
 				{
 					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}({Types.GetWhereTypeFromDbType(item.RelType, item.IsNotNull).Substring(7)} {item.Field}) => WhereArray(\"a.{item.Field} = {{0}}\", {item.Field});");
 					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Any({Types.GetWhereTypeFromDbType(item.RelType, item.IsNotNull)} {item.Field}) => WhereOr(\"a.{item.Field} @> array[{{0}}::{item.DbType}]\", {item.Field});");
-					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Length(string sqlOperator, object value) => Where($\"array_length(a.{item.Field}, 1) {{sqlOperator}} {{{{0}}}}\", value);");
+					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Length(int len, string sqlOperator = \"=\") => Where($\"array_length(a.{item.Field}, 1) {{sqlOperator}} {{{{0}}}}\", len);");
 				}
 
 			}
@@ -567,6 +565,7 @@ namespace CodeFactory.DAL
 				string cSharpType = Types.ConvertPgDbTypeToCSharpType(item.DbType);
 				if (item.IsArray)
 				{
+					cSharpType = Types.DeletePublic(item.Nspname, cSharpType);
 					//join
 					writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Join(params {cSharpType}[] {item.Field}) => SetJoin(\"{item.Field}\", {item.Field}, {item.Length});");
 					//remove
@@ -633,11 +632,18 @@ namespace CodeFactory.DAL
 		/// <returns></returns>
 		public static string SetInsertDefaultValue(string field, string cSharpType, bool isNotNull)
 		{
-			if (isNotNull) return "";
-			if (cSharpType == "JToken") return " ?? JToken.Parse(\"{}\") ";
-			if (field == "create_time" && cSharpType == "DateTime") return " ?? DateTime.Now";
-			if (field == "id" && cSharpType == "Guid") return " ?? Guid.NewGuid()";
-			return "";
+			switch (field)
+			{
+				case string f when f == "id" && cSharpType == "Guid" && isNotNull:
+					return " == Guid.Empty ? Guid.NewGuid() : model.Id";
+				case string f when (f == "create_time" || f == "update_time") && cSharpType == "DateTime" && isNotNull:
+					return $".Ticks == 0 ? DateTime.Now : model.{f.ToUpperPascal()}";
+				case string f when (f == "create_time" || f == "update_time") && cSharpType == "DateTime" && !isNotNull:
+					return " ?? DateTime.Now";
+				case string f when cSharpType == "JToken":
+					return " ?? JToken.Parse(\"{}\") ";
+				default: return "";
+			}
 		}
 	}
 }
