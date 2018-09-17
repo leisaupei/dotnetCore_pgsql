@@ -247,8 +247,8 @@ namespace CodeFactory.DAL
 					writer.WriteLine("\t\t#endregion");
 				}
 				writer.WriteLine("");
-				writer.WriteLine("\t\tpublic override string ToString() => JsonConvert.SerializeObject(this);");
-				writer.WriteLine($"\t\tpublic static {ModelClassName} Parse(string json) => json.IsNullOrEmpty() ? null : JsonConvert.DeserializeObject<{ModelClassName}>(json);");
+				writer.WriteLine("\t\tpublic override string ToString() => this.ToJson();");
+				writer.WriteLine($"\t\tpublic static {ModelClassName} Parse(string json) => json.IsNullOrEmpty() ? null : json.ToObject<{ModelClassName}>();");
 				writer.WriteLine("\t}");
 				writer.WriteLine("}");
 

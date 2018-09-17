@@ -14,23 +14,20 @@ namespace DBHelper
 {
 	public partial class PgSqlHelper
 	{
-		public static int DB_COUNT = 1;
 		public partial class _execute : PgExecute
 		{
-			public _execute(int poolSize, string connectionString, ILogger logger) : base(poolSize, connectionString, logger)
-			{
-			}
+			public _execute(int poolSize, string connectionString, ILogger logger, int? slavePoolSize, string slaveConnectionString)
+				: base(poolSize, connectionString, logger, slavePoolSize, slaveConnectionString) { }
 		}
 		static _execute _Execute;
 		static PgExecute Execute => _Execute;
 		static ILogger _logger;
-		public static void InitDBConnection(int poolSize, string connectionString, ILogger logger)
+		public static void InitDBConnection(int poolSize, string connectionString, ILogger logger, int? slavePoolSize = null, string slaveConnectionString = "")
 		{
 			if (connectionString.IsNullOrEmpty())
 				throw new ArgumentNullException("Connection String is null");
-			//mark: 日志 
 			_logger = logger;
-			_Execute = new _execute(poolSize, connectionString, logger);
+			_Execute = new _execute(poolSize, connectionString, logger, slavePoolSize, slaveConnectionString);
 
 		}
 
@@ -181,9 +178,10 @@ namespace DBHelper
 				action?.Invoke();
 				Execute.CommitTransaction();
 			}
-			finally
+			catch (Exception e)
 			{
-				Execute.Close(null, Execute._transaction.Connection);
+				Execute.RollBackTransaction();
+				throw e;
 			}
 		}
 	}
