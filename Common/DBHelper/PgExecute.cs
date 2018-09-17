@@ -9,17 +9,42 @@ namespace DBHelper
 {
 	public abstract class PgExecute
 	{
-
+		/// <summary>
+		/// Logger
+		/// </summary>
 		public static ILogger _logger;
+		/// <summary>
+		/// Transaction pool.
+		/// </summary>
 		Dictionary<int, NpgsqlTransaction> _transPool = new Dictionary<int, NpgsqlTransaction>();
+		/// <summary>
+		/// Transaction locker.
+		/// </summary>
 		static readonly object _lockTrans = new object();
+		/// <summary>
+		/// Master connection pool.
+		/// </summary>
 		ConnectionPool _pool;
 		/// <summary>
-		/// 只读连接池
+		/// Slave connection pool.
 		/// </summary>
 		ConnectionPool _slavePool;
+		/// <summary>
+		/// Is has slave datebase connection string.
+		/// </summary>
 		readonly bool _hasSlave = false;
+		/// <summary>
+		/// Is executing non query.
+		/// </summary>
 		bool _isNonQuery = false;
+		/// <summary>
+		/// Constructor with master database, slave datebase and logger.
+		/// </summary>
+		/// <param name="poolSize"></param>
+		/// <param name="connectionString"></param>
+		/// <param name="logger"></param>
+		/// <param name="slavePoolSize"></param>
+		/// <param name="slaveConnectionString"></param>
 		protected PgExecute(int poolSize, string connectionString, ILogger logger, int? slavePoolSize, string slaveConnectionString)
 		{
 			_logger = logger;
@@ -30,6 +55,9 @@ namespace DBHelper
 				_slavePool = new ConnectionPool(slavePoolSize.Value, slaveConnectionString);
 			}
 		}
+		/// <summary>
+		/// Transaction of current thread.
+		/// </summary>
 		NpgsqlTransaction CurrentTransaction
 		{
 			get
@@ -46,7 +74,6 @@ namespace DBHelper
 		/// </summary>
 		protected void PrepareCommand(NpgsqlCommand cmd, CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
 		{
-
 			if (cmdText.IsNullOrEmpty() || cmd == null) throw new ArgumentNullException("Command is error");
 			if (CurrentTransaction == null)
 			{
@@ -80,7 +107,7 @@ namespace DBHelper
 			}
 		}
 		/// <summary>
-		/// Return scalar.
+		/// Execute scalar.
 		/// </summary>
 		public object ExecuteScalar(CommandType cmdType, string cmdText, params NpgsqlParameter[] cmdParameters)
 		{
@@ -109,7 +136,7 @@ namespace DBHelper
 		/// </summary>
 		public int ExecuteNonQuery(CommandType cmdType, string cmdText, params NpgsqlParameter[] cmdParameters)
 		{
-			int ret = 0;
+			int ret = 0; _isNonQuery = true;
 			NpgsqlCommand cmd = new NpgsqlCommand();
 			try
 			{
@@ -133,7 +160,6 @@ namespace DBHelper
 		/// </summary>
 		public void ExecuteDataReader(Action<NpgsqlDataReader> action, CommandType cmdType, string cmdText, params NpgsqlParameter[] cmdParameters)
 		{
-			_isNonQuery = true;
 			NpgsqlCommand cmd = new NpgsqlCommand(); NpgsqlDataReader reader = null;
 			try
 			{
@@ -206,7 +232,10 @@ namespace DBHelper
 		/// Rollback transaction.
 		/// </summary>
 		public void RollBackTransaction() => ReleaseTransaction(tran => tran.Rollback());
-
+		/// <summary>
+		/// Release transaction.
+		/// </summary>
+		/// <param name="action"></param>
 		void ReleaseTransaction(Action<NpgsqlTransaction> action)
 		{
 			var tran = CurrentTransaction;
