@@ -1,8 +1,11 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using StackExchange.Redis;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -61,6 +64,75 @@ public static class TypeExtension
 	public static string ToJson<T>(this T val) => JsonConvert.SerializeObject(val);
 
 	public static T ToObject<T>(this string json) => JsonConvert.DeserializeObject<T>(json);
+
+	#region IDataReader.To
+	public static TResult ReaderToModel<TResult>(this IDataReader objReader)
+	{
+		//获取传入的数据类型
+		Type modelType = typeof(TResult);
+		bool isTuple = (modelType.Namespace == "System" && modelType.Name.StartsWith("ValueTuple`", StringComparison.Ordinal)); //判断是否元组类型
+		bool isValue = (modelType.Namespace == "System" && modelType.Name.StartsWith("String", StringComparison.Ordinal) || typeof(TResult).BaseType == typeof(ValueType));//判断是否值类型或者string类型
+
+		//默认值
+		TResult model = default(TResult);
+		//如果非值类型创建实例
+		if (!isValue) model = Activator.CreateInstance<TResult>();
+		FieldInfo[] fs = modelType.GetFields();
+		Type[] type = new Type[fs.Length];
+		object[] parms = new object[fs.Length];
+		for (int i = 0; i < objReader.FieldCount; i++)
+		{
+			if (isTuple)
+			{
+				type[i] = fs[i].FieldType;
+				parms[i] = objReader[i];
+			}
+			else if (!isValue)
+			{
+				//判断字段值是否为空或不存在的值
+				if (!objReader[i].IsNullOrDBNull())
+				{
+					//匹配字段名
+					PropertyInfo pi = modelType.GetProperty(objReader.GetName(i), BindingFlags.Default | BindingFlags.GetProperty | BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+					if (pi != null)
+						//绑定实体对象中同名的字段  
+						pi.SetValue(model, CheckType(objReader[i], pi.PropertyType), null);
+				}
+			}
+		}
+		if (isValue)
+		{
+			var value = objReader[objReader.GetName(0)];
+			if (!value.IsNullOrDBNull()) model = (TResult)CheckType(value, typeof(TResult));
+		}
+		else if (isTuple)
+		{
+			ConstructorInfo constructor = modelType.GetConstructor(type);
+			model = (TResult)constructor.Invoke(parms);
+		}
+		return model;
+	}
+
+	/// <summary>
+	/// 对可空类型进行判断转换(*要不然会报错)
+	/// </summary>
+	/// <param name="value">DataReader字段的值</param>
+	/// <param name="conversionType">该字段的类型</param>
+	/// <returns></returns>
+	private static object CheckType(object value, Type conversionType)
+	{
+		if (conversionType.IsGenericType && conversionType.GetGenericTypeDefinition().Equals(typeof(Nullable<>)))
+		{
+			if (value == null)
+				return null;
+			NullableConverter nullableConverter = new NullableConverter(conversionType);
+			conversionType = nullableConverter.UnderlyingType;
+		}
+		if (conversionType.Namespace == "Newtonsoft.Json.Linq")
+			return JToken.Parse(value.ToEmptyOrString());
+		return Convert.ChangeType(value, conversionType);
+	}
+	#endregion
 
 	#region RedisValue
 	/// <summary>

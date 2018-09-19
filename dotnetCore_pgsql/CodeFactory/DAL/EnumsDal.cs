@@ -162,14 +162,12 @@ namespace CodeFactory.DAL
 				writer.WriteLine("\t\t/// <summary>");
 				writer.WriteLine("\t\t/// 初始化数据库连接");
 				writer.WriteLine("\t\t/// </summary>");
-				writer.WriteLine("\t\t/// <param name=\"poolSize\">读写数据库连接池大小</param>");
 				writer.WriteLine("\t\t/// <param name=\"connectionSring\">读写数据库连接字符串</param>");
 				writer.WriteLine("\t\t/// <param name=\"logger\">数据库语句执行日志</param>");
-				writer.WriteLine("\t\t/// <param name=\"slavePoolSize\">只读数据库连接池大小(为空直接调用读写数据库)</param>");
 				writer.WriteLine("\t\t/// <param name=\"slaveConnectionString\">只读数据库连接字符串(为空直接调用读写数据库)</param>");
-				writer.WriteLine("\t\tpublic static void Init(int poolSize, string connectionSring, ILogger logger, int? slavePoolSize = null, string slaveConnectionString = \"\")");
+				writer.WriteLine("\t\tpublic static void Init(string connectionSring, ILogger logger, string slaveConnectionString = \"\")");
 				writer.WriteLine("\t\t{");
-				writer.WriteLine("\t\t\tPgSqlHelper.InitDBConnection(poolSize, connectionSring, logger, slavePoolSize, slaveConnectionString);");
+				writer.WriteLine("\t\t\tPgSqlHelper.InitDBConnection( connectionSring, logger, slaveConnectionString);");
 				writer.WriteLine();
 				writer.WriteLine("\t\t\tNpgsqlNameTranslator translator = new NpgsqlNameTranslator();");
 				writer.WriteLine("\t\t\tNpgsqlConnection.GlobalTypeMapper.UseJsonNet();");

@@ -23,5 +23,9 @@ namespace DBHelper
 	{
 		INNER_JOIN = 1, LEFT_JOIN, RIGHT_JOIN, LEFT_OUTER_JOIN, RIGHT_OUTER_JOIN
 	}
+	public enum DatabaseType
+	{
+		Master = 1, Slave
+	}
 }
 

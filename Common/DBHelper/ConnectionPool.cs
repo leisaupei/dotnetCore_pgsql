@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Npgsql;
 namespace DBHelper
@@ -53,6 +54,20 @@ namespace DBHelper
 			_poolFree = new Queue<NpgsqlConnection>(_poolSize);
 			_poolAll = new List<NpgsqlConnection>(_poolSize);
 			_wait = new Queue<ManualResetEvent>(_poolSize);
+		}
+		/// <summary>
+		/// Get value of Maximum Pool Size in connection string.
+		/// </summary>
+		/// <param name="connectionString"></param>
+		/// <returns></returns>
+		public static int GetConnectionPoolSize(string connectionString)
+		{
+			var poolSize = 32;
+			var pattern = @"Maximum\s+Pool\s+Size\s*=\s*(\d+)";
+			Match match = Regex.Match(connectionString, pattern, RegexOptions.IgnoreCase);
+			if (match.Success)
+				int.TryParse(match.Groups[1].Value, out poolSize);
+			return poolSize;
 		}
 		/// <summary>
 		/// Release connection.

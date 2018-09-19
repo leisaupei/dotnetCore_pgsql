@@ -19,6 +19,10 @@ namespace DBHelper
 		protected string ParamsIndex => "parameter_" + _paramsCount++;
 
 		int _paramsCount = 0;
+		/// <summary>
+		/// 表的类型
+		/// </summary>
+		protected DatabaseType _type { get; set; } = DatabaseType.Master;
 		protected List<NpgsqlParameter> _params { get; } = new List<NpgsqlParameter>();
 		string _cmdStr => SetCommandString();
 		TSQL _this => this as TSQL;
@@ -50,6 +54,17 @@ namespace DBHelper
 			_mainAlias = alias;
 			return _this;
 		}
+		/// <summary>
+		/// 选择表的类型
+		/// </summary>
+		/// <param name="type"></param>
+		/// <returns></returns>
+		public TSQL Data(DatabaseType type)
+		{
+			if (type == DatabaseType.Slave && PgSqlHelper.SlaveExecute != null)
+				_type = type;
+			return _this;
+		}
 		protected TSQL AddParameter(string field, object value, int? size = null)
 		{
 			NpgsqlParameter p = new NpgsqlParameter(field, value);
@@ -60,14 +75,53 @@ namespace DBHelper
 			_params.Add(p);
 			return _this;
 		}
-		public object ToScalar() => PgSqlHelper.ExecuteScalar(CommandType.Text, _cmdStr, _params.ToArray());
-		public T ToScalar<T>() => (T)PgSqlHelper.ExecuteScalar(CommandType.Text, _cmdStr, _params.ToArray());
-		public List<T> ToList<T>() => PgSqlHelper.ExecuteDataReaderList<T>(_cmdStr, _params.ToArray());
-		public List<T> ToList<T>(Func<T, T> func = null) => PgSqlHelper.ExecuteDataReaderList<T>(_cmdStr, func, _params.ToArray());
-		public T ToOne<T>() => PgSqlHelper.ExecuteDataReaderModel<T>(_cmdStr, _params.ToArray());
-		public T ToOne<T>(Func<T, T> func = null) => PgSqlHelper.ExecuteDataReaderModel<T>(_cmdStr, func, _params.ToArray());
-		public int ToRows() => PgSqlHelper.ExecuteNonQuery(CommandType.Text, _cmdStr, _params.ToArray());
+		/// <summary>
+		/// 返回第一个元素
+		/// </summary>
+		/// <returns></returns>
+		public object ToScalar() => _type == DatabaseType.Master ?
+			PgSqlHelper.ExecuteScalar(CommandType.Text, _cmdStr, _params.ToArray()) :
+			PgSqlHelper.ExecuteScalarSlave(CommandType.Text, _cmdStr, _params.ToArray());
+		/// <summary>
+		/// 返回List<Model>
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public List<T> ToList<T>() => _type == DatabaseType.Master ?
+			PgSqlHelper.ExecuteDataReaderList<T>(_cmdStr, _params.ToArray()) :
+			PgSqlHelper.ExecuteDataReaderListSlave<T>(_cmdStr, _params.ToArray());
+		public List<T> ToList<T>(Func<T, T> filter = null) => _type == DatabaseType.Master ?
+			PgSqlHelper.ExecuteDataReaderList(_cmdStr, filter, _params.ToArray()) :
+			PgSqlHelper.ExecuteDataReaderListSlave(_cmdStr, filter, _params.ToArray());
+		/// <summary>
+		/// 返回一个Model
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public T ToOne<T>() => _type == DatabaseType.Master ?
+			PgSqlHelper.ExecuteDataReaderModel<T>(_cmdStr, _params.ToArray()) :
+			PgSqlHelper.ExecuteDataReaderModel<T>(_cmdStr, _params.ToArray());
+		public T ToOne<T>(Func<T, T> filter = null) => _type == DatabaseType.Master ?
+			PgSqlHelper.ExecuteDataReaderModel(_cmdStr, filter, _params.ToArray()) :
+			PgSqlHelper.ExecuteDataReaderModelSlave(_cmdStr, filter, _params.ToArray());
+		/// <summary>
+		/// 返回修改行数
+		/// </summary>
+		/// <param name="cmdText"></param>
+		/// <returns></returns>
+		public int ToRows() => _type == DatabaseType.Master ?
+			PgSqlHelper.ExecuteNonQuery(CommandType.Text, _cmdStr, _params.ToArray()) :
+			PgSqlHelper.ExecuteNonQuerySlave(CommandType.Text, _cmdStr, _params.ToArray());
+		/// <summary>
+		/// Override ToString()
+		/// </summary>
+		/// <returns></returns>
 		public override string ToString() => ToString(null);
+		/// <summary>
+		/// 调试或输出用
+		/// </summary>
+		/// <param name="field"></param>
+		/// <returns></returns>
 		public string ToString(string field)
 		{
 			if (!string.IsNullOrEmpty(field)) _fields = field;

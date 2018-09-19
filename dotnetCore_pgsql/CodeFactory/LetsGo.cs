@@ -45,7 +45,7 @@ namespace CodeFactory
 				}
 			}
 			model.ConnectionString = connection.ToString();
-			PgSqlHelper.InitDBConnection(32, model.ConnectionString, null);
+			PgSqlHelper.InitDBConnection(model.ConnectionString, null);
 			Build(model.OutputPath, model.ProjectName);
 		}
 		/// <summary>

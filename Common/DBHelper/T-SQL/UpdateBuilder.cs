@@ -6,10 +6,10 @@ using System.Text;
 
 namespace DBHelper
 {
-	public abstract class UpdateBuilder<TSQL> : WhereBase<TSQL>, IGetReturn where TSQL : class, new()
+	public abstract class UpdateBuilder<TSQL> : WhereBase<TSQL> where TSQL : class, new()
 	{
 		protected List<string> _setList = new List<string>();
-		public bool IsReturn { get; set; } = false;
+		public bool _isReturn = false;
 		TSQL _this => this as TSQL;
 		/// <summary>
 		/// Initialize table
@@ -122,7 +122,7 @@ namespace DBHelper
 		/// <returns></returns>
 		public T Commit<T>()
 		{
-			IsReturn = true;
+			_isReturn = true;
 			return ToOne<T>();
 		}
 		#region Override
@@ -138,7 +138,7 @@ namespace DBHelper
 			}
 			else
 				_fields = "*";
-			var ret = IsReturn ? $"RETURNING {_fields}" : "";
+			var ret = _isReturn ? $"RETURNING {_fields}" : "";
 			return $"UPDATE {_mainTable} {_mainAlias} SET {_setList.Join(",")} WHERE {_where.Join("\nAND")} {ret};";
 		}
 		#endregion

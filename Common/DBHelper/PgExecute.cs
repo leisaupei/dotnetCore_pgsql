@@ -38,22 +38,15 @@ namespace DBHelper
 		/// </summary>
 		bool _isNonQuery = false;
 		/// <summary>
-		/// Constructor with master database, slave datebase and logger.
+		/// Constructor with master database and logger.
 		/// </summary>
-		/// <param name="poolSize"></param>
 		/// <param name="connectionString"></param>
 		/// <param name="logger"></param>
-		/// <param name="slavePoolSize"></param>
-		/// <param name="slaveConnectionString"></param>
-		protected PgExecute(int poolSize, string connectionString, ILogger logger, int? slavePoolSize, string slaveConnectionString)
+		protected PgExecute(string connectionString, ILogger logger)
 		{
 			_logger = logger;
+			var poolSize = ConnectionPool.GetConnectionPoolSize(connectionString);
 			_pool = new ConnectionPool(poolSize, connectionString);
-			if (slavePoolSize.HasValue && slaveConnectionString.IsNotNullOrEmpty())
-			{
-				_hasSlave = true;
-				_slavePool = new ConnectionPool(slavePoolSize.Value, slaveConnectionString);
-			}
 		}
 		/// <summary>
 		/// Transaction of current thread.

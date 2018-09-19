@@ -6,11 +6,11 @@ using System.Text;
 
 namespace DBHelper
 {
-	public class InsertBuilder : BuilderBase<InsertBuilder>, IGetReturn
+	public class InsertBuilder : BuilderBase<InsertBuilder>
 	{
 		List<string> _valueList = new List<string>();
 		List<string> _paramList = new List<string>();
-		public bool IsReturn { get; set; } = false;
+		public bool _isReturn = false;
 		public InsertBuilder() { }
 		public InsertBuilder(string table) : base(table) { }
 		/// <summary>
@@ -59,7 +59,7 @@ namespace DBHelper
 		/// <returns></returns>
 		public T Commit<T>()
 		{
-			IsReturn = true;
+			_isReturn = true;
 			return ToOne<T>();
 		}
 		#region Override
@@ -71,7 +71,7 @@ namespace DBHelper
 			if (_valueList.Count != _paramList.Count) throw new ArgumentNullException("Insert KeyValuePairs length is not equal.");
 			var vs = _valueList.Join(", ");
 			var fs = _fields.IsNullOrEmpty() ? vs : _fields.Replace("a.", "");
-			var ret = IsReturn ? $"RETURNING {fs}" : "";
+			var ret = _isReturn ? $"RETURNING {fs}" : "";
 			return $"INSERT INTO {_mainTable} ({vs}) VALUES({_paramList.Join(", ")}) {ret}";
 		}
 		#endregion

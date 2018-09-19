@@ -14,173 +14,257 @@ namespace DBHelper
 {
 	public partial class PgSqlHelper
 	{
-		public partial class _execute : PgExecute
+		public partial class Execute : PgExecute
 		{
-			public _execute(int poolSize, string connectionString, ILogger logger, int? slavePoolSize, string slaveConnectionString)
-				: base(poolSize, connectionString, logger, slavePoolSize, slaveConnectionString) { }
+			public Execute(string connectionString, ILogger logger)
+				: base(connectionString, logger) { }
 		}
-		static _execute _Execute;
-		static PgExecute Execute => _Execute;
+		/// <summary>
+		/// 主库实例
+		/// </summary>
+		static Execute _masterExecute = null;
+		public static PgExecute MasterExecute => _masterExecute;
+
+		/// <summary>
+		/// 从库实例
+		/// </summary>
+		static Execute _slaveExecute = null;
+		public static PgExecute SlaveExecute => _slaveExecute;
+		/// <summary>
+		/// 日志
+		/// </summary>
 		static ILogger _logger;
-		public static void InitDBConnection(int poolSize, string connectionString, ILogger logger, int? slavePoolSize = null, string slaveConnectionString = "")
+		/// <summary>
+		/// 初始化一主一从数据库连接
+		/// </summary>
+		/// <param name="connectionString">主库</param>
+		/// <param name="logger"></param>
+		/// <param name="slaveConnectionString">从库</param>
+		public static void InitDBConnection(string connectionString, ILogger logger, string slaveConnectionString = "")
 		{
 			if (connectionString.IsNullOrEmpty())
 				throw new ArgumentNullException("Connection String is null");
+			//mark: 日志 
 			_logger = logger;
-			_Execute = new _execute(poolSize, connectionString, logger, slavePoolSize, slaveConnectionString);
-
+			_masterExecute = new Execute(connectionString, logger);
+			if (!slaveConnectionString.IsNullOrDBNull())
+				_slaveExecute = new Execute(connectionString, logger);
 		}
-
-		public static object ExecuteScalar(CommandType commandType, string commandText, params NpgsqlParameter[] commandParameters) =>
-			Execute.ExecuteScalar(commandType, commandText, commandParameters);
-		public static int ExecuteNonQuery(CommandType commandType, string commandText, params NpgsqlParameter[] commandParameters) =>
-			Execute.ExecuteNonQuery(commandType, commandText, commandParameters);
-		public static void ExecuteDataReader(Action<NpgsqlDataReader> action, string commandText, params NpgsqlParameter[] commandParameters) =>
-			Execute.ExecuteDataReader(action, CommandType.Text, commandText, commandParameters);
-		public static int ExecuteNonQuery(string commandText) =>
-			Execute.ExecuteNonQuery(CommandType.Text, commandText, null);
 		/// <summary>
-		///  Execute data reader and return list.
+		/// 主库_返回(0,0)值
+		/// </summary>
+		/// <param name="cmdType"></param>
+		/// <param name="cmdText"></param>
+		/// <param name="cmdParams"></param>
+		/// <returns></returns>
+		public static object ExecuteScalar(CommandType cmdType, string cmdText, params NpgsqlParameter[] cmdParams) =>
+			MasterExecute.ExecuteScalar(cmdType, cmdText, cmdParams);
+		/// <summary>
+		/// 主库_执行NonQuery
+		/// </summary>
+		/// <param name="cmdType"></param>
+		/// <param name="cmdText"></param>
+		/// <param name="cmdParams"></param>
+		/// <returns></returns>
+		public static int ExecuteNonQuery(CommandType cmdType, string cmdText, params NpgsqlParameter[] cmdParams) =>
+			MasterExecute.ExecuteNonQuery(cmdType, cmdText, cmdParams);
+		/// <summary>
+		/// 主库_DataReader
+		/// </summary>
+		/// <param name="action"></param>
+		/// <param name="cmdText"></param>
+		/// <param name="cmdParams"></param>
+		public static void ExecuteDataReader(Action<NpgsqlDataReader> action, string cmdText, params NpgsqlParameter[] cmdParams) =>
+			MasterExecute.ExecuteDataReader(action, CommandType.Text, cmdText, cmdParams);
+		/// <summary>
+		/// 主库_重构Type为Text
+		/// </summary>
+		/// <param name="cmdText"></param>
+		/// <param name="cmdParams"></param>
+		/// <returns></returns>
+		public static int ExecuteNonQuery(string cmdText, params NpgsqlParameter[] cmdParams) =>
+			MasterExecute.ExecuteNonQuery(CommandType.Text, cmdText, cmdParams);
+		/// <summary>
+		/// 主库_重构Type为Text
+		/// </summary>
+		/// <param name="cmdText"></param>
+		/// <param name="cmdParams"></param>
+		/// <returns></returns>
+		public static object ExecuteScalar(string cmdText, params NpgsqlParameter[] cmdParams) =>
+			MasterExecute.ExecuteScalar(CommandType.Text, cmdText, cmdParams);
+		/// <summary>
+		/// 主库_返回T类型列表
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
-		public static List<T> ExecuteDataReaderList<T>(string commandText, params NpgsqlParameter[] commandParameters)
+		public static List<T> ExecuteDataReaderList<T>(string cmdText, params NpgsqlParameter[] cmdParams)
 		{
 			var list = new List<T>();
-			Execute.ExecuteDataReader(dr =>
+			MasterExecute.ExecuteDataReader(dr =>
 			{
-				list.Add(ReaderToModel<T>(dr));
-			}, CommandType.Text, commandText, commandParameters);
+				list.Add(dr.ReaderToModel<T>());
+			}, CommandType.Text, cmdText, cmdParams);
 			return list;
 		}
 		/// <summary>
-		/// Execute data reader and return the first row to Model.
+		/// 主库_返回T对象
 		/// </summary>
-		public static T ExecuteDataReaderModel<T>(string commandText, params NpgsqlParameter[] commandParameters)
+		public static T ExecuteDataReaderModel<T>(string cmdText, params NpgsqlParameter[] cmdParams)
 		{
-			var list = ExecuteDataReaderList<T>(commandText, commandParameters);
+			var list = ExecuteDataReaderList<T>(cmdText, cmdParams);
 			return list.Count > 0 ? list[0] : default(T);
 		}
 		/// <summary>
-		/// Execute data reader and return list with filter.
+		/// 主库_重构
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
-		/// <param name="commandText"></param>
+		/// <param name="cmdText"></param>
 		/// <param name="func"></param>
-		/// <param name="commandParameters"></param>
+		/// <param name="cmdParams"></param>
 		/// <returns></returns>
-		public static List<T> ExecuteDataReaderList<T>(string commandText, Func<T, T> func, params NpgsqlParameter[] commandParameters)
+		public static List<T> ExecuteDataReaderList<T>(string cmdText, Func<T, T> func, params NpgsqlParameter[] cmdParams)
 		{
 			var list = new List<T>();
-			Execute.ExecuteDataReader(dr =>
+			MasterExecute.ExecuteDataReader(dr =>
 			{
-				var model = ReaderToModel<T>(dr);
+				var model = dr.ReaderToModel<T>();
 				if (func != null)
 				{
 					model = func(model);
 					if (model != null) list.Add(model);
 				}
 				else list.Add(model);
-			}, CommandType.Text, commandText, commandParameters);
+			}, CommandType.Text, cmdText, cmdParams);
 			return list;
 		}
 		/// <summary>
-		/// Execute data reader and return first row to Model with filter.
+		/// 主库_重构
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
-		/// <param name="commandText"></param>
+		/// <param name="cmdText"></param>
 		/// <param name="func"></param>
-		/// <param name="commandParameters"></param>
+		/// <param name="cmdParams"></param>
 		/// <returns></returns>
-		public static T ExecuteDataReaderModel<T>(string commandText, Func<T, T> func, params NpgsqlParameter[] commandParameters)
+		public static T ExecuteDataReaderModel<T>(string cmdText, Func<T, T> func, params NpgsqlParameter[] cmdParams)
 		{
-			var list = ExecuteDataReaderList<T>(commandText, func, commandParameters);
+			var list = ExecuteDataReaderList<T>(cmdText, func, cmdParams);
 			return list.Count > 0 ? list[0] : default(T);
 		}
-		#region ToList
-		private static TResult ReaderToModel<TResult>(IDataReader objReader)
-		{
-			//Get type of TResult
-			Type modelType = typeof(TResult);
-			//is tuple type?
-			bool isTuple = (modelType.Namespace == "System" && modelType.Name.StartsWith("ValueTuple`", StringComparison.Ordinal));
-			//is value type or string?
-			bool isValue = (modelType.Namespace == "System" && modelType.Name.StartsWith("String", StringComparison.Ordinal) || typeof(TResult).BaseType == typeof(ValueType));
-
-			//default of TRsult
-			TResult model = default(TResult);
-			//create TResult model if it isn't value type.
-			if (!isValue) model = Activator.CreateInstance<TResult>();
-			FieldInfo[] fs = modelType.GetFields();
-			Type[] type = new Type[fs.Length];
-			object[] parms = new object[fs.Length];
-			for (int i = 0; i < objReader.FieldCount; i++)
-			{
-				if (isTuple)
-				{
-					type[i] = fs[i].FieldType;
-					parms[i] = objReader[i];
-				}
-				else if (!isValue)
-				{
-					//if it is not null and not DBNull
-					if (!objReader[i].IsNullOrDBNull())
-					{
-						//matching field name.
-						PropertyInfo pi = modelType.GetProperty(objReader.GetName(i), BindingFlags.Default | BindingFlags.GetProperty | BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-						if (pi != null)
-							//set value to the field of the model
-							pi.SetValue(model, CheckType(objReader[i], pi.PropertyType), null);
-					}
-				}
-			}
-			if (isValue)
-			{
-				var value = objReader[objReader.GetName(0)];
-				if (!value.IsNullOrDBNull()) model = (TResult)CheckType(value, typeof(TResult));
-			}
-			else if (isTuple)
-			{
-				ConstructorInfo constructor = modelType.GetConstructor(type);
-				model = (TResult)constructor.Invoke(parms);
-			}
-			return model;
-		}
 
 		/// <summary>
-		/// Convert Nullable type
+		/// 从库_返回(0,0)值
 		/// </summary>
-		/// <param name="value">value of DataReader</param>
-		/// <param name="conversionType">this field's type</param>
+		/// <param name="cmdType"></param>
+		/// <param name="cmdText"></param>
+		/// <param name="cmdParams"></param>
 		/// <returns></returns>
-		private static object CheckType(object value, Type conversionType)
+		public static object ExecuteScalarSlave(CommandType cmdType, string cmdText, params NpgsqlParameter[] cmdParams) =>
+			SlaveExecute.ExecuteScalar(cmdType, cmdText, cmdParams);
+		/// <summary>
+		/// 从库_执行NonQuery
+		/// </summary>
+		/// <param name="cmdType"></param>
+		/// <param name="cmdText"></param>
+		/// <param name="cmdParams"></param>
+		/// <returns></returns>
+		public static int ExecuteNonQuerySlave(CommandType cmdType, string cmdText, params NpgsqlParameter[] cmdParams) =>
+			SlaveExecute.ExecuteNonQuery(cmdType, cmdText, cmdParams);
+		/// <summary>
+		/// 从库_DataReader
+		/// </summary>
+		/// <param name="action"></param>
+		/// <param name="cmdText"></param>
+		/// <param name="cmdParams"></param>
+		public static void ExecuteDataReaderSlave(Action<NpgsqlDataReader> action, string cmdText, params NpgsqlParameter[] cmdParams) =>
+			SlaveExecute.ExecuteDataReader(action, CommandType.Text, cmdText, cmdParams);
+		/// <summary>
+		/// 从库_重构Type为Text
+		/// </summary>
+		/// <param name="cmdText"></param>
+		/// <param name="cmdParams"></param>
+		/// <returns></returns>
+		public static int ExecuteNonQuerySlave(string cmdText, params NpgsqlParameter[] cmdParams) =>
+			SlaveExecute.ExecuteNonQuery(CommandType.Text, cmdText, cmdParams);
+		/// <summary>
+		/// 从库_重构Type为Text
+		/// </summary>
+		/// <param name="cmdText"></param>
+		/// <param name="cmdParams"></param>
+		/// <returns></returns>
+		public static object ExecuteScalarSlave(string cmdText, params NpgsqlParameter[] cmdParams) =>
+			SlaveExecute.ExecuteScalar(CommandType.Text, cmdText, cmdParams);
+		/// <summary>
+		/// 从库_返回T类型列表
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		public static List<T> ExecuteDataReaderListSlave<T>(string cmdText, params NpgsqlParameter[] cmdParams)
 		{
-			if (conversionType.IsGenericType && conversionType.GetGenericTypeDefinition().Equals(typeof(Nullable<>)))
+			var list = new List<T>();
+			SlaveExecute.ExecuteDataReader(dr =>
 			{
-				if (value == null)
-					return null;
-				NullableConverter nullableConverter = new NullableConverter(conversionType);
-				conversionType = nullableConverter.UnderlyingType;
-			}
-			if (conversionType.Namespace == "Newtonsoft.Json.Linq")
-				return JToken.Parse(value.ToEmptyOrString());
-			return Convert.ChangeType(value, conversionType);
+				list.Add(dr.ReaderToModel<T>());
+			}, CommandType.Text, cmdText, cmdParams);
+			return list;
 		}
-		#endregion
+		/// <summary>
+		/// 从库_返回T对象
+		/// </summary>
+		public static T ExecuteDataReaderModelSlave<T>(string cmdText, params NpgsqlParameter[] cmdParams)
+		{
+			var list = ExecuteDataReaderList<T>(cmdText, cmdParams);
+			return list.Count > 0 ? list[0] : default(T);
+		}
+		/// <summary>
+		/// 从库_重构
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="cmdText"></param>
+		/// <param name="func"></param>
+		/// <param name="cmdParams"></param>
+		/// <returns></returns>
+		public static List<T> ExecuteDataReaderListSlave<T>(string cmdText, Func<T, T> func, params NpgsqlParameter[] cmdParams)
+		{
+			var list = new List<T>();
+			SlaveExecute.ExecuteDataReader(dr =>
+			{
+				var model = dr.ReaderToModel<T>();
+				if (func != null)
+				{
+					model = func(model);
+					if (model != null) list.Add(model);
+				}
+				else list.Add(model);
+			}, CommandType.Text, cmdText, cmdParams);
+			return list;
+		}
+		/// <summary>
+		/// 从库_重构
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="cmdText"></param>
+		/// <param name="func"></param>
+		/// <param name="cmdParams"></param>
+		/// <returns></returns>
+		public static T ExecuteDataReaderModelSlave<T>(string cmdText, Func<T, T> func, params NpgsqlParameter[] cmdParams)
+		{
+			var list = ExecuteDataReaderList<T>(cmdText, func, cmdParams);
+			return list.Count > 0 ? list[0] : default(T);
+		}
+
 
 		/// <summary>
-		/// Transaction
+		/// 事务
 		/// </summary>
 		public static void Transaction(Action action)
 		{
 			try
 			{
-				Execute.BeginTransaction();
+				MasterExecute.BeginTransaction();
 				action?.Invoke();
-				Execute.CommitTransaction();
+				MasterExecute.CommitTransaction();
 			}
 			catch (Exception e)
 			{
-				Execute.RollBackTransaction();
+				MasterExecute.RollBackTransaction();
 				throw e;
 			}
 		}

@@ -125,7 +125,7 @@ namespace DBHelper
 		public TResult ToScalar<TResult>(string fields)
 		{
 			_fields = fields;
-			return ToScalar<TResult>();
+			return (TResult)ToScalar();
 		}
 
 		public long Count() => ToScalar<long>("COUNT(1)");
@@ -133,6 +133,10 @@ namespace DBHelper
 		public TResult Min<TResult>(string field, string coalesce = "0") => ToScalar<TResult>($"COALESCE(MIN({field}),{coalesce})");
 		public TResult Sum<TResult>(string field, string coalesce = "0") => ToScalar<TResult>($"COALESCE(SUM({field}),{coalesce})");
 		public TResult Avg<TResult>(string field, string coalesce = "0") => ToScalar<TResult>($"COALESCE(AVG({field}),{coalesce})");
+
+		#region Implicit
+		public static implicit operator string(SelectBuilder<TSQL> selectBuilder) => selectBuilder.ToString();
+		#endregion
 
 		#region Override
 		public override string ToString() => base.ToString();
