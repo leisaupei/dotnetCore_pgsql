@@ -205,11 +205,10 @@ namespace CodeFactory.DAL
 							propertyName = propertyName + "By" + Types.ExceptUnderlineToUpper(item.Conname);
 
 						string tmp_var = $"_{propertyName.ToLowerPascal()}";
-
-						writer.WriteLine();
-						writer.WriteLine($"\t\tprivate {tablename}{_modelSuffix} {tmp_var} = null;");
-						writer.WriteLine($"\t\tpublic {tablename}{_modelSuffix} {propertyName} => {tmp_var} = {tmp_var} ?? {tablename}.GetItem({DotValueHelper(item.Conname, fieldList)});");
-
+						if (ht.Keys.Count != 0)
+							writer.WriteLine();
+						writer.WriteLine("\t\tprivate {0}{1} {2} = null;", tablename, _modelSuffix, tmp_var);
+						writer.WriteLine("\t\tpublic {0}{1} {2} => {3} ?? ({3} = {0}.GetItem({4}));", tablename, _modelSuffix, propertyName, tmp_var, DotValueHelper(item.Conname, fieldList));
 						ht.Add(propertyName, "");
 					}
 					foreach (var item in consListMoreToOne.Where(f => $"{f.TableName}_{f.RefColumn}" == f.Conname))
@@ -223,17 +222,18 @@ namespace CodeFactory.DAL
 					foreach (var item in consListOneToMore)
 					{
 						string tablename = Types.DeletePublic(item.Nspname, item.TableName);
-						string propertyName = $"{_foreignKeyPrefix}{tablename}s";
-						if (ht.Contains(propertyName))
-							propertyName = propertyName + "By" + Types.ExceptUnderlineToUpper(item.Conname);
-						string tmp_var = $"_{propertyName.ToLowerPascal()}";
+						string propertyName = string.Empty;
+
 						if (item.IsOneToOne)
 						{
-							writer.WriteLine();
-							tmp_var = tmp_var.TrimEnd('s');
-							propertyName = propertyName.TrimEnd('s');
-							writer.WriteLine($"\t\tprivate {tablename}{_modelSuffix} {tmp_var} = null;");
-							writer.WriteLine($"\t\tpublic {tablename}{_modelSuffix} {propertyName} => {tmp_var} = {tmp_var} ?? {tablename}.GetItem({DotValueHelper(item.Conname, fieldList)});");
+							propertyName = $"{_foreignKeyPrefix}{tablename}s";
+							if (ht.Contains(propertyName))
+								propertyName = propertyName + "By" + Types.ExceptUnderlineToUpper(item.Conname);
+							string tmp_var = $"_{propertyName.ToLowerPascal()}";
+							if (ht.Keys.Count != 0)
+								writer.WriteLine();
+							writer.WriteLine("\t\tprivate {0}{1} {2} = null;", tablename, _modelSuffix, tmp_var);
+							writer.WriteLine("\t\tpublic {0}{1} {2} => {3} ?? ({3} = {0}.GetItem({4}));", tablename, _modelSuffix, propertyName, tmp_var, DotValueHelper(item.Conname, fieldList));
 							ht.Add(propertyName, "");
 						}
 					}
@@ -241,14 +241,14 @@ namespace CodeFactory.DAL
 					writer.WriteLine();
 					writer.WriteLine("\t\t#region Update/Insert");
 					if (pkList.Count > 0)
-						writer.WriteLine($"\t\tpublic {DalClassName}.{DalClassName}UpdateBuilder Update => DAL.{DalClassName}.Update(this);");
+						writer.WriteLine("\t\tpublic {0}.{0}UpdateBuilder Update => DAL.{0}.Update(this);", DalClassName);
 					writer.WriteLine();
-					writer.WriteLine($"\t\tpublic {ModelClassName} Insert() => DAL.{DalClassName}.Insert(this);");
+					writer.WriteLine("\t\tpublic {0} Insert() => DAL.{1}.Insert(this);", ModelClassName, DalClassName);
 					writer.WriteLine("\t\t#endregion");
 				}
 				writer.WriteLine("");
 				writer.WriteLine("\t\tpublic override string ToString() => this.ToJson();");
-				writer.WriteLine($"\t\tpublic static {ModelClassName} Parse(string json) => json.IsNullOrEmpty() ? null : json.ToObject<{ModelClassName}>();");
+				writer.WriteLine("\t\tpublic static {0} Parse(string json) => json.IsNullOrEmpty() ? null : json.ToObject<{0}>();", ModelClassName);
 				writer.WriteLine("\t}");
 				writer.WriteLine("}");
 

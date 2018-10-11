@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -400,6 +401,21 @@ public static class TypeExtension
 		}
 		catch { }
 		return dt;
+	}
+	#endregion
+
+	#region Stream.To
+	public static string ToUTF8String(this Stream stream)
+		=> stream.ToEncodingString(Encoding.UTF8);
+	public static string ToEncodingString(this Stream stream, Encoding encoding)
+	{
+		if (!stream.CanRead) throw new Exception("Can't read this stream");
+		Span<byte> buffer = new byte[stream.Length];
+		stream.Position = 0;
+		stream.Read(buffer);
+		stream.Close();
+		stream.Dispose();
+		return encoding.GetString(buffer);
 	}
 	#endregion
 
