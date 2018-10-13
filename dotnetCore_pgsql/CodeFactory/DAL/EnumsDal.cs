@@ -1,32 +1,38 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
 using System.IO;
-using DBHelper;
+using System.Linq;
 using System.Text;
-using System;
+using System.Threading.Tasks;
+using DBHelper;
 
 namespace CodeFactory.DAL
 {
 	public class EnumsDal
 	{
 		/// <summary>
-		/// Project name
+		/// 项目名称
 		/// </summary>
 		static string _projectName = string.Empty;
 		/// <summary>
-		/// Model path
+		/// model目录
 		/// </summary>
 		static string _modelPath = string.Empty;
 		/// <summary>
-		/// Root path
+		/// 根目录
 		/// </summary>
 		static string _rootPath = string.Empty;
+		/// <summary>
+		/// schemaList
+		/// </summary>
 		static List<string> _schemaList = new List<string>();
 		/// <summary>
-		/// Generate and cover database enum type.
+		/// 生成枚举数据库枚举类型(覆盖生成)
 		/// </summary>
-		/// <param name="rootPath">Root path</param>
-		/// <param name="modelPath">Model path</param>
-		/// <param name="projectName">Project name</param>
+		/// <param name="rootPath">根目录</param>
+		/// <param name="modelPath">Model目录</param>
+		/// <param name="projectName">项目名称</param>
 		public static void Generate(string rootPath, string modelPath, string projectName, List<string> schemaList)
 		{
 			_schemaList = schemaList;
@@ -37,12 +43,11 @@ namespace CodeFactory.DAL
 			var listComposite = GenerateComposites();
 
 			GenerateMapping(listEnum, listComposite);
-			GenerateRedisHepler();
+			GenerateRedisHepler(); //Create RedisHelper.cs
 			GenerateCsproj();
-
 		}
 		/// <summary>
-		/// Generate enum file(Model/_Enums.cs)
+		/// 构建Enum文件(Model/_Enums.cs)
 		/// </summary>
 		/// <returns></returns>
 		private static List<EnumTypeInfo> GenerateEnum()
@@ -71,13 +76,13 @@ namespace CodeFactory.DAL
 			return list;
 		}
 		/// <summary>
-		/// Generate composite file(Model/_Composites.cs)
+		/// 构建覆盖Composites(Model/_Composites.cs)
 		/// </summary>
 		/// <returns></returns>
 		public static List<CompositeTypeInfo> GenerateComposites()
 		{
 			var notCreateComposites = new[] { "'public.reclassarg'", "'public.geomval'", "'public.addbandarg'", "'public.agg_samealignment'", "'public.geometry_dump'", "'public.summarystats'", "'public.agg_count'", "'public.valid_detail'", "'public.rastbandarg'", "'public.unionarg'", "'topology.getfaceedges_returntype'", "'topology.topogeometry'", "'topology.validatetopology_returntype'", "'public.stdaddr'", "'tiger.norm_addy'" };
-			var compositesSQL = SQL.Select("ns.nspname, a.typname as typename, c.attname, d.typname, c.attndims").From("pg_type")
+			var compositesSQL = SQL.Select("ns.nspname, a.typname as typename, c.attname, d.typname, c.attndims, d.typtype").From("pg_type")
 				.InnerJoin("pg_class", "b", "b.reltype = a.oid and b.relkind = 'c'")
 				.InnerJoin("pg_attribute", "c", "c.attrelid = b.oid and c.attnum > 0")
 				.InnerJoin("pg_type", "d", "d.oid = c.atttypid")
@@ -88,39 +93,39 @@ namespace CodeFactory.DAL
 			List<CompositeTypeInfo> composites = new List<CompositeTypeInfo>();
 			var isFoot = false;
 			PgSqlHelper.ExecuteDataReader(dr =>
-			{
-				var composite = new CompositeTypeInfo
-				{
-					Nspname = dr["nspname"].ToEmptyOrString(),
-					Typname = dr["typename"].ToEmptyOrString(),
-				};
-				var temp = $"{composite.Nspname}.{composite.Typname}";
+		   {
+			   var composite = new CompositeTypeInfo
+			   {
+				   Nspname = dr["nspname"].ToEmptyOrString(),
+				   Typname = dr["typename"].ToEmptyOrString(),
+			   };
+			   var temp = $"{composite.Nspname}.{composite.Typname}";
 
-				if (!dic.ContainsKey(temp))
-				{
-					var str = "";
-					if (isFoot)
-					{
-						str += "\t}\n";
-						isFoot = false;
-					}
-					str += $"\t[JsonObject(MemberSerialization.OptIn)]\n";
-					str += $"\tpublic partial struct {Types.DeletePublic(composite.Nspname, composite.Typname)}\n";
-					str += "\t{";
-					dic.Add(temp, str);
-					composites.Add(composite);
-				}
-				else isFoot = true;
-				var isArray = Convert.ToInt16(dr["attndims"]) > 0;
-				string _type = Types.ConvertPgDbTypeToCSharpType(dr["typname"].ToString());
-				var _notnull = string.Empty;
-				if (_type != "string" && _type != "JToken" && _type != "byte[]" && !isArray && _type != "object")
-					_notnull = "?";
-				string _array = isArray ? "[]" : "";
-				var relType = $"{_type}{_notnull}{_array}";
-				dic[temp] += $"\n\t\t[JsonProperty] public {relType} {dr["attname"].ToString().ToUpperPascal()} {{ get; set; }}";
+			   if (!dic.ContainsKey(temp))
+			   {
+				   var str = "";
+				   if (isFoot)
+				   {
+					   str += "\t}\n";
+					   isFoot = false;
+				   }
+				   str += $"\t[JsonObject(MemberSerialization.OptIn)]\n";
+				   str += $"\tpublic partial struct {Types.DeletePublic(composite.Nspname, composite.Typname)}\n";
+				   str += "\t{";
+				   dic.Add(temp, str);
+				   composites.Add(composite);
+			   }
+			   else isFoot = true;
+			   var isArray = Convert.ToInt16(dr["attndims"]) > 0;
+			   string _type = Types.ConvertPgDbTypeToCSharpType(dr["typtype"].ToString(), dr["typname"].ToString());
+			   var _notnull = string.Empty;
+			   if (_type != "string" && _type != "JToken" && _type != "byte[]" && !isArray && _type != "object")
+				   _notnull = "?";
+			   string _array = isArray ? "[]" : "";
+			   var relType = $"{_type}{_notnull}{_array}";
+			   dic[temp] += $"\n\t\t[JsonProperty] public {relType} {dr["attname"].ToString().ToUpperPascal()} {{ get; set; }}";
 
-			}, compositesSQL);
+		   }, compositesSQL);
 			string fileName = Path.Combine(_modelPath, "_Composites.cs");
 			using (StreamWriter writer = new StreamWriter(File.Create(fileName), Encoding.UTF8))
 			{
@@ -133,14 +138,15 @@ namespace CodeFactory.DAL
 				{
 					while (e.MoveNext())
 						writer.WriteLine(e.Current.Value);
+					if (dic.Keys.Count > 0)
+						writer.WriteLine("\t}");
 				}
-				writer.WriteLine("\t}");
 				writer.WriteLine("}");
 			}
 			return composites;
 		}
 		/// <summary>
-		/// Generate and cover initialization file(_Startup.cs).
+		/// 生成初始化文件(覆盖生成)
 		/// </summary>
 		/// <param name="list"></param>
 		public static void GenerateMapping(List<EnumTypeInfo> list, List<CompositeTypeInfo> listComposite)
@@ -167,7 +173,7 @@ namespace CodeFactory.DAL
 				writer.WriteLine("\t\t/// <param name=\"slaveConnectionString\">只读数据库连接字符串(为空直接调用读写数据库)</param>");
 				writer.WriteLine("\t\tpublic static void Init(string connectionSring, ILogger logger, string slaveConnectionString = \"\")");
 				writer.WriteLine("\t\t{");
-				writer.WriteLine("\t\t\tPgSqlHelper.InitDBConnection( connectionSring, logger, slaveConnectionString);");
+				writer.WriteLine("\t\t\tPgSqlHelper.InitDBConnection(connectionSring, logger, slaveConnectionString);");
 				writer.WriteLine();
 				writer.WriteLine("\t\t\tNpgsqlNameTranslator translator = new NpgsqlNameTranslator();");
 				writer.WriteLine("\t\t\tNpgsqlConnection.GlobalTypeMapper.UseJsonNet();");
@@ -190,7 +196,6 @@ namespace CodeFactory.DAL
 		/// </summary>
 		public static void GenerateCsproj()
 		{
-
 			string csproj = Path.Combine(_rootPath, $"{_projectName}.db.csproj");
 			if (File.Exists(csproj))
 				return;
@@ -211,14 +216,14 @@ namespace CodeFactory.DAL
 				writer.WriteLine();
 				writer.WriteLine("\t<ItemGroup>");
 				writer.WriteLine("\t\t<ProjectReference Include=\"..\\Common\\Common.csproj\" />");
+				//writer.WriteLine("<ProjectReference Include=""..\Infrastructure\Infrastructure.csproj"" />");
 				writer.WriteLine("\t</ItemGroup>");
 				writer.WriteLine();
 				writer.WriteLine("</Project>");
-
 			}
 		}
 		/// <summary>
-		/// Create RedisHelper.cs, not create if already exists.
+		/// 生成RedisHelper.cs(存在不生成)
 		/// </summary>
 		public static void GenerateRedisHepler()
 		{

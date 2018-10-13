@@ -1,4 +1,4 @@
-﻿using CodeFactory.DAL;
+﻿using Common.CodeFactory.DAL;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -17,19 +17,20 @@ namespace CodeFactory
 		static string ProjectName = string.Empty;
 		static string OutputDir = string.Empty;
 		/// <summary>
-		/// Produce
+		/// 生成
 		/// </summary>
 		/// <param name="args"></param>
-		public static void Produce(string args)
+		public static void Produce(string[] args)
 		{
 			Console.OutputEncoding = Encoding.UTF8;
 			GenerateModel model = new GenerateModel();
-			var strings = args.Split(';');
-			if (strings.Length != 7) throw new ArgumentException("Generate string is error");
+			if (args.Length != 1) throw new Exception("Generate string is error");
+			var strings = args[0].Split(';');
+			if (strings.Length != 8) throw new Exception("Generate string is error");
 			StringBuilder connection = new StringBuilder();
 			foreach (var item in strings)
 			{
-				//host=localhost;port=5432;user=postgres;pwd=123456;db=postgres;maxpool=50;name=test;path=d:\workspace
+				//host=localhost;port=5432;user=postgres;pwd=tanweijie;db=postgres;maxpool=50;name=test;path=d:\workspace
 				var sp = item.Split('=');
 				var left = sp[0];
 				var right = sp[1];
@@ -40,6 +41,7 @@ namespace CodeFactory
 					case "user": connection.Append($"username={right};"); break;
 					case "pwd": connection.Append($"password={right};"); break;
 					case "db": connection.Append($"database={right};"); break;
+					case "maxpool": connection.Append($"maximum pool size={right};pooling=true;"); break;
 					case "name": model.ProjectName = right; break;
 					case "path": model.OutputPath = right; break;
 				}
@@ -47,9 +49,11 @@ namespace CodeFactory
 			model.ConnectionString = connection.ToString();
 			PgSqlHelper.InitDBConnection(model.ConnectionString, null);
 			Build(model.OutputPath, model.ProjectName);
+			Console.WriteLine("Done...");
+			Console.ReadLine();
 		}
 		/// <summary>
-		/// Build
+		/// 构建
 		/// </summary>
 		/// <param name="outputDir"></param>
 		/// <param name="projectName"></param>e
@@ -64,7 +68,6 @@ namespace CodeFactory
 			CreateSln();
 			List<string> schemaList = SchemaDal.GetSchemas();
 			EnumsDal.Generate(Path.Combine(OutputDir, ProjectName, ProjectName + ".db"), ModelPath, ProjectName, schemaList);
-
 			foreach (var schemaName in schemaList)
 			{
 				List<TableViewModel> tableList = GetTables(schemaName);
@@ -80,7 +83,6 @@ namespace CodeFactory
 		/// </summary>
 		static void CreateDir()
 		{
-
 			ModelPath = Path.Combine(OutputDir, ProjectName, ProjectName + ".db", "Model", "Build");
 			DalPath = Path.Combine(OutputDir, ProjectName, ProjectName + ".db", "DAL", "Build");
 			string[] ps = { ModelPath, DalPath };
@@ -89,7 +91,7 @@ namespace CodeFactory
 					Directory.CreateDirectory(ps[i]);
 		}
 		/// <summary>
-		/// 复制Common目录
+		/// 创建csproj文件
 		/// </summary>
 		static void CreateCsproj()
 		{
@@ -150,26 +152,26 @@ namespace CodeFactory
 		}
 
 		/// <summary>
-		/// get all tables
+		/// 获取所有表
 		/// </summary>
 		/// <param name="schemaName"></param>
 		/// <returns></returns>
 		static List<TableViewModel> GetTables(string schemaName)
 		{
 			string[] notCreateSchemas = { "'pg_catalog'", "'information_schema'" };
-			string[] notCreateTables = { "'spatial_ref_sys'" };
+			string[] notCreateTables = { "'spatial_ref_sys'", "'us_gaz'", "'us_lex'", "'us_rules'" };
 			string[] notCreateViews = { "'raster_columns'", "'raster_overviews'", "'geometry_columns'", "'geography_columns'" };
 
 			return SQL.Select("tablename AS name,'table' AS type").From("pg_tables")
 				.WhereNotIn($"schemaname", notCreateSchemas)
 				.WhereNotIn($"tablename", notCreateTables)
-				.Where($"schemaname = '{schemaName}'")
+				.Where($"schemaname = '{schemaName}'")// and tablename not like '%copy%'
 			.Union(SQL.Select("viewname AS name,'view' AS type ").From("pg_views")
 				.WhereNotIn($"viewname", notCreateViews)
 				.Where($"schemaname = '{schemaName}'")).ToList<TableViewModel>();
 		}
 		/// <summary>
-		/// copy common
+		/// 复制目录
 		/// </summary>
 		/// <param name="sourceDirectory"></param>
 		/// <param name="targetDirectory"></param>
@@ -201,11 +203,11 @@ namespace CodeFactory
 			}
 		}
 		/// <summary>
-		/// except directory
+		/// 不复制的目录
 		/// </summary>
 		static readonly string[] ExceptDir = { "CodeFactory", "CSRedis", "MQHelper" };
 		/// <summary>
-		/// except file
+		/// 不复制的文件
 		/// </summary>
 		static readonly string[] ExceptFile = { "Redis.zip" };
 	}

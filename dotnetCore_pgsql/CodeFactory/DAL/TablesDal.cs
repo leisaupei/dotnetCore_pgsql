@@ -1,4 +1,6 @@
 ﻿using DBHelper;
+using Newtonsoft.Json;
+using NpgsqlTypes;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -9,17 +11,82 @@ namespace CodeFactory.DAL
 {
 	public class TablesDal
 	{
+		/// <summary>
+		/// 项目名称
+		/// </summary>
 		readonly string _projectName;
+		/// <summary>
+		/// 模型路径
+		/// </summary>
 		readonly string _modelPath;
+		/// <summary>
+		/// DAL路径
+		/// </summary>
 		readonly string _dalPath;
-		readonly string _schemaName;
+		/// <summary>
+		/// schema 名称
+		/// </summary>
+		string _schemaName;
+		/// <summary>
+		/// 表/视图
+		/// </summary>
 		TableViewModel _table;
+		/// <summary>
+		/// 是不是空间表
+		/// </summary>
 		bool _isGeometryTable = false;
+		/// <summary>
+		/// 是否视图
+		/// </summary>
 		bool _isView = false;
-		public List<FieldInfo> fieldList = new List<FieldInfo>();
-		public List<PrimarykeyInfo> pkList = new List<PrimarykeyInfo>();
-		public List<ConstraintMoreToOne> consListMoreToOne = new List<ConstraintMoreToOne>();
-		public List<ConstraintOneToMore> consListOneToMore = new List<ConstraintOneToMore>();
+		/// <summary>
+		/// 字段列表
+		/// </summary>
+		List<FieldInfo> fieldList = new List<FieldInfo>();
+		/// <summary>
+		/// 主键
+		/// </summary>
+		List<PrimarykeyInfo> pkList = new List<PrimarykeyInfo>();
+		/// <summary>
+		/// 多对一外键
+		/// </summary>
+		List<ConstraintMoreToOne> consListMoreToOne = new List<ConstraintMoreToOne>();
+		/// <summary>
+		/// 一对多外键(包含一对一)
+		/// </summary>
+		List<ConstraintOneToMore> consListOneToMore = new List<ConstraintOneToMore>();
+		/// <summary>
+		/// 多对多外键
+		/// </summary>
+		List<ConstraintMoreToMore> consListMoreToMore = new List<ConstraintMoreToMore>();
+		/// <summary>
+		/// Model后缀
+		/// </summary>
+		readonly string _modelSuffix = "Model";
+		/// <summary>
+		/// 外键前缀
+		/// </summary>
+		readonly string _foreignKeyPrefix = "Get";
+		/// <summary>
+		/// Model名称
+		/// </summary>
+		string ModelClassName => DalClassName + _modelSuffix;
+		/// <summary>
+		/// DAL名称
+		/// </summary>
+		string DalClassName => $"{Types.DeletePublic(_schemaName, _table.Name)}";
+		/// <summary>
+		/// 表名
+		/// </summary>
+		string TableName => $"{Types.DeletePublic(_schemaName, _table.Name, true, _isView).ToLowerPascal()}";
+		/// <summary>
+		/// 构建函数
+		/// </summary>
+		/// <param name="projectName"></param>
+		/// <param name="modelPath"></param>
+		/// <param name="dalPath"></param>
+		/// <param name="schemaName"></param>
+		/// <param name="table"></param>
 		public TablesDal(string projectName, string modelPath, string dalPath, string schemaName, TableViewModel table)
 		{
 			_projectName = projectName;
@@ -38,32 +105,16 @@ namespace CodeFactory.DAL
 			GetFieldList();
 		}
 
-
 		/// <summary>
-		/// Model postfix
+		/// 获取字段
 		/// </summary>
-		readonly string _modelSuffix = "Model";
-		readonly string _foreignKeyPrefix = "Get";
-		/// <summary>
-		/// Model name.
-		/// </summary>
-		string ModelClassName => DalClassName + _modelSuffix;
-		/// <summary>
-		/// DAL name.
-		/// </summary>
-		string DalClassName => $"{Types.DeletePublic(_schemaName, _table.Name)}";
-		/// <summary>
-		/// table name.
-		/// </summary>
-		string TableName => $"{Types.DeletePublic(_schemaName, _table.Name, _isView).ToLowerPascal()}";
-
-		public void GetFieldList()
+		void GetFieldList()
 		{
 			fieldList = SQL.Select(@"a.oid,c.attnum as num,c.attname AS field,c.attnotnull AS isnotnull,d.description AS comment,e.typcategory,
 				(f.is_identity = 'YES') as isidentity,format_type(c.atttypid,c.atttypmod) AS type_comment,
 				(CASE WHEN f.character_maximum_length IS NULL THEN	c.attlen ELSE f.character_maximum_length END) AS length,
 				(CASE WHEN e.typelem = 0 THEN e.typname WHEN e.typcategory = 'G' THEN format_type (c.atttypid, c.atttypmod) ELSE e2.typname END ) AS dbtype,
-				(CASE WHEN e.typelem = 0 THEN e.typtype ELSE e2.typtype END) AS datatype, ns.nspname").From("pg_class")
+				(CASE WHEN e.typelem = 0 THEN e.typtype ELSE e2.typtype END) AS datatype, ns.nspname, COALESCE(pc.contype = 'u',false) as isunique,c.attndims as dimensions").From("pg_class")
 			   .InnerJoin("pg_namespace", "b", "a.relnamespace = b.oid")
 			   .InnerJoin("pg_attribute", "c", "attrelid = a.oid")
 			   .Join(UnionEnum.LEFT_OUTER_JOIN, "pg_description", "d", "c.attrelid = d.objoid AND c.attnum = d.objsubid AND c.attnum > 0")
@@ -72,29 +123,38 @@ namespace CodeFactory.DAL
 			   .InnerJoin("information_schema.COLUMNS", "f", "f.table_schema = b.nspname AND f.TABLE_NAME = a.relname AND COLUMN_NAME = c.attname")
 			   .LeftJoin("pg_namespace", "ns", "ns.oid = e.typnamespace and ns.nspname <> 'pg_catalog'")
 			   .LeftJoin("pg_constraint", "pc", "pc.conrelid = a.oid and pc.conkey[1] = c.attnum and pc.contype = 'u'")
-			   .Where($"b.nspname='{_schemaName}' and a.relname='{_table.Name}'").ToList<FieldInfo>(fi =>
+			   .Where($"b.nspname='{_schemaName}' and a.relname='{_table.Name}'").ToList<FieldInfo>(f =>
 			   {
-				   fi.IsArray = fi.Typcategory == "A";
-				   fi.DbType = fi.DbType.StartsWith("_") ? fi.DbType.Remove(0, 1) : fi.DbType;
-				   fi.PgDbType = Types.ConvertDbTypeToNpgsqlDbTypeEnum(fi.DataType, fi.DbType);
-				   fi.IsEnum = fi.DataType == "e";
-				   string _type = Types.ConvertPgDbTypeToCSharpType(fi.DbType);
-				   if (fi.IsEnum) _type = Types.DeletePublic(fi.Nspname, _type);
-				   if (fi.DataType == "c") fi.RelType = Types.DeletePublic(fi.Nspname, _type);
+				   f.IsArray = f.Dimensions > 0;
+				   f.DbType = f.DbType.StartsWith("_") ? f.DbType.Remove(0, 1) : f.DbType;
+				   f.PgDbType = Types.ConvertDbTypeToNpgsqlDbType(f.DataType, f.DbType, f.IsArray);
+				   f.PgDbTypeString = Types.ConvertDbTypeToNpgsqlDbTypeString(f.DataType, f.DbType, f.IsArray);
+				   f.IsEnum = f.DataType == "e";
+				   string _type = Types.ConvertPgDbTypeToCSharpType(f.DataType, f.DbType);
+
+				   if (f.IsEnum) _type = Types.DeletePublic(f.Nspname, _type);
+				   f.CSharpType = _type;
+
+				   if (f.DataType == "c") f.RelType = Types.DeletePublic(f.Nspname, _type);
 				   else
 				   {
 					   string _notnull = "";
-					   if (_type != "string" && _type != "JToken" && _type != "byte[]" && !fi.IsArray && _type != "object")
-						   _notnull = fi.IsNotNull ? "" : "?";
-					   string _array = fi.IsArray ? "[]" : "";
-					   fi.RelType = $"{_type}{_notnull}{_array}";
+					   if (_type != "string" && _type != "JToken" && _type != "byte[]" && !f.IsArray && _type != "object")
+					   {
+						   _notnull = f.IsNotNull ? "" : "?";
+					   }
+					   string _array = f.IsArray ? "[".PadRight(Math.Max(0, f.Dimensions), ',') + "]" : "";
+					   f.RelType = $"{_type}{_notnull}{_array}";
 				   }
-				   return fi;
 
+				   return f;
 			   });
 		}
 
-		public void GetConstraint()
+		/// <summary>
+		/// 获取约束
+		/// </summary>
+		void GetConstraint()
 		{
 			//多对一关系
 			consListMoreToOne = SQL.Select($@"({SQL.Select("attname").From("pg_attribute", "").Where("attrelid = a.conrelid AND attnum = ANY(A.conkey)")}) AS conname,
@@ -107,7 +167,8 @@ namespace CodeFactory.DAL
 					.InnerJoin("pg_namespace", "b", "a.relnamespace = b.oid")
 					.Where($"b.nspname = '{_schemaName}' AND A .relname = '{_table.Name}'"))
 				.ToList<ConstraintMoreToOne>();
-			//一对一关系
+
+			////一对多关系
 			consListOneToMore = SQL.Select($@"DISTINCT x.TABLE_NAME as tablename, x.COLUMN_NAME as refcolumn, x.CONSTRAINT_SCHEMA as nspname, tp.typname as contype, tp.attname as conname,
 				({SQL.Select("COUNT(1)=1").From("pg_index")
 					.InnerJoin("pg_attribute", "b", "b.attrelid = a.indrelid AND b.attnum = ANY (a.indkey)")
@@ -130,7 +191,10 @@ namespace CodeFactory.DAL
 				});
 		}
 
-		public void GetPrimaryKey()
+		/// <summary>
+		/// 获取主键
+		/// </summary>
+		void GetPrimaryKey()
 		{
 			pkList = SQL.Select("b.attname AS field,format_type (b.atttypid, b.atttypmod) AS typename").From("pg_index")
 				.InnerJoin("pg_attribute", "b", "b.attrelid = a.indrelid AND b.attnum = ANY (a.indkey)")
@@ -138,7 +202,7 @@ namespace CodeFactory.DAL
 		}
 
 		/// <summary>
-		/// Generate model files(Model.cs). 
+		/// 生成Model.cs文件
 		/// </summary>
 		public void ModelGenerator()
 		{
@@ -193,17 +257,14 @@ namespace CodeFactory.DAL
 				writer.WriteLine();
 				if (_table.Type == "table")
 				{
-					writer.WriteLine("\t\t#region Foreign Key");
 					Hashtable ht = new Hashtable();
-
+					writer.WriteLine("\t\t#region Foreign Key");
 					void WriteForeignKey(ConstraintMoreToOne item)
 					{
 						string tablename = Types.DeletePublic(item.Nspname, item.TableName);
 						string propertyName = $"{_foreignKeyPrefix}{tablename}";
-
 						if (ht.ContainsKey(propertyName))
 							propertyName = propertyName + "By" + Types.ExceptUnderlineToUpper(item.Conname);
-
 						string tmp_var = $"_{propertyName.ToLowerPascal()}";
 						if (ht.Keys.Count != 0)
 							writer.WriteLine();
@@ -218,15 +279,13 @@ namespace CodeFactory.DAL
 					foreach (var item in consListMoreToOne)
 						WriteForeignKey(item);
 
-
 					foreach (var item in consListOneToMore)
 					{
 						string tablename = Types.DeletePublic(item.Nspname, item.TableName);
 						string propertyName = string.Empty;
-
 						if (item.IsOneToOne)
 						{
-							propertyName = $"{_foreignKeyPrefix}{tablename}s";
+							propertyName = $"{_foreignKeyPrefix}{tablename}";
 							if (ht.Contains(propertyName))
 								propertyName = propertyName + "By" + Types.ExceptUnderlineToUpper(item.Conname);
 							string tmp_var = $"_{propertyName.ToLowerPascal()}";
@@ -234,15 +293,18 @@ namespace CodeFactory.DAL
 								writer.WriteLine();
 							writer.WriteLine("\t\tprivate {0}{1} {2} = null;", tablename, _modelSuffix, tmp_var);
 							writer.WriteLine("\t\tpublic {0}{1} {2} => {3} ?? ({3} = {0}.GetItem({4}));", tablename, _modelSuffix, propertyName, tmp_var, DotValueHelper(item.Conname, fieldList));
-							ht.Add(propertyName, "");
 						}
+						if (propertyName.IsNotNullOrEmpty())
+							ht.Add(propertyName, "");
 					}
+
 					writer.WriteLine("\t\t#endregion");
 					writer.WriteLine();
 					writer.WriteLine("\t\t#region Update/Insert");
 					if (pkList.Count > 0)
 						writer.WriteLine("\t\tpublic {0}.{0}UpdateBuilder Update => DAL.{0}.Update(this);", DalClassName);
 					writer.WriteLine();
+					writer.WriteLine("\t\tpublic int Commit() => DAL.{0}.Commit(this);", DalClassName);
 					writer.WriteLine("\t\tpublic {0} Insert() => DAL.{1}.Insert(this);", ModelClassName, DalClassName);
 					writer.WriteLine("\t\t#endregion");
 				}
@@ -257,10 +319,11 @@ namespace CodeFactory.DAL
 				DalGenerator();
 			}
 		}
+
 		/// <summary>
-		/// Generate dal files(DAL.cs). 
+		/// 生成DAL.cs文件
 		/// </summary>
-		private void DalGenerator()
+		void DalGenerator()
 		{
 			string _filename = $"{_dalPath}/{DalClassName}.cs";
 
@@ -317,11 +380,12 @@ namespace CodeFactory.DAL
 				writer.WriteLine("}");
 			}
 		}
+
 		/// <summary>
-		/// Generator DAL properties.
+		/// 构建DAL属性
 		/// </summary>
 		/// <param name="writer"></param>
-		private void PropertiesGenerator(StreamWriter writer)
+		void PropertiesGenerator(StreamWriter writer)
 		{
 			StringBuilder sb_field = new StringBuilder();
 			StringBuilder sb_param = new StringBuilder();
@@ -332,9 +396,9 @@ namespace CodeFactory.DAL
 				if (item.IsIdentity) continue;
 				if (item.DbType == "geometry")
 				{
-					sb_query.Append($"ST_X(a.{item.Field}) as {item.Field}_x, ST_Y(a.{item.Field}) as {item.Field}_y, ST_SRID(a.{item.Field}) as {item.Field}_srid");
+					sb_query.AppendFormat("ST_X(a.{0}) as {0}_x, ST_Y(a.{0}) as {0}_y, ST_SRID(a.{0}) as {0}_srid", item.Field);
 					sb_field.Append($"{item.Field}");
-					sb_param.Append($"ST_GeomFromText(@{item.Field}_point0, @{item.Field}_srid0)");
+					sb_param.AppendFormat("ST_GeomFromText(@{0}_point0, @{0}_srid0)", item.Field);
 				}
 				else
 				{
@@ -354,27 +418,28 @@ namespace CodeFactory.DAL
 				writer.WriteLine($"\t\tconst string _field = \"{sb_query.ToString()}\";");
 				writer.WriteLine($"\t\tpublic {DalClassName}() => _fields = _field;");
 			}
-			writer.WriteLine($"\t\tpublic static {DalClassName} Select => new {DalClassName}();");
-			writer.WriteLine($"\t\tpublic static {DalClassName} SelectDiy(string fields) => new SelectExchange<{DalClassName}, {ModelClassName}>(fields) as {DalClassName};");
-			writer.WriteLine($"\t\tpublic static {DalClassName} SelectDiy(string fields, string alias) => new SelectExchange<{DalClassName}, {ModelClassName}>(fields, alias) as {DalClassName};");
+			writer.WriteLine("\t\tpublic static {0} Select => new {0}();", DalClassName);
+			writer.WriteLine("\t\tpublic static {0} SelectDiy(string fields) => new {0} {{ _fields = fields }};", DalClassName);
+			writer.WriteLine("\t\tpublic static {0} SelectDiy(string fields, string alias) => new {0} {{ _fields = fields, _mainAlias = alias }};", DalClassName);
 			if (_table.Type == "table")
 			{
-				writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder UpdateDiy => new {DalClassName}UpdateBuilder();");
+				writer.WriteLine("\t\tpublic static {0}UpdateBuilder UpdateDiy => new {0}UpdateBuilder();", DalClassName);
 				writer.WriteLine($"\t\tpublic static DeleteBuilder DeleteDiy => new DeleteBuilder(\"{TableName}\");");
 
 				writer.WriteLine($"\t\tpublic static InsertBuilder InsertDiy => new InsertBuilder(\"{TableName}\"{(_isGeometryTable ? ", _field" : "")});");
 			}
 		}
+
 		/// <summary>
-		/// Generator delete method.
+		/// 构建删除方法
 		/// </summary>
 		/// <param name="writer"></param>
-		private void DeleteGenerator(StreamWriter writer)
+		void DeleteGenerator(StreamWriter writer)
 		{
 			if (pkList.Count > 0)
 			{
 				List<string> d_key = new List<string>(), s_key = new List<string>();
-				string where = string.Empty, where1 = string.Empty, types = string.Empty;
+				string where = string.Empty, where1 = string.Empty, types = string.Empty, pgStr = string.Empty;
 				for (int i = 0; i < pkList.Count; i++)
 				{
 					FieldInfo fs = fieldList.FirstOrDefault(f => f.Field == pkList[i].Field);
@@ -383,9 +448,13 @@ namespace CodeFactory.DAL
 					d_key.Add(fs.RelType + " " + fs.Field);
 					where1 += $"model.{fs.Field.ToUpperPascal()}";
 					where += $"{fs.Field}";
+					pgStr += fs.PgDbTypeString.IsNullOrEmpty() ? "null" : fs.PgDbTypeString.TrimStart(' ', ',');
 					if (i + 1 != pkList.Count)
 					{
-						types += ", "; where1 += ", "; where += ", ";
+						types += ", ";
+						where1 += ", ";
+						where += ", ";
+						pgStr += ", ";
 					}
 				}
 				where1 = where1.Contains(",") ? $"({where1})" : where1;
@@ -395,7 +464,7 @@ namespace CodeFactory.DAL
 				if (pkList.Count == 1)
 				{
 					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<{DalClassName}{_modelSuffix}> models) => Delete(models.Select(a => a.{s_key[0].ToUpperPascal()}));");
-					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<{types}> {s_key[0]}) => DeleteDiy.WhereOr(\"{s_key[0]} = {{0}}\", {s_key[0]}).Commit();");
+					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<{types}> {s_key[0]}) => DeleteDiy.WhereOr(\"{s_key[0]} = {{0}}\", {s_key[0]}{fieldList.FirstOrDefault(f => f.Field == pkList[0].Field).PgDbTypeString}).Commit();");
 				}
 				else if (pkList.Count > 1)
 				{
@@ -403,124 +472,147 @@ namespace CodeFactory.DAL
 					writer.WriteLine($"\t\t/// <summary>");
 					writer.WriteLine($"\t\t/// ({s_key.Select(a => $"{a}").Join(", ")})");
 					writer.WriteLine($"\t\t/// </summary>");
-					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<({types})> val) => DeleteDiy.Where(new[] {{ {s_key.Select(a => $"\"{a}\"").Join(", ")} }}, val).Commit();");
+					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<({types})> val) => DeleteDiy.Where(new[] {{ {s_key.Select(a => $"\"{a}\"").Join(", ")} }}, val, new NpgsqlDbType?[]{{ {pgStr} }}).Commit();");
 				}
 			}
 		}
+
 		/// <summary>
-		/// Generator insert method.
+		/// 构建插入方法
 		/// </summary>
 		/// <param name="writer"></param>
-		private void InsertGenerator(StreamWriter writer)
+		void InsertGenerator(StreamWriter writer)
 		{
-			writer.WriteLine($"\t\tpublic static {ModelClassName} Insert({ModelClassName} model)");
+			writer.WriteLine("\t\tpublic static int Commit({0} model) => GetInsertBuilder(model).Commit();", ModelClassName);
+			writer.WriteLine("\t\tpublic static {0} Insert({0} model) => GetInsertBuilder(model).Commit<{0}>();", ModelClassName);
+			writer.WriteLine($"\t\tprivate static InsertBuilder GetInsertBuilder({ModelClassName} model)");
 			writer.WriteLine("\t\t{");
-			writer.WriteLine($"\t\t\tInsertBuilder insert = InsertDiy;");
+			writer.WriteLine($"\t\t\treturn InsertDiy");
+			var i = 1;
 			foreach (var item in fieldList)
 			{
+				string end = i == fieldList.Count() ? ";" : "";
 				if (item.IsIdentity) continue;
-				string cSharpType = Types.ConvertPgDbTypeToCSharpType(item.DbType);
 				if (Types.NotCreateModelFieldDbType(item.DbType, item.Typcategory))
-					writer.WriteLine($"\t\t\tinsert.Set(\"{item.Field}\", model.{item.Field.ToUpperPascal()}{SetInsertDefaultValue(item.Field, cSharpType, item.IsNotNull)}, {item.Length});");
+					writer.WriteLine($"\t\t\t\t.Set(\"{item.Field}\", model.{item.Field.ToUpperPascal()}{SetInsertDefaultValue(item.Field, item.CSharpType, item.IsNotNull)}, {item.Length}{item.PgDbTypeString}){end}");
 
 				if (item.DbType == "geometry")
 				{
-					writer.WriteLine($"\t\t\tinsert.Set(\"{item.Field}\", \"ST_GeomFromText(@{item.Field}_point0, @{item.Field}_srid0)\",");
-					writer.WriteLine($"\t\t\t\tnew List<NpgsqlParameter> {{ new NpgsqlParameter(\"{item.Field}_point0\", $\"POINT({{model.{item.Field.ToUpperPascal()}_x}} {{model.{item.Field.ToUpperPascal()}_y}})\"),new NpgsqlParameter(\"{item.Field}_srid0\", model.{item.Field.ToUpperPascal()}_srid) }});");
+					writer.WriteLine($"\t\t\t\t.Set(\"{item.Field}\", \"ST_GeomFromText(@{item.Field}_point0, @{item.Field}_srid0)\",");
+					writer.WriteLine($"\t\t\t\tnew List<NpgsqlParameter> {{ new NpgsqlParameter(\"{item.Field}_point0\", $\"POINT({{model.{item.Field.ToUpperPascal()}_x}} {{model.{item.Field.ToUpperPascal()}_y}})\"),new NpgsqlParameter(\"{item.Field}_srid0\", model.{item.Field.ToUpperPascal()}_srid) }}){end}");
 				}
+				i++;
 			}
-			writer.WriteLine($"\t\t\treturn insert.Commit<{ModelClassName}>();");
 			writer.WriteLine("\t\t}");
 
 		}
+
 		/// <summary>
-		/// Generator select method.
+		/// 构建查询方法
 		/// </summary>
 		/// <param name="writer"></param>
-		private void SelectGenerator(StreamWriter writer)
+		void SelectGenerator(StreamWriter writer)
 		{
 			StringBuilder sbEx = new StringBuilder();
 			if (pkList.Count > 0)
 			{
 				List<string> d_key = new List<string>(), s_key = new List<string>();
-				string where = string.Empty, types = string.Empty; ;
+				string where = string.Empty, types = string.Empty, pgStr = string.Empty;
 				for (var i = 0; i < pkList.Count; i++)
 				{
 					FieldInfo fs = fieldList.FirstOrDefault(f => f.Field == pkList[i].Field);
 					s_key.Add(fs.Field);
 					types += fs.RelType;
+					//NpgsqlDbType String
+					pgStr += fs.PgDbTypeString.IsNullOrEmpty() ? "null" : fs.PgDbTypeString.TrimStart(' ', ',');
+
 					if (i + 1 != pkList.Count)
+					{
 						types += ", ";
+						pgStr += ", ";
+					}
 					d_key.Add(fs.RelType + " " + fs.Field);
 					where += $".Where{fs.Field.ToUpperPascal()}({fs.Field})";
-					string cSharpType = Types.ConvertPgDbTypeToCSharpType(fs.RelType).Replace("?", "");
-					if (cSharpType.ToLower() == "datetime")
-						sbEx.AppendLine($"\t\tpublic {DalClassName} Where{fs.Field.ToUpperPascal()}({Types.GetWhereTypeFromDbType(fs.RelType, fs.IsNotNull)} {fs.Field}) => WhereOr(\"a.{fs.Field} = {{0}}\", {fs.Field});");
 				}
-				writer.WriteLine($"\t\tpublic static {ModelClassName} GetItem({string.Join(",", d_key)}) => Select{where}.ToOne();");
+				writer.WriteLine($"\t\tpublic static {ModelClassName} GetItem({string.Join(", ", d_key)}) => Select{where}.ToOne();");
 				foreach (var u in fieldList.Where(f => f.IsUnique == true))
 				{
 					writer.WriteLine($"\t\tpublic static {ModelClassName} GetItemBy{u.Field.ToUpperPascal()}({u.RelType.Replace("?", "")} {u.Field}) => Select.Where{u.Field.ToUpperPascal()}({u.Field}).ToOne();");
 				}
 				if (pkList.Count == 1)
-					writer.WriteLine($"\t\tpublic static List<{ModelClassName}> GetItems(IEnumerable<{types}> {s_key[0]}) => Select.WhereOr(\"{s_key[0]} = {{0}}\", {s_key[0]}).ToList();");
+					writer.WriteLine($"\t\tpublic static List<{ModelClassName}> GetItems(IEnumerable<{types}> {s_key[0]}) => Select.WhereOr(\"{s_key[0]} = {{0}}\", {s_key[0]}{fieldList.FirstOrDefault(f => f.Field == pkList[0].Field).PgDbTypeString}).ToList();");
 				else if (pkList.Count > 1)
 				{
 					writer.WriteLine($"\t\t/// <summary>");
 					writer.WriteLine($"\t\t/// ({s_key.Select(a => $"{a}").Join(", ")})");
 					writer.WriteLine($"\t\t/// </summary>");
-					writer.WriteLine($"\t\tpublic static List<{ModelClassName}> GetItems(IEnumerable<({types})> val) => Select.Where(new[] {{ {s_key.Select(a => $"\"{a}\"").Join(", ")} }}, val).ToList();");
+					writer.WriteLine($"\t\tpublic static List<{ModelClassName}> GetItems(IEnumerable<({types})> val) => Select.Where(new[] {{ {s_key.Select(a => $"\"{a}\"").Join(", ")} }}, val, new NpgsqlDbType?[]{{ {pgStr} }}).ToList();");
 				}
 			}
 			foreach (var item in fieldList)
 			{
 				if (item.IsIdentity) continue;
 				if (item.DataType == "c") continue;
-				if (!item.IsArray)
+				if (item.Dimensions == 0)
 				{
-					string cSharpType = Types.ConvertPgDbTypeToCSharpType(item.RelType).Replace("?", "");
-					if (Types.MakeWhereOrExceptType(cSharpType))
-						writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}({Types.GetWhereTypeFromDbType(item.RelType, item.IsNotNull)} {item.Field}) => WhereOr(\"a.{item.Field} = {{0}}\", {item.Field});");
-					switch (cSharpType.ToLower())
+					string[] notCreateDbType = { "xml" };
+					if (!notCreateDbType.Contains(item.DbType))
 					{
-						case "string":
-							writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Like({Types.GetWhereTypeFromDbType(item.RelType, item.IsNotNull)} {item.Field}) => WhereOr(\"a.{item.Field} LIKE {{0}}\", {item.Field}.Select(a => $\"%{{a}}%\"));");
-							break;
-						case "datetime":
-							writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Range(DateTime? begin = null, DateTime? end = null) => Where(\"a.{item.Field} BETWEEN {{0}} AND {{1}}\", begin ?? DateTime.Parse(\"1970-1-1\"), end ?? DateTime.Now);");
-							break;
-						case "int":
-						case "short":
-						case "long":
-						case "decimal":
-						case "float":
-						case "double":
-							writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Than({cSharpType} val, string sqlOperator = \">\") => Where($\"a.{item.Field} {{sqlOperator}} {{{{0}}}}\", val);");
-							break;
-						default: break;
+						if (Types.MakeWhereOrExceptType(item.CSharpType) || item.DbType == "date")
+							writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}(params {item.RelType}[] {item.Field}) => WhereOr(\"a.{item.Field} = {{0}}\", {item.Field}{item.PgDbTypeString});");
+
+						switch (item.CSharpType.ToLower())
+						{
+							case "string":
+								writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Like(params {item.RelType}[] {item.Field}) => WhereOr(\"a.{item.Field} LIKE {{0}}\", {item.Field}.Select(a => $\"%{{a}}%\"){item.PgDbTypeString});");
+								break;
+							case "datetime":
+								writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Range(DateTime? begin = null, DateTime? end = null) => Where(\"a.{item.Field} BETWEEN {{0}} AND {{1}}\", begin ?? DateTime.Parse(\"1970-1-1\"), end ?? DateTime.Now);");
+								break;
+							case "timespan":
+								writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Range(TimeSpan? begin = null, TimeSpan? end = null) => Where(\"a.{item.Field} BETWEEN {{0}} AND {{1}}\", begin ?? TimeSpan.MinValue, end ?? TimeSpan.MaxValue);");
+								break;
+							case "int":
+							case "short":
+							case "long":
+							case "decimal":
+							case "float":
+							case "double":
+								writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Than({item.CSharpType} val, string sqlOperator = \">\") => Where($\"a.{item.Field} {{sqlOperator}} {{{{0}}}}\", new DbTypeValue(val{item.PgDbTypeString}));");
+								break;
+							case "byte[]":
+								writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}({item.CSharpType} {item.Field}) => WhereArray(\"a.{item.Field} = {{0}}\", {item.Field}{item.PgDbTypeString});");
+								break;
+							default: break;
+						}
 					}
 				}
-				else
+				else if (item.Dimensions == 1)
 				{
-					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}({Types.GetWhereTypeFromDbType(item.RelType, item.IsNotNull).Substring(7)} {item.Field}) => WhereArray(\"a.{item.Field} = {{0}}\", {item.Field});");
-					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Any({Types.GetWhereTypeFromDbType(item.RelType, item.IsNotNull)} {item.Field}) => WhereOr(\"a.{item.Field} @> array[{{0}}::{item.DbType}]\", {item.Field});");
+					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}({item.RelType} {item.Field}) => WhereArray(\"a.{item.Field} = {{0}}\", {item.Field}{item.PgDbTypeString});");
+					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Any(params {item.RelType} {item.Field}) => WhereOr(\"array_position(a.{item.Field}, {{0}}) > 0\", {item.Field}{item.PgDbTypeString.Replace("NpgsqlDbType.Array", "").Replace("|", "").TrimEnd(',', ' ')});");
 					writer.WriteLine($"\t\tpublic {DalClassName} Where{item.Field.ToUpperPascal()}Length(int len, string sqlOperator = \"=\") => Where($\"array_length(a.{item.Field}, 1) {{sqlOperator}} {{{{0}}}}\", len);");
+				}
+				else if (item.Dimensions > 1)
+				{
+
 				}
 
 			}
 			writer.WriteLine(sbEx);
 		}
+
 		/// <summary>
-		/// Generator update method.
+		/// 构建更新方法
 		/// </summary>
 		/// <param name="writer"></param>
-		private void UpdateGenerator(StreamWriter writer)
+		void UpdateGenerator(StreamWriter writer)
 		{
 
 			if (pkList.Count > 0)
 			{
 				List<string> d_key = new List<string>(), s_key = new List<string>();
-				string where1 = string.Empty, where2 = string.Empty, types = string.Empty;
+				string where1 = string.Empty, where2 = string.Empty, types = string.Empty, pgStr = string.Empty;
 				for (int i = 0; i < pkList.Count; i++)
 				{
 					FieldInfo fs = fieldList.FirstOrDefault(f => f.Field == pkList[i].Field);
@@ -529,9 +621,11 @@ namespace CodeFactory.DAL
 					d_key.Add(fs.RelType + " " + fs.Field);
 					where1 += $"model.{fs.Field.ToUpperPascal()}";
 					where2 += $"{fs.Field}";
+					pgStr += fs.PgDbTypeString.IsNullOrEmpty() ? "null" : fs.PgDbTypeString.TrimStart(' ', ',');
 					if (i + 1 != pkList.Count)
 					{
 						types += ", "; where1 += ", "; where2 += ", ";
+						pgStr += ", ";
 					}
 				}
 				where1 = where1.Contains(",") ? $"({where1})" : where1;
@@ -541,7 +635,7 @@ namespace CodeFactory.DAL
 				if (pkList.Count == 1)
 				{
 					writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder Update(IEnumerable<{DalClassName}{_modelSuffix}> models) => Update(models.Select(a => a.{s_key[0].ToUpperPascal()}));");
-					writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder Update(IEnumerable<{types}> {s_key[0]}s) => UpdateDiy.WhereOr(\"{s_key[0]} = {{0}}\", {s_key[0]}s);");
+					writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder Update(IEnumerable<{types}> {s_key[0]}s) => UpdateDiy.WhereOr(\"{s_key[0]} = {{0}}\", {s_key[0]}s{fieldList.FirstOrDefault(f => f.Field == pkList[0].Field).PgDbTypeString});");
 				}
 				else if (pkList.Count > 1)
 				{
@@ -549,11 +643,11 @@ namespace CodeFactory.DAL
 					writer.WriteLine($"\t\t/// <summary>");
 					writer.WriteLine($"\t\t/// ({s_key.Select(a => $"{a}").Join(", ")})");
 					writer.WriteLine($"\t\t/// </summary>");
-					writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder Update(IEnumerable<({types})> val) => UpdateDiy.Where(new[] {{ {s_key.Select(a => $"\"{a}\"").Join(", ")} }}, val);");
+					writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder Update(IEnumerable<({types})> val) => UpdateDiy.Where(new[] {{ {s_key.Select(a => $"\"{a}\"").Join(", ")} }}, val, new NpgsqlDbType?[]{{ {pgStr} }});");
 				}
 			}
 
-			writer.WriteLine($"\t\tpublic class {DalClassName}UpdateBuilder : UpdateExchange<{DalClassName}UpdateBuilder, {ModelClassName}>");
+			writer.WriteLine("\t\tpublic class {0}UpdateBuilder : UpdateExchange<{0}UpdateBuilder, {1}>", DalClassName, ModelClassName);
 			writer.WriteLine("\t\t{");
 			if (_isGeometryTable)
 				writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder() => _fields = _field;");
@@ -561,19 +655,11 @@ namespace CodeFactory.DAL
 			foreach (var item in fieldList)
 			{
 				if (Types.NotCreateModelFieldDbType(item.DbType, item.Typcategory))
-					writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}({item.RelType} {item.Field}) => Set(\"{item.Field}\", {item.Field}, {item.Length});");
-				string cSharpType = Types.ConvertPgDbTypeToCSharpType(item.DbType);
-				if (item.IsArray)
+					writer.WriteLine("\t\t\tpublic {0}UpdateBuilder Set{1}({2} {3}) => Set(\"{3}\", {3}, {4}{5});", DalClassName, item.Field.ToUpperPascal(), item.RelType, item.Field, item.Length, item.PgDbTypeString);
+				if (item.Dimensions == 0)
 				{
-					cSharpType = Types.DeletePublic(item.Nspname, cSharpType);
-					//join
-					writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Join(params {cSharpType}[] {item.Field}) => SetJoin(\"{item.Field}\", {item.Field}, {item.Length});");
-					//remove
-					writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Remove({cSharpType} {item.Field}) => SetRemove(\"{item.Field}\", {item.Field}, {item.Length});");
-				}
-				else
-				{
-					switch (cSharpType.ToLower())
+
+					switch (item.CSharpType.ToLower())
 					{
 						case "int":
 						case "short":
@@ -581,11 +667,12 @@ namespace CodeFactory.DAL
 						case "float":
 						case "double":
 						case "long":
-							writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Increment({cSharpType} {item.Field}) => SetIncrement(\"{item.Field}\", {item.Field}, {item.Length});");
+							writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Increment({item.CSharpType} {item.Field}) => SetIncrement(\"{item.Field}\", {item.Field}, {item.Length}{item.PgDbTypeString});");
 							break;
 						case "datetime":
 						case "timespan":
-							writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Increment(TimeSpan timeSpan) => SetIncrement(\"{item.Field}\", timeSpan, {item.Length});");
+							writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Increment(TimeSpan timeSpan) => SetIncrement(\"{item.Field}\", timeSpan, {item.Length}{item.PgDbTypeString});");
+							//writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Minus(TimeSpan timeSpan) => SetDateTime(\"{item.Field}\", timeSpan, false, {item.Length});");
 							break;
 						case "geometry":
 							writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}(float x, float y, int SRID = 4326) => SetGeometry(\"{item.Field}\", x, y, SRID);");
@@ -593,12 +680,29 @@ namespace CodeFactory.DAL
 						default: break;
 					}
 				}
+				else if (item.Dimensions == 1)
+				{
+					//join
+					writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Join(params {item.RelType} {item.Field}) => SetJoin(\"{item.Field}\", {item.Field}, {item.Length}{item.PgDbTypeString});");
+
+					//remove
+					writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Remove({item.RelType.Replace("[]", "")} {item.Field}) => SetRemove(\"{item.Field}\", {item.Field}, {item.Length}{item.PgDbTypeString.Replace("NpgsqlDbType.Array", "").Replace("|", "").TrimEnd(',', ' ')});");
+				}
+				else if (item.Dimensions > 1)
+				{
+
+				}
 			}
 			writer.WriteLine("\t\t}");
 
 		}
 
-
+		#region Private Method
+		/// <summary>
+		/// 写评论
+		/// </summary>
+		/// <param name="writer"></param>
+		/// <param name="comment"></param>
 		private static void WriteComment(StreamWriter writer, string comment)
 		{
 			if (!string.IsNullOrEmpty(comment))
@@ -609,7 +713,7 @@ namespace CodeFactory.DAL
 			}
 		}
 		/// <summary>
-		/// optional field improve .Value postfix
+		/// optional字段加上.Value
 		/// </summary>
 		/// <param name="conname"></param>
 		/// <param name="fields"></param>
@@ -623,8 +727,9 @@ namespace CodeFactory.DAL
 						conname += ".Value";
 			return conname;
 		}
+
 		/// <summary>
-		/// Give a default value when this field is null and the NotNull property is false too.
+		/// 插入为空时
 		/// </summary>
 		/// <param name="field"></param>
 		/// <param name="cSharpType"></param>
@@ -645,5 +750,6 @@ namespace CodeFactory.DAL
 				default: return "";
 			}
 		}
+		#endregion
 	}
 }

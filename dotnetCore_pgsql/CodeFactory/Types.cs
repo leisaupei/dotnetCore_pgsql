@@ -9,15 +9,15 @@ namespace CodeFactory
 	public static class Types
 	{
 		/// <summary>
-		/// Convert pgsql type to C# type string
+		/// 数据库类型转化成C#类型String
 		/// </summary>
 		/// <param name="dbType"></param>
 		/// <returns></returns>
-		public static string ConvertPgDbTypeToCSharpType(string dbType)
+		public static string ConvertPgDbTypeToCSharpType(string dataType, string dbType)
 		{
 			switch (dbType)
 			{
-				case "bit": return "byte";
+				case "bit": return "byte[]";
 				case "varbit": return "BitArray";
 
 				case "bool": return "bool";
@@ -31,7 +31,7 @@ namespace CodeFactory
 				case "money":
 				case "decimal": return "decimal";
 
-				case "cidr":
+				case "cidr": return "ValueTuple<IPAddress, int>";
 				case "inet": return "IPAddress";
 
 				case "serial2":
@@ -39,6 +39,7 @@ namespace CodeFactory
 
 				case "serial4":
 				case "int4": return "int";
+
 
 				case "serial8":
 				case "int8": return "long";
@@ -55,87 +56,243 @@ namespace CodeFactory
 				case "path": return "NpgsqlPath";
 				case "point": return "NpgsqlPoint";
 				case "polygon": return "NpgsqlPolygon";
+				case "hstore": return "IDictionary<string, string>";
 
 				case "xml":
 				case "char":
 				case "bpchar":
 				case "varchar":
 				case "text": return "string";
+				case "oid":
+				case "cid":
+				case "xid": return "uint";
+
+				case "timetz": return "DateTimeOffset";
 
 				case "date":
-				case "timetz":
 				case "timestamp":
 				case "timestamptz": return "DateTime";
 
+				case "record": return "object[]";
+				case "oidvector": return "uint[]";
 				case "tsquery": return "NpgsqlTsQuery";
+
 				case "tsvector": return "NpgsqlTsVector";
+
 				//case "txid_snapshot": return "";
 				case "uuid": return "Guid";
-				case "oid": return "object";
+
 				default:
-					if (dbType.StartsWith("et_", StringComparison.Ordinal))
+					if (dataType == "e" || dataType == "c")
 						return dbType.ToUpperPascal();
 					return dbType;
 			}
 		}
+
 		/// <summary>
-		/// Convert dbtype to NpgsqlDbType enum type. 
+		/// 数据库类型转化成NpgsqlDbType String
+		/// </summary>
+		/// <param name="dbType"></param>
+		/// <returns></returns>
+		public static string ConvertDbTypeToNpgsqlDbTypeString(string dataType, string dbType, bool isArray)
+		{
+			var _type = string.Empty;
+			switch (dbType)
+			{
+				case "bit": _type = "NpgsqlDbType.Bit"; break;
+				case "varbit": _type = "NpgsqlDbType.Varbit"; break;
+
+				case "bool": _type = "NpgsqlDbType.Boolean"; break;
+				case "box": _type = "NpgsqlDbType.Box"; break;
+				case "bytea": _type = "NpgsqlDbType.Bytea"; break;
+				case "circle": _type = "NpgsqlDbType.Circle"; break;
+
+				case "float4": _type = "NpgsqlDbType.Real"; break;
+				case "float8": _type = "NpgsqlDbType.Double"; break;
+
+				case "money": _type = "NpgsqlDbType.Money"; break;
+				case "decimal":
+				case "numeric": _type = "NpgsqlDbType.Numeric"; break;
+
+				case "cid": _type = "NpgsqlDbType.Cid"; break;
+				case "cidr": _type = "NpgsqlDbType.Cidr"; break;
+				case "inet": _type = "NpgsqlDbType.Inet"; break;
+
+				case "serial2":
+				case "int2": _type = "NpgsqlDbType.Smallint"; break;
+
+				case "serial4":
+				case "int4": _type = "NpgsqlDbType.Integer"; break;
+
+				case "serial8":
+				case "int8": _type = "NpgsqlDbType.Bigint"; break;
+
+				case "time": _type = "NpgsqlDbType.Time"; break;
+				case "interval": _type = "NpgsqlDbType.Interval"; break;
+
+				case "json": _type = "NpgsqlDbType.Json"; break;
+				case "jsonb": _type = "NpgsqlDbType.Jsonb"; break;
+
+				case "line": _type = "NpgsqlDbType.Line"; break;
+				case "lseg": _type = "NpgsqlDbType.LSeg"; break;
+				case "macaddr": _type = "NpgsqlDbType.MacAddr"; break;
+				case "path": _type = "NpgsqlDbType.Path"; break;
+				case "point": _type = "NpgsqlDbType.Point"; break;
+				case "polygon": _type = "NpgsqlDbType.Polygon"; break;
+
+				case "xml": _type = "NpgsqlDbType.Xml"; break;
+				case "char": _type = "NpgsqlDbType.InternalChar"; break;
+				case "bpchar": _type = "NpgsqlDbType.Char"; break;
+				case "varchar": _type = "NpgsqlDbType.Varchar"; break;
+				case "text": _type = "NpgsqlDbType.Text"; break;
+
+				case "name": _type = "NpgsqlDbType.Name"; break;
+				case "date": _type = "NpgsqlDbType.Date"; break;
+				case "timetz": _type = "NpgsqlDbType.TimeTz"; break;
+				case "timestamp": _type = "NpgsqlDbType.Timestamp"; break;
+				case "timestamptz": _type = "NpgsqlDbType.TimestampTz"; break;
+
+				case "tsquery": _type = "NpgsqlDbType.TsQuery"; break;
+				case "tsvector": _type = "NpgsqlDbType.TsVector"; break;
+				case "int2vector": _type = "NpgsqlDbType.Int2Vector"; break;
+
+				case "macaddr8": _type = "NpgsqlDbType.MacAddr8"; break;
+				case "uuid": _type = "NpgsqlDbType.Uuid"; break;
+				case "oid": _type = "NpgsqlDbType.Oid"; break;
+				case "oidvector": _type = "NpgsqlDbType.Oidvector"; break;
+				case "refcursor": _type = "NpgsqlDbType.Refcursor"; break;
+				case "regtype": _type = "NpgsqlDbType.Regtype"; break;
+				case "tid": _type = "NpgsqlDbType.Tid"; break;
+				case "xid": _type = "NpgsqlDbType.Xid"; break;
+				default: _type = ""; break;
+			}
+			if (isArray)
+			{
+				//	var need = new string[] { "varchar", "bpchar", "date", "time" };
+				if (_type.IsNotNullOrEmpty())
+					_type += " | NpgsqlDbType.Array";
+			}
+			_type = _type.IsNotNullOrEmpty() ? ", " + _type : "";
+			return _type;
+		}
+		/// <summary>
+		/// 转化数据库字段为数据库字段NpgsqlDbType枚举
 		/// </summary>
 		/// <param name="dataType"></param>
 		/// <param name="dbType"></param>
 		/// <returns></returns>
-		public static NpgsqlDbType ConvertDbTypeToNpgsqlDbTypeEnum(string dataType, string dbType)
+		public static NpgsqlDbType ConvertDbTypeToNpgsqlDbType(string dataType, string dbType, bool isArray)
 		{
+			NpgsqlDbType _type = NpgsqlDbType.Unknown;
 			if (dataType == "e" || dataType == "c")
 				return NpgsqlDbType.Unknown;
 			switch (dbType)
 			{
-				case "int2": return NpgsqlDbType.Smallint;
-				case "int4": return NpgsqlDbType.Integer;
-				case "int8": return NpgsqlDbType.Bigint;
-				case "bool": return NpgsqlDbType.Boolean;
-				case "bpchar": return NpgsqlDbType.Varchar;
-				case "float4": return NpgsqlDbType.Numeric;
-				case "float8": return NpgsqlDbType.Double;
-				case "timestamptz": return NpgsqlDbType.TimestampTz;
-				case "timetz": return NpgsqlDbType.TimeTz;
-				default: return Enum.Parse<NpgsqlDbType>(dbType.ToUpperPascal());
-			}
+				case "bit": _type = NpgsqlDbType.Bit; break;
+				case "varbit": _type = NpgsqlDbType.Varbit; break;
 
+				case "bool": _type = NpgsqlDbType.Boolean; break;
+				case "box": _type = NpgsqlDbType.Box; break;
+				case "bytea": _type = NpgsqlDbType.Bytea; break;
+				case "circle": _type = NpgsqlDbType.Circle; break;
+
+				case "float4": _type = NpgsqlDbType.Real; break;
+				case "float8": _type = NpgsqlDbType.Double; break;
+
+				case "money": _type = NpgsqlDbType.Money; break;
+				case "decimal":
+				case "numeric": _type = NpgsqlDbType.Numeric; break;
+
+				case "cid": _type = NpgsqlDbType.Cid; break;
+				case "cidr": _type = NpgsqlDbType.Cidr; break;
+				case "inet": _type = NpgsqlDbType.Inet; break;
+
+				case "serial2":
+				case "int2": _type = NpgsqlDbType.Smallint; break;
+
+				case "serial4":
+				case "int4": _type = NpgsqlDbType.Integer; break;
+
+				case "serial8":
+				case "int8": _type = NpgsqlDbType.Bigint; break;
+
+				case "time": _type = NpgsqlDbType.Time; break;
+				case "interval": _type = NpgsqlDbType.Interval; break;
+
+				case "json": _type = NpgsqlDbType.Json; break;
+				case "jsonb": _type = NpgsqlDbType.Jsonb; break;
+
+				case "line": _type = NpgsqlDbType.Line; break;
+				case "lseg": _type = NpgsqlDbType.LSeg; break;
+				case "macaddr": _type = NpgsqlDbType.MacAddr; break;
+				case "path": _type = NpgsqlDbType.Path; break;
+				case "point": _type = NpgsqlDbType.Point; break;
+				case "polygon": _type = NpgsqlDbType.Polygon; break;
+
+				case "xml": _type = NpgsqlDbType.Xml; break;
+				case "char": _type = NpgsqlDbType.InternalChar; break;
+				case "bpchar": _type = NpgsqlDbType.Char; break;
+				case "varchar": _type = NpgsqlDbType.Varchar; break;
+				case "text": _type = NpgsqlDbType.Text; break;
+
+				case "name": _type = NpgsqlDbType.Name; break;
+				case "date": _type = NpgsqlDbType.Date; break;
+				case "timetz": _type = NpgsqlDbType.TimeTz; break;
+				case "timestamp": _type = NpgsqlDbType.Timestamp; break;
+				case "timestamptz": _type = NpgsqlDbType.TimestampTz; break;
+
+				case "tsquery": _type = NpgsqlDbType.TsQuery; break;
+
+				case "tsvector": _type = NpgsqlDbType.TsVector; break;
+				case "int2vector": _type = NpgsqlDbType.Int2Vector; break;
+				case "hstore": _type = NpgsqlDbType.Hstore; break;
+				case "macaddr8": _type = NpgsqlDbType.MacAddr8; break;
+				case "uuid": _type = NpgsqlDbType.Uuid; break;
+				case "oid": _type = NpgsqlDbType.Oid; break;
+				case "oidvector": _type = NpgsqlDbType.Oidvector; break;
+				case "refcursor": _type = NpgsqlDbType.Refcursor; break;
+				case "regtype": _type = NpgsqlDbType.Regtype; break;
+				case "tid": _type = NpgsqlDbType.Tid; break;
+				case "xid": _type = NpgsqlDbType.Xid; break;
+			}
+			if (isArray)
+			{
+				if (_type == NpgsqlDbType.Unknown)
+					_type = NpgsqlDbType.Array;
+				_type = _type | NpgsqlDbType.Array;
+			}
+			return _type;
 		}
 		/// <summary>
-		/// Except produce whereor expression type.
+		/// 排除生成whereor条件的字段类型
 		/// </summary>
 		public static bool MakeWhereOrExceptType(string type)
 		{
-			string[] arr = { "datetime", "geometry", "jtoken" };
+			string[] arr = { "datetime", "geometry", "jtoken", "byte[]" };
 			if (arr.Contains(type.ToLower().Replace("?", "")))
 				return false;
 			return true;
 		}
-		public static string GetWhereTypeFromDbType(string type, bool isNotNull)
-		{
-			string _type = ConvertPgDbTypeToCSharpType(type).Replace("?", "");
-			string brackets = type.Contains("[]") ? "" : "[]";
-			string ques = !isNotNull && !brackets.IsNullOrEmpty() ? "?" : "";
-			switch (_type.ToLower())
-			{
-				case "jtoken": return _type;
-				case "object":
-				case "string": return "params " + _type + brackets;
-				default: return "params " + _type + ques + brackets;
-			}
-		}
-
+		/// <summary>
+		/// 从数据库类型获取设置的数据库类型
+		/// </summary>
+		/// <param name="type"></param>
+		/// <param name="isArray"></param>
+		/// <returns></returns>
 		public static string GetSetTypeFromDbType(string type, bool isArray)
 		{
-			string _type = ConvertPgDbTypeToCSharpType(type);
-			switch (_type.ToLower())
+			switch (type.ToLower())
 			{
-				case "jtoken": return _type;
-				default: return _type + "?" + (isArray ? "[]" : "");
+				case "jtoken": return type;
+				default: return type + "?" + (isArray ? "[]" : "");
 			}
 		}
+		/// <summary>
+		/// 根据数据库类型判断不生成模型的字段
+		/// </summary>
+		/// <param name="dbType"></param>
+		/// <param name="typcategory"></param>
+		/// <returns></returns>
 		public static bool NotCreateModelFieldDbType(string dbType, string typcategory)
 		{
 			if (typcategory.ToLower() == "u" && dbType.Replace("?", "") == "geometry")
@@ -143,11 +300,11 @@ namespace CodeFactory
 			return true;
 		}
 		/// <summary>
-		/// wipe public prefix and name it.
+		/// 去掉public前缀及命名
 		/// </summary>
 		/// <param name="schemaName"></param>
 		/// <param name="tableName"></param>
-		/// <param name="isTableName"></param>
+		/// <param name="isTableName">如果false为格式</param>
 		/// <returns></returns>
 		public static string DeletePublic(string schemaName, string tableName, bool isTableName = false, bool isView = false)
 		{
@@ -158,6 +315,12 @@ namespace CodeFactory
 				tableName += "View";
 			return schemaName.ToLower() == "public" ? tableName.ToUpperPascal() : schemaName.ToUpperPascal() + tableName;
 		}
+		/// <summary>
+		/// 去除下划线并首字母大写
+		/// </summary>
+		/// <param name="str"></param>
+		/// <param name="len"></param>
+		/// <returns></returns>
 		public static string ExceptUnderlineToUpper(string str, int? len = null)
 		{
 			var strArr = str.Split('_');
