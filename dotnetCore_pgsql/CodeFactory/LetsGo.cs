@@ -1,5 +1,4 @@
-﻿using Common.CodeFactory.DAL;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,6 +6,7 @@ using System.Threading.Tasks;
 using DBHelper;
 using System.Data;
 using System.Text;
+using CodeFactory.DAL;
 
 namespace CodeFactory
 {
@@ -20,12 +20,11 @@ namespace CodeFactory
 		/// 生成
 		/// </summary>
 		/// <param name="args"></param>
-		public static void Produce(string[] args)
+		public static void Produce(string args)
 		{
 			Console.OutputEncoding = Encoding.UTF8;
 			GenerateModel model = new GenerateModel();
-			if (args.Length != 1) throw new Exception("Generate string is error");
-			var strings = args[0].Split(';');
+			var strings = args.Split(';');
 			if (strings.Length != 8) throw new Exception("Generate string is error");
 			StringBuilder connection = new StringBuilder();
 			foreach (var item in strings)
