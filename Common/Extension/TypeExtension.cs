@@ -66,74 +66,68 @@ public static class TypeExtension
 
 	public static T ToObject<T>(this string json) => JsonConvert.DeserializeObject<T>(json);
 
-	#region IDataReader.To
 	public static TResult ReaderToModel<TResult>(this IDataReader objReader)
 	{
-		//获取传入的数据类型
 		Type modelType = typeof(TResult);
-		bool isTuple = (modelType.Namespace == "System" && modelType.Name.StartsWith("ValueTuple`", StringComparison.Ordinal)); //判断是否元组类型
-		bool isValue = (modelType.Namespace == "System" && modelType.Name.StartsWith("String", StringComparison.Ordinal) || typeof(TResult).BaseType == typeof(ValueType));//判断是否值类型或者string类型
-
-		//默认值
 		TResult model = default(TResult);
-		//如果非值类型创建实例
-		if (!isValue) model = Activator.CreateInstance<TResult>();
-		FieldInfo[] fs = modelType.GetFields();
-		Type[] type = new Type[fs.Length];
-		object[] parms = new object[fs.Length];
-		for (int i = 0; i < objReader.FieldCount; i++)
+		bool IsTuple(Type tupleType) => tupleType.Namespace == "System" && tupleType.Name.StartsWith("ValueTuple`", StringComparison.Ordinal);//判断是否元组类型
+		bool isValue = modelType.Namespace == "System" && modelType.Name.StartsWith("String", StringComparison.Ordinal) || typeof(TResult).BaseType == typeof(ValueType);//判断是否值类型或者string类型
+
+		if (IsTuple(modelType))
 		{
-			if (isTuple)
-			{
-				type[i] = fs[i].FieldType;
-				parms[i] = objReader[i];
-			}
-			else if (!isValue)
-			{
-				//判断字段值是否为空或不存在的值
-				if (!objReader[i].IsNullOrDBNull())
-				{
-					//匹配字段名
-					PropertyInfo pi = modelType.GetProperty(objReader.GetName(i), BindingFlags.Default | BindingFlags.GetProperty | BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-					if (pi != null)
-						//绑定实体对象中同名的字段  
-						pi.SetValue(model, CheckType(objReader[i], pi.PropertyType), null);
-				}
-			}
+			int columnIndex = -1;
+			model = (TResult)GetValueTuple(modelType, objReader, ref columnIndex);
 		}
-		if (isValue)
+		else if (isValue)
 		{
 			var value = objReader[objReader.GetName(0)];
 			if (!value.IsNullOrDBNull()) model = (TResult)CheckType(value, typeof(TResult));
 		}
-		else if (isTuple)
+		else
 		{
-			ConstructorInfo constructor = modelType.GetConstructor(type);
-			model = (TResult)constructor.Invoke(parms);
+			model = Activator.CreateInstance<TResult>();
+			for (int i = 0; i < objReader.FieldCount; i++)
+				if (!objReader[i].IsNullOrDBNull())
+				{
+					PropertyInfo pi = modelType.GetProperty(objReader.GetName(i), BindingFlags.Default | BindingFlags.GetProperty | BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+					if (pi != null) pi.SetValue(model, CheckType(objReader[i], pi.PropertyType), null);
+				}
+		}
+		//遍历元组类型 为兼容8个以上元组
+		object GetValueTuple(Type objType, IDataReader dr, ref int columnIndex)
+		{
+			if (IsTuple(objType))
+			{
+				FieldInfo[] fs = objType.GetFields();
+				Type[] types = new Type[fs.Length];
+				object[] parameters = new object[fs.Length];
+				for (int i = 0; i < fs.Length; i++)
+				{
+					types[i] = fs[i].FieldType;
+					parameters[i] = GetValueTuple(types[i], dr, ref columnIndex);
+				}
+				ConstructorInfo info = objType.GetConstructor(types);
+				return info.Invoke(parameters);
+			}
+			++columnIndex;
+			object dbValue = dr[columnIndex];
+			return dbValue == DBNull.Value ? null : dbValue;
+		}
+
+		// 对可空类型进行判断转换(*要不然会报错)
+		object CheckType(object value, Type conversionType)
+		{
+			if (conversionType.IsGenericType && conversionType.GetGenericTypeDefinition().Equals(typeof(Nullable<>)))
+			{
+				if (value == null) return null;
+				conversionType = new NullableConverter(conversionType).UnderlyingType;
+			}
+			if (conversionType.Namespace == "Newtonsoft.Json.Linq")
+				return JToken.Parse(value.ToEmptyOrString());
+			return Convert.ChangeType(value, conversionType);
 		}
 		return model;
 	}
-
-	/// <summary>
-	/// 对可空类型进行判断转换(*要不然会报错)
-	/// </summary>
-	/// <param name="value">DataReader字段的值</param>
-	/// <param name="conversionType">该字段的类型</param>
-	/// <returns></returns>
-	private static object CheckType(object value, Type conversionType)
-	{
-		if (conversionType.IsGenericType && conversionType.GetGenericTypeDefinition().Equals(typeof(Nullable<>)))
-		{
-			if (value == null)
-				return null;
-			NullableConverter nullableConverter = new NullableConverter(conversionType);
-			conversionType = nullableConverter.UnderlyingType;
-		}
-		if (conversionType.Namespace == "Newtonsoft.Json.Linq")
-			return JToken.Parse(value.ToEmptyOrString());
-		return Convert.ChangeType(value, conversionType);
-	}
-	#endregion
 
 	#region RedisValue
 	/// <summary>

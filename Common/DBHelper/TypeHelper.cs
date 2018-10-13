@@ -7,7 +7,6 @@ using System.Text.RegularExpressions;
 
 namespace DBHelper
 {
-
 	public class TypeHelper
 	{
 		public static string SqlToString(string sql, List<NpgsqlParameter> nps)
@@ -20,7 +19,7 @@ namespace DBHelper
 				if (value == null)
 					sql = GetNullSql(sql, key);
 				else if (Regex.IsMatch(value, @"(^(\-|\+)?\d+(\.\d+)?$)|(^SELECT\s.+\sFROM\s)|(true)|(false)",
-					RegexOptions.IgnoreCase) && !isString.Contains(NpgsqlDbType.Varchar)) sql = sql.Replace(key, value);
+					RegexOptions.IgnoreCase) && !isString.Contains(p.NpgsqlDbType)) sql = sql.Replace(key, value);
 				else sql = sql.Replace(key, $"'{value}'");
 			}
 			return sql.Replace("\r", " ").Replace("\n", " ");
@@ -33,7 +32,6 @@ namespace DBHelper
 				return notEqualsReg.Replace(sql, " IS NOT NULL");
 			else return equalsReg.Replace(sql, " IS NULL");
 		}
-		
 		public static string GetParamValue(object value)
 		{
 			Type type = value.GetType();
@@ -42,13 +40,13 @@ namespace DBHelper
 				var arrStr = (value as object[]).Select(a => a.ToEmptyOrString());
 				return $"{{{string.Join(",", arrStr)}}}";
 			}
-			return value.ToNullOrString();
+			return value?.ToString();
 		}
 		public static NpgsqlDbType? GetDbType(Type type)
 		{
 			NpgsqlDbType? pgsqlDbType = null;
 			string type_name = type.Name.ToLower();
-			type_name = type_name.EndsWith("[]") ? type_name.TrimEnd(']', '[') : type_name;
+			type_name = type_name.EndsWith("[]") && type_name != "byte[]" ? type_name.TrimEnd(']', '[') : type_name;
 			switch (type_name)
 			{
 				case "guid": pgsqlDbType = NpgsqlDbType.Uuid; break;
@@ -69,9 +67,10 @@ namespace DBHelper
 				case "timespan": pgsqlDbType = NpgsqlDbType.Interval; break;
 				case "byte[]": pgsqlDbType = NpgsqlDbType.Bytea; break;
 			}
-			if (type.BaseType.IsArray)
+			if (type.IsArray && type_name != "byte[]")
 				pgsqlDbType = pgsqlDbType == null ? NpgsqlDbType.Array : pgsqlDbType | NpgsqlDbType.Array;
 			return pgsqlDbType;
 		}
+
 	}
 }

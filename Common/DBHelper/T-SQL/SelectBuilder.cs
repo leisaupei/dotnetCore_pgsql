@@ -81,7 +81,7 @@ namespace DBHelper
 
 		#region Union
 		public TSQL InnerJoin<T>(SelectBuilder<T> selectBuilder, string alias, string on) where T : class, new()
-					=> Join(UnionEnum.INNER_JOIN, $"({selectBuilder})", alias, on);
+			=> Join(UnionEnum.INNER_JOIN, $"({selectBuilder})", alias, on);
 		public TSQL LeftJoin<T>(SelectBuilder<T> selectBuilder, string alias, string on) where T : class, new()
 			=> Join(UnionEnum.LEFT_JOIN, $"({selectBuilder})", alias, on);
 		public TSQL RightJoin<T>(SelectBuilder<T> selectBuilder, string alias, string on) where T : class, new()
@@ -95,15 +95,15 @@ namespace DBHelper
 		public TSQL Join<TTarget>(UnionEnum unionType, string alias, string on) => Join(unionType, MappingHelper.GetMapping(typeof(TTarget)), alias, on);
 		public TSQL Join(UnionEnum unionType, string table, string aliasName, string on)
 		{
-			if (new Regex(@"\{\d\}").Matches(on).Count > 0)
-				throw new ArgumentException("on expression is error");
+			if (new Regex(@"\{\d\}").Matches(on).Count > 0)//参数个数不匹配
+				throw new ArgumentException("on 参数不支持存在参数");
 			_listUnion.Add(new Union(aliasName, table, on, unionType));
 			return _this;
 		}
 		#endregion
 
 		/// <summary>
-		/// return list.
+		/// 返回列表
 		/// </summary>
 		public List<TResult> ToList<TResult>(string fields = null)
 		{
@@ -111,7 +111,7 @@ namespace DBHelper
 			return base.ToList<TResult>();
 		}
 		/// <summary>
-		/// Retrun model.
+		/// 返回一行
 		/// </summary>
 		public TResult ToOne<TResult>(string fields = null)
 		{
@@ -120,7 +120,7 @@ namespace DBHelper
 			return base.ToOne<TResult>();
 		}
 		/// <summary>
-		/// return first element.
+		/// 返回第一个元素
 		/// </summary>
 		public TResult ToScalar<TResult>(string fields)
 		{

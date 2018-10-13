@@ -4,42 +4,29 @@ using System.Data;
 using Npgsql;
 using Microsoft.Extensions.Logging;
 using System.Threading;
+using System.Text.RegularExpressions;
 
 namespace DBHelper
 {
 	public abstract class PgExecute
 	{
-		/// <summary>
-		/// Logger
-		/// </summary>
 		public static ILogger _logger;
 		/// <summary>
-		/// Transaction pool.
+		/// 事务池
 		/// </summary>
 		Dictionary<int, NpgsqlTransaction> _transPool = new Dictionary<int, NpgsqlTransaction>();
 		/// <summary>
-		/// Transaction locker.
+		/// 事务线程锁
 		/// </summary>
 		static readonly object _lockTrans = new object();
 		/// <summary>
-		/// Master connection pool.
+		/// 连接池
 		/// </summary>
 		ConnectionPool _pool;
 		/// <summary>
-		/// Slave connection pool.
+		/// constructer
 		/// </summary>
-		ConnectionPool _slavePool;
-		/// <summary>
-		/// Is has slave datebase connection string.
-		/// </summary>
-		readonly bool _hasSlave = false;
-		/// <summary>
-		/// Is executing non query.
-		/// </summary>
-		bool _isNonQuery = false;
-		/// <summary>
-		/// Constructor with master database and logger.
-		/// </summary>
+		/// <param name="poolSize"></param>
 		/// <param name="connectionString"></param>
 		/// <param name="logger"></param>
 		protected PgExecute(string connectionString, ILogger logger)
@@ -48,9 +35,7 @@ namespace DBHelper
 			var poolSize = ConnectionPool.GetConnectionPoolSize(connectionString);
 			_pool = new ConnectionPool(poolSize, connectionString);
 		}
-		/// <summary>
-		/// Transaction of current thread.
-		/// </summary>
+
 		NpgsqlTransaction CurrentTransaction
 		{
 			get
@@ -61,26 +46,15 @@ namespace DBHelper
 				return null;
 			}
 		}
-
 		/// <summary>
-		/// Prepare command before execute.
+		/// 执行命令前准备
 		/// </summary>
 		protected void PrepareCommand(NpgsqlCommand cmd, CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
 		{
+			if (_pool == null) throw new ArgumentException("Connection pool is null");
 			if (cmdText.IsNullOrEmpty() || cmd == null) throw new ArgumentNullException("Command is error");
 			if (CurrentTransaction == null)
-			{
-				if (_hasSlave && !_isNonQuery)
-				{
-					if (_slavePool == null) throw new ArgumentException("Slave connection pool is null");
-					cmd.Connection = _slavePool.GetConnection();
-				}
-				else
-				{
-					if (_pool == null) throw new ArgumentException("Connection pool is null");
-					cmd.Connection = _pool.GetConnection();
-				}
-			}
+				cmd.Connection = _pool.GetConnection();
 			else
 			{
 				cmd.Connection = CurrentTransaction.Connection;
@@ -100,17 +74,16 @@ namespace DBHelper
 			}
 		}
 		/// <summary>
-		/// Execute scalar.
+		/// 返回一行数据
 		/// </summary>
-		public object ExecuteScalar(CommandType cmdType, string cmdText, params NpgsqlParameter[] cmdParameters)
+		public object ExecuteScalar(CommandType cmdType, string cmdText, params NpgsqlParameter[] cmdParams)
 		{
 			object ret = null;
 			NpgsqlCommand cmd = new NpgsqlCommand();
 			try
 			{
-				PrepareCommand(cmd, cmdType, cmdText, cmdParameters);
+				PrepareCommand(cmd, cmdType, cmdText, cmdParams);
 				ret = cmd.ExecuteScalar();
-
 			}
 			catch (Exception ex)
 			{
@@ -125,15 +98,15 @@ namespace DBHelper
 			return ret;
 		}
 		/// <summary>
-		/// Execute non query.
+		/// 执行sql语句
 		/// </summary>
-		public int ExecuteNonQuery(CommandType cmdType, string cmdText, params NpgsqlParameter[] cmdParameters)
+		public int ExecuteNonQuery(CommandType cmdType, string cmdText, params NpgsqlParameter[] cmdParams)
 		{
-			int ret = 0; _isNonQuery = true;
+			int ret = 0;
 			NpgsqlCommand cmd = new NpgsqlCommand();
 			try
 			{
-				PrepareCommand(cmd, cmdType, cmdText, cmdParameters);
+				PrepareCommand(cmd, cmdType, cmdText, cmdParams);
 				ret = cmd.ExecuteNonQuery();
 			}
 			catch (Exception ex)
@@ -149,14 +122,14 @@ namespace DBHelper
 			return ret;
 		}
 		/// <summary>
-		/// Execute data reader with action.
+		/// 重构读取数据库数据
 		/// </summary>
-		public void ExecuteDataReader(Action<NpgsqlDataReader> action, CommandType cmdType, string cmdText, params NpgsqlParameter[] cmdParameters)
+		public void ExecuteDataReader(Action<NpgsqlDataReader> action, CommandType cmdType, string cmdText, params NpgsqlParameter[] cmdParams)
 		{
 			NpgsqlCommand cmd = new NpgsqlCommand(); NpgsqlDataReader reader = null;
 			try
 			{
-				PrepareCommand(cmd, cmdType, cmdText, cmdParameters);
+				PrepareCommand(cmd, cmdType, cmdText, cmdParams);
 				using (reader = cmd.ExecuteReader())
 					while (reader.Read())
 						action?.Invoke(reader);
@@ -175,20 +148,20 @@ namespace DBHelper
 			}
 		}
 		/// <summary>
-		/// Throw exception.
+		/// 抛出异常
 		/// </summary>
-		protected void ThrowException(NpgsqlCommand cmd, Exception ex)
+		public void ThrowException(NpgsqlCommand cmd, Exception ex)
 		{
 			string str = string.Empty;
-			if (cmd.Parameters != null)
+			if (cmd?.Parameters != null)
 				foreach (NpgsqlParameter item in cmd.Parameters)
 					str += $"{item.ParameterName}:{item.Value}\n";
-			//done: export error.
+			//done: 输出错误日志
 			_logger.LogError(new EventId(111111), ex, "数据库执行出错：===== \n {0}\n{1}\n{2}", cmd.CommandText, cmd.Parameters, str);//输出日志
 
 		}
 		/// <summary>
-		/// Close cmd and current connection
+		/// 关闭命令及连接
 		/// </summary>
 		public void Close(NpgsqlCommand cmd, NpgsqlConnection connection)
 		{
@@ -198,14 +171,11 @@ namespace DBHelper
 					cmd.Parameters.Clear();
 				cmd.Dispose();
 			}
-			if (_hasSlave && !_isNonQuery)
-				_slavePool.ReleaseConnection(connection);
-			else
-				_pool.ReleaseConnection(connection);
+			_pool.ReleaseConnection(connection);
 		}
-		#region Transaction
+		#region 事务
 		/// <summary>
-		/// Open transaction.
+		/// 开启事务
 		/// </summary>
 		public void BeginTransaction()
 		{
@@ -217,18 +187,18 @@ namespace DBHelper
 				_transPool.Add(tid, tran);
 		}
 		/// <summary>
-		/// Commit transaction.
+		/// 确认事务
 		/// </summary>
 		public void CommitTransaction() => ReleaseTransaction(tran => tran.Commit());
 
 		/// <summary>
-		/// Rollback transaction.
+		/// 回滚事务
 		/// </summary>
 		public void RollBackTransaction() => ReleaseTransaction(tran => tran.Rollback());
+
 		/// <summary>
-		/// Release transaction.
+		/// 释放事务
 		/// </summary>
-		/// <param name="action"></param>
 		void ReleaseTransaction(Action<NpgsqlTransaction> action)
 		{
 			var tran = CurrentTransaction;

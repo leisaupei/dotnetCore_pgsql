@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NpgsqlTypes;
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Text;
@@ -18,6 +19,30 @@ namespace DBHelper
 			Expression = expression;
 			UnionType = unionType;
 		}
+	}
+	public class DbTypeValue
+	{
+		public DbTypeValue() { }
+		public static DbTypeValue New(object value, NpgsqlDbType? dbType = null)
+		{
+			return new DbTypeValue(value, dbType);
+		}
+		public DbTypeValue(object value)
+		{
+			Value = value;
+		}
+		public DbTypeValue(object value, NpgsqlDbType? dbType)
+		{
+			DbType = dbType;
+			Value = value;
+		}
+		public override string ToString()
+		{
+			return Value.ToString();
+		}
+		public NpgsqlDbType? DbType { get; set; } = null;
+		public object Value { get; set; }
+
 	}
 	public enum UnionEnum
 	{

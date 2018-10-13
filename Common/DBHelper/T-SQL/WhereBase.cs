@@ -1,4 +1,5 @@
 ﻿using Npgsql;
+using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -11,6 +12,7 @@ namespace DBHelper
 {
 	public abstract class WhereBase<TSQL> : BuilderBase<TSQL> where TSQL : class, new()
 	{
+
 		TSQL _this => this as TSQL;
 		protected WhereBase(string table, string alias) : base(table, alias) { }
 		protected WhereBase(string table) : base(table) { }
@@ -47,47 +49,100 @@ namespace DBHelper
 			return WhereNotExsit(selectBuilder.ToString().Replace("a.", "a1."));
 		}
 		public TSQL WhereNotExsit(string sql) => Where($"NOT EXISTS ({sql})");
-		public TSQL WhereOr<T>(string filter, IEnumerable<T> val)
+		public TSQL WhereOr<T>(string filter, IEnumerable<T> val, NpgsqlDbType? dbType = null)
 		{
+			object _val = null;
 			var typeT = typeof(T);
 			if (val.Count() == 0) return _this;
-			if (typeT == typeof(char)) return Where(filter, (object)val);
-			if (typeT == typeof(object)) return Where(filter, val as object[]);
-			if (val.Count() == 1) return Where(filter, val.ElementAt(0));
-			string filters = string.Empty;
-			for (int a = 0; a < val.Count(); a++)
-				filters = string.Concat(filters, " OR ", string.Format(filter, "{" + a + "}"));
-			object[] parms = new object[val.Count()];
-			val.ToArray().CopyTo(parms, 0);
-			return Where(filters.Substring(4), parms);
+			else if (typeT == typeof(char))
+				_val = val.Select(a => new DbTypeValue(val, dbType));
+			else if (typeT == typeof(object))
+			{
+				if (dbType.HasValue)
+					_val = val.Select(a => new DbTypeValue(val, dbType));
+				else
+					_val = val as object[];
+			}
+			else if (typeT == typeof(DbTypeValue))
+				_val = val;
+			else if (val.Count() == 1)
+				if (dbType.HasValue)
+					_val = new DbTypeValue(val.ElementAt(0), dbType);
+				else
+					_val = val.ElementAt(0);
+
+			string filters = filter;
+
+			if (_val == null)
+			{
+				for (int a = 0; a < val.Count(); a++)
+					filters = string.Concat(filters, " OR ", string.Format(filter, "{" + a + "}"));
+				filters = filters.Substring(4);
+				if (dbType.HasValue)
+					_val = val.Select(a => new DbTypeValue(a, dbType));
+				else
+					_val = val;
+			}
+			return Where(filters, _val);
 		}
 		public TSQL Where(bool isAdd, string filter, params object[] val) => isAdd ? Where(filter, val) : _this;
-		public TSQL Where<T1, T2>(string[] keys, IEnumerable<(T1, T2)> val) => WhereTuple(f =>
+		public TSQL Where<T1, T2>(string[] keys, IEnumerable<(T1, T2)> val, NpgsqlDbType?[] dbTypes = null) => WhereTuple(f =>
 		{
 			var item = val.ElementAt(f.Item2 / keys.Length);
-			f.Item1.Add(item.Item1); f.Item1.Add(item.Item2);
+			if (dbTypes == null)
+			{
+				f.Item1.Add(item.Item1);
+				f.Item1.Add(item.Item2);
+			}
+			else
+			{
+				f.Item1.Add(new DbTypeValue(item.Item1, dbTypes[0]));
+				f.Item1.Add(new DbTypeValue(item.Item2, dbTypes[1]));
+			}
 		}, keys, val.Count());
-		public TSQL Where<T1, T2, T3>(string[] keys, IEnumerable<(T1, T2, T3)> val) => WhereTuple(f =>
+		public TSQL Where<T1, T2, T3>(string[] keys, IEnumerable<(T1, T2, T3)> val, NpgsqlDbType?[] dbTypes = null) => WhereTuple(f =>
 		{
 			var item = val.ElementAt(f.Item2 / keys.Length);
-			f.Item1.Add(item.Item1); f.Item1.Add(item.Item2);
-			f.Item1.Add(item.Item3);
+			if (dbTypes == null)
+			{
+				f.Item1.Add(item.Item1);
+				f.Item1.Add(item.Item2);
+				f.Item1.Add(item.Item3);
+			}
+			else
+			{
+				f.Item1.Add(new DbTypeValue(item.Item1, dbTypes[0]));
+				f.Item1.Add(new DbTypeValue(item.Item2, dbTypes[1]));
+				f.Item1.Add(new DbTypeValue(item.Item3, dbTypes[2]));
+			}
 		}, keys, val.Count());
-		public TSQL Where<T1, T2, T3, T4>(string[] keys, IEnumerable<(T1, T2, T3, T4)> val) => WhereTuple(f =>
+		public TSQL Where<T1, T2, T3, T4>(string[] keys, IEnumerable<(T1, T2, T3, T4)> val, NpgsqlDbType?[] dbTypes = null) => WhereTuple(f =>
 		{
 			var item = val.ElementAt(f.Item2 / keys.Length);
-			f.Item1.Add(item.Item1); f.Item1.Add(item.Item2);
-			f.Item1.Add(item.Item3); f.Item1.Add(item.Item4);
+			if (dbTypes == null)
+			{
+				f.Item1.Add(item.Item1); f.Item1.Add(item.Item2);
+				f.Item1.Add(item.Item3); f.Item1.Add(item.Item4);
+			}
+			else
+			{
+				f.Item1.Add(new DbTypeValue(item.Item1, dbTypes[0]));
+				f.Item1.Add(new DbTypeValue(item.Item2, dbTypes[1]));
+				f.Item1.Add(new DbTypeValue(item.Item3, dbTypes[2]));
+				f.Item1.Add(new DbTypeValue(item.Item4, dbTypes[3]));
+			}
 		}, keys, val.Count());
-		public TSQL WhereArray<T>(string filter, T[] val) => Where(filter, new object[] { val });
+		public TSQL WhereArray<T>(string filter, IEnumerable<T> val, NpgsqlDbType? dbType = null) => dbType.HasValue ? Where(filter, new[] { new DbTypeValue(val, dbType) }) : Where(filter, new object[] { val });
 		public TSQL Where(string filter, params object[] val)
 		{
+
 			if (val.IsNullOrEmpty()) filter = TypeHelper.GetNullSql(filter, @"\{\d\}");
 			else
+			{
 				for (int i = 0; i < val.Length; i++)
 				{
 					var index = $"{{{i}}}";
-					if (filter.IndexOf(index, StringComparison.Ordinal) == -1) throw new ArgumentException("Where Argument Error");
+					if (filter.IndexOf(index, StringComparison.Ordinal) == -1) throw new ArgumentException("where 参数错误");
 					if (val[i] == null)
 						filter = TypeHelper.GetNullSql(filter, index);
 					else
@@ -98,14 +153,19 @@ namespace DBHelper
 						else
 						{
 							var paramsName = ParamsIndex;
-							AddParameter(paramsName, val);
+							if (val[i] is DbTypeValue)
+								AddParameter(paramsName, val[i] as DbTypeValue);
+							else
+								AddParameter(paramsName, val[i]);
 							filter = filter.Replace(index, "@" + paramsName);
 						}
 					}
 				}
+			}
 			Where($"{filter}");
 			return _this;
 		}
+
 		protected TSQL WhereTuple(Action<(List<object>, int)> action, string[] keys, int arrLength)
 		{
 			var parms = new List<object>();

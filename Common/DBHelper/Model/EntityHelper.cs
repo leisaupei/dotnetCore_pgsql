@@ -9,7 +9,7 @@ using System.Text;
 namespace DBHelper
 {
 	/// <summary>
-	/// Table attribute.
+	/// 数据库表特性
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Property | AttributeTargets.Class, Inherited = true)]
 	public class MappingAttribute : Attribute
@@ -20,7 +20,7 @@ namespace DBHelper
 	public class MappingHelper
 	{
 		/// <summary>
-		/// Table of current class.
+		/// 当前类的表
 		/// </summary>
 		/// <param name="t"></param>
 		/// <returns></returns>
@@ -42,14 +42,14 @@ namespace DBHelper
 	public class EntityHelper
 	{
 		/// <summary>
-		/// Do not output attribute
+		/// 不输出的特性
 		/// </summary>
 		/// <param name="item"></param>
 		/// <returns></returns>
-		public static bool InspectionAttribute(PropertyInfo item) => item.GetCustomAttribute(typeof(JsonPropertyAttribute)) != null;
+		public static bool ToBsonAttribute(PropertyInfo item) => item.GetCustomAttribute(typeof(JsonPropertyAttribute)) != null;
 
 		/// <summary>
-		/// Get all fields of this class.
+		/// 获取当前所有字段列表
 		/// </summary>
 		/// <param name="type"></param>
 		/// <param name="alias"></param>
@@ -65,7 +65,7 @@ namespace DBHelper
 			return list;
 		}
 		/// <summary>
-		/// Get string of all fields of current class.
+		/// 获取当前类字段的字符串
 		/// </summary>
 		/// <param name="type"></param>
 		/// <param name="alias"></param>
@@ -83,7 +83,7 @@ namespace DBHelper
 			PropertyInfo[] pi = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
 			for (int i = 0; i < pi.Length; i++)
 			{
-				if (InspectionAttribute(pi[i]))
+				if (ToBsonAttribute(pi[i]))
 					action?.Invoke(pi[i]);
 			}
 		}
