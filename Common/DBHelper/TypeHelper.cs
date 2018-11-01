@@ -30,7 +30,10 @@ namespace DBHelper
 			var notEqualsReg = new Regex(@"(!=|<>)\s*" + key);
 			if (notEqualsReg.IsMatch(sql))
 				return notEqualsReg.Replace(sql, " IS NOT NULL");
-			else return equalsReg.Replace(sql, " IS NULL");
+			else if (equalsReg.IsMatch(sql))
+				return equalsReg.Replace(sql, " IS NULL");
+			else
+				return sql;
 		}
 		public static string GetParamValue(object value)
 		{

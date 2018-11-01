@@ -36,7 +36,7 @@ namespace DBHelper
 			if (typeInfo.GetCustomAttribute(typeof(MappingAttribute)) is MappingAttribute mapping)
 				action?.Invoke(mapping);
 			else
-				throw new NotSupportedException("找不到EntityMappingAttribute特性, 请确认实体模型");
+				throw new NotSupportedException("找不到MappingAttribute特性, 请确认实体模型");
 		}
 	}
 	public class EntityHelper
@@ -59,9 +59,9 @@ namespace DBHelper
 			List<string> list = new List<string>();
 			alias = !string.IsNullOrEmpty(alias) ? alias + "." : "";
 			GetAllFields(type, (p) =>
-		   {
-			   list.Add(alias + p.Name.ToLower());
-		   });
+			{
+				list.Add(alias + p.Name.ToLower());
+			});
 			return list;
 		}
 		/// <summary>
@@ -75,7 +75,7 @@ namespace DBHelper
 			StringBuilder ret = new StringBuilder();
 			alias = !string.IsNullOrEmpty(alias) ? alias + "." : "";
 			GetAllFields(type, p => ret.Append(alias).Append(p.Name.ToLower()).Append(", "));
-			return ret.Remove(ret.Length - 2, 2).ToString();
+			return ret.ToString().TrimEnd(' ', ',');
 		}
 
 		public static void GetAllFields(Type type, Action<PropertyInfo> action)

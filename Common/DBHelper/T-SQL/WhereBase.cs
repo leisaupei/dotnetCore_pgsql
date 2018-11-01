@@ -51,41 +51,30 @@ namespace DBHelper
 		public TSQL WhereNotExsit(string sql) => Where($"NOT EXISTS ({sql})");
 		public TSQL WhereOr<T>(string filter, IEnumerable<T> val, NpgsqlDbType? dbType = null)
 		{
-			object _val = null;
+			object[] _val = null;
 			var typeT = typeof(T);
-			if (val.Count() == 0) return _this;
+			if (val.Count() == 0)
+				return _this;
 			else if (typeT == typeof(char))
-				_val = val.Select(a => new DbTypeValue(val, dbType));
+				_val = val.Select(a => new DbTypeValue(a, dbType)).ToArray<object>();
 			else if (typeT == typeof(object))
-			{
-				if (dbType.HasValue)
-					_val = val.Select(a => new DbTypeValue(val, dbType));
-				else
-					_val = val as object[];
-			}
+				_val = dbType.HasValue ? val.Select(a => new DbTypeValue(a, dbType)).ToArray<object>() : val as object[];
 			else if (typeT == typeof(DbTypeValue))
-				_val = val;
+				_val = val as object[];
 			else if (val.Count() == 1)
-				if (dbType.HasValue)
-					_val = new DbTypeValue(val.ElementAt(0), dbType);
-				else
-					_val = val.ElementAt(0);
+				_val = dbType.HasValue ? new object[] { new DbTypeValue(val.ElementAt(0), dbType) } : new object[] { val.ElementAt(0) };
 
 			string filters = filter;
-
 			if (_val == null)
 			{
-				for (int a = 0; a < val.Count(); a++)
+				for (int a = 1; a < val.Count(); a++)
 					filters = string.Concat(filters, " OR ", string.Format(filter, "{" + a + "}"));
-				filters = filters.Substring(4);
-				if (dbType.HasValue)
-					_val = val.Select(a => new DbTypeValue(a, dbType));
-				else
-					_val = val;
+				_val = dbType.HasValue ? val.Select(a => new DbTypeValue(a, dbType)).ToArray<object>() : val.OfType<object>().ToArray();
 			}
 			return Where(filters, _val);
 		}
 		public TSQL Where(bool isAdd, string filter, params object[] val) => isAdd ? Where(filter, val) : _this;
+		public TSQL Where(bool isAdd, Func<string> filter) => isAdd ? Where(filter.Invoke()) : _this;
 		public TSQL Where<T1, T2>(string[] keys, IEnumerable<(T1, T2)> val, NpgsqlDbType?[] dbTypes = null) => WhereTuple(f =>
 		{
 			var item = val.ElementAt(f.Item2 / keys.Length);
@@ -187,13 +176,13 @@ namespace DBHelper
 		}
 		private static void ThrowNullFieldException<T>(SelectBuilder<T> selectBuilder) where T : class, new()
 		{
-			Type type = typeof(T);
+			Type type = selectBuilder.GetType();
 			var fields = type.GetProperty("_fields", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(selectBuilder).ToString();
 			if (fields.IsNullOrEmpty()) throw new ArgumentNullException("_fields is null.");
 		}
 		private static void SetExistsField<T>(SelectBuilder<T> selectBuilder) where T : class, new()
 		{
-			Type type = typeof(TSQL);
+			Type type = selectBuilder.GetType();
 			type.GetProperty("_mainAlias", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(selectBuilder, "a1");
 			var fields = type.GetProperty("_fields", BindingFlags.NonPublic | BindingFlags.Instance);
 			var fieldStr = fields.GetValue(selectBuilder).ToString();

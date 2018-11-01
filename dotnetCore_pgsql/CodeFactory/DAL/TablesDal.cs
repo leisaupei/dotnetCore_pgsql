@@ -23,10 +23,11 @@ namespace CodeFactory.DAL
 		/// DAL路径
 		/// </summary>
 		readonly string _dalPath;
+
 		/// <summary>
 		/// schema 名称
 		/// </summary>
-		string _schemaName;
+		readonly string _schemaName;
 		/// <summary>
 		/// 表/视图
 		/// </summary>
@@ -35,10 +36,11 @@ namespace CodeFactory.DAL
 		/// 是不是空间表
 		/// </summary>
 		bool _isGeometryTable = false;
+
 		/// <summary>
 		/// 是否视图
 		/// </summary>
-		bool _isView = false;
+		readonly bool _isView = false;
 		/// <summary>
 		/// 字段列表
 		/// </summary>
@@ -55,10 +57,6 @@ namespace CodeFactory.DAL
 		/// 一对多外键(包含一对一)
 		/// </summary>
 		List<ConstraintOneToMore> consListOneToMore = new List<ConstraintOneToMore>();
-		/// <summary>
-		/// 多对多外键
-		/// </summary>
-		List<ConstraintMoreToMore> consListMoreToMore = new List<ConstraintMoreToMore>();
 		/// <summary>
 		/// Model后缀
 		/// </summary>
@@ -139,7 +137,7 @@ namespace CodeFactory.DAL
 				   else
 				   {
 					   string _notnull = "";
-					   if (_type != "string" && _type != "JToken" && _type != "byte[]" && !f.IsArray && _type != "object")
+					   if (!NotAddQues.Contains(_type) && !f.IsArray)
 					   {
 						   _notnull = f.IsNotNull ? "" : "?";
 					   }
@@ -150,6 +148,7 @@ namespace CodeFactory.DAL
 				   return f;
 			   });
 		}
+		static readonly string[] NotAddQues = new[] { "string", "JToken", "byte[]", "object", "IPAddress" };
 
 		/// <summary>
 		/// 获取约束

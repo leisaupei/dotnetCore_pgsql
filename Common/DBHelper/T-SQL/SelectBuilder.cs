@@ -29,13 +29,11 @@ namespace DBHelper
 		TSQL _this => this as TSQL;
 		public TSQL From(string table, string alias = "a")
 		{
+			_mainAlias = alias;
 			if (new Regex(@"^SELECT\s.+\sFROM\s").IsMatch(table))
-				_mainTable = $"({table}) {alias}";
+				_mainTable = $"({table})";
 			else
-			{
 				_mainTable = table;
-				_mainAlias = alias;
-			}
 			return _this;
 		}
 		public TSQL GroupBy(string s)

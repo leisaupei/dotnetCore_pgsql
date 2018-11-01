@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Caching.CSRedis" Version="3.0.16" />
     <PackageReference Include="Microsoft.AspNetCore.All" Version="2.0.8" />
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />
     <PackageReference Include="NLog.Extensions.Logging" Version="1.0.0-rtm-rc7" />
@@ -12,6 +13,5 @@
     <PackageReference Include="Npgsql" Version="4.0.2" />
     <PackageReference Include="Npgsql.Json.NET" Version="1.0.0" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="4.5.0-preview1-26216-02" />
-    <PackageReference Include="StackExchange.Redis.StrongName" Version="1.2.6" />
   </ItemGroup>
 </Project>

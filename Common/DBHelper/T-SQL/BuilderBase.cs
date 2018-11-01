@@ -125,32 +125,24 @@ namespace DBHelper
 		/// 添加参数
 		/// </summary>
 		/// <param name="field"></param>
-		/// <param name="value"></param>
+		/// <param name="val"></param>
 		/// <param name="size"></param>
-		/// <param name="dbType"></param>
 		/// <returns></returns>
-		protected TSQL AddParameter(string field, DbTypeValue val, int? size = null)
-		{
-			NpgsqlParameter p = new NpgsqlParameter(field, val.Value);
-			if (size != null) p.Size = size.Value;
-			if (val.DbType.HasValue) p.NpgsqlDbType = val.DbType.Value;
-			_params.Add(p);
-			return _this;
-		}
+		protected void AddParameter(string field, DbTypeValue val, int? size = null) => AddParameter(field, val.Value, size, val.DbType);
+
 		/// <summary>
 		/// 添加参数
 		/// </summary>
 		/// <param name="field"></param>
-		/// <param name="value"></param>
+		/// <param name="val"></param>
 		/// <param name="size"></param>
-		/// <returns></returns>
-		protected TSQL AddParameter(string field, object val, int? size = null, NpgsqlDbType? dbType = null)
+		/// <param name="dbType"></param>
+		protected void AddParameter(string field, object val, int? size = null, NpgsqlDbType? dbType = null)
 		{
 			NpgsqlParameter p = new NpgsqlParameter(field, val);
 			if (size != null) p.Size = size.Value;
 			if (dbType.HasValue) p.NpgsqlDbType = dbType.Value;
 			_params.Add(p);
-			return _this;
 		}
 
 		/// <summary>

@@ -25,11 +25,11 @@ namespace CodeFactory
 			Console.OutputEncoding = Encoding.UTF8;
 			GenerateModel model = new GenerateModel();
 			var strings = args.Split(';');
-			if (strings.Length != 8) throw new Exception("Generate string is error");
+			if (strings.Length != 7) throw new Exception("Generate string is error");
 			StringBuilder connection = new StringBuilder();
 			foreach (var item in strings)
 			{
-				//host=localhost;port=5432;user=postgres;pwd=tanweijie;db=postgres;maxpool=50;name=test;path=d:\workspace
+				//host=localhost;port=5432;user=postgres;pwd=tanweijie;db=postgres;name=test;path=d:\workspace
 				var sp = item.Split('=');
 				var left = sp[0];
 				var right = sp[1];

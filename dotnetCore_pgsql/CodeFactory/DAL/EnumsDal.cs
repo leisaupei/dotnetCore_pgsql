@@ -43,7 +43,6 @@ namespace CodeFactory.DAL
 			var listComposite = GenerateComposites();
 
 			GenerateMapping(listEnum, listComposite);
-			GenerateRedisHepler(); //Create RedisHelper.cs
 			GenerateCsproj();
 		}
 		/// <summary>
@@ -222,44 +221,6 @@ namespace CodeFactory.DAL
 				writer.WriteLine("</Project>");
 			}
 		}
-		/// <summary>
-		/// 生成RedisHelper.cs(存在不生成)
-		/// </summary>
-		public static void GenerateRedisHepler()
-		{
-			string fileName = Path.Combine(_rootPath, "RedisHelper.cs");
-			if (File.Exists(fileName)) return;
-			using (StreamWriter writer = new StreamWriter(File.Create(fileName), Encoding.UTF8))
-			{
-				writer.WriteLine("using System;");
-				writer.WriteLine("using System.Collections.Generic;");
-				writer.WriteLine("using Microsoft.Extensions.Configuration;");
-				writer.WriteLine("using StackExchange.Redis;");
-				writer.WriteLine("");
-				writer.WriteLine($"namespace {_projectName}.db");
-				writer.WriteLine("{");
-				writer.WriteLine("\tpublic class RedisHelper");
-				writer.WriteLine("\t{");
-				writer.WriteLine("\t\tpublic static IConfiguration Configuration { get; internal set; }");
-				writer.WriteLine("\t\tpublic static void InitializeConfiguration(IConfiguration cfg)");
-				writer.WriteLine("\t\t{");
-				//note: 
-				writer.WriteLine("/*");
-				writer.WriteLine("appsetting.json里面添加");
-				writer.WriteLine("\"ConnectionStrings\": {");
-				writer.WriteLine("\t\"redis\": \"127.0.0.1:6379,defaultDatabase=13,name = dev,abortConnect=false,password=123456\",");
-				writer.WriteLine("}");
-				writer.WriteLine("*/");
 
-				writer.WriteLine("\t\t\tConfiguration = cfg;");
-				writer.WriteLine("\t\t\tMultiplexer = ConnectionMultiplexer.Connect(cfg[\"ConnectionStrings:redis\"]);");
-				writer.WriteLine("\t\t}");
-				writer.WriteLine("\t\tpublic static IDatabase DbClient => Multiplexer.GetDatabase();");
-				writer.WriteLine("\t\tpublic static ConnectionMultiplexer Multiplexer { get; internal set; }");
-				writer.WriteLine("\t\tpublic static IDatabase GetDatabase(int db = -1) => Multiplexer.GetDatabase(db);");
-				writer.WriteLine("\t}");
-				writer.WriteLine("}");
-			};
-		}
 	}
 }
