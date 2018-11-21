@@ -184,7 +184,7 @@ namespace DBHelper
 		public List<T> ToList<T>() => _isMaster ?
 			PgSqlHelper.ExecuteDataReaderList<T>(_cmdStr, _params.ToArray()) :
 			PgSqlHelper.ExecuteDataReaderListSlave<T>(_cmdStr, _params.ToArray());
-		public List<T> ToList<T>(Func<T, T> filter = null) => _type == DatabaseType.Master ?
+		public List<T> ToList<T>(Func<T, T> filter = null) => _isMaster ?
 			PgSqlHelper.ExecuteDataReaderList(_cmdStr, filter, _params.ToArray()) :
 			PgSqlHelper.ExecuteDataReaderListSlave(_cmdStr, filter, _params.ToArray());
 		/// <summary>
