@@ -117,10 +117,14 @@ namespace DBHelper
 		/// <returns></returns>
 		public TSQL Data(DatabaseType type)
 		{
-			if (type == DatabaseType.Slave && PgSqlHelper.SlaveExecute != null)
+			if (type == DatabaseType.Slave && PgSqlHelper.HasSlave)
 				_type = type;
+			else if (type == DatabaseType.Master)
+				_type = DatabaseType.Master;
 			return _this;
 		}
+		public TSQL BySlave() => Data(DatabaseType.Slave);
+		public TSQL ByMaster() => Data(DatabaseType.Master);
 		/// <summary>
 		/// 添加参数
 		/// </summary>
@@ -128,7 +132,7 @@ namespace DBHelper
 		/// <param name="val"></param>
 		/// <param name="size"></param>
 		/// <returns></returns>
-		protected void AddParameter(string field, DbTypeValue val, int? size = null) => AddParameter(field, val.Value, size, val.DbType);
+		protected TSQL AddParameter(string field, DbTypeValue val, int? size = null) => AddParameter(field, val.Value, size, val.DbType);
 
 		/// <summary>
 		/// 添加参数
@@ -137,14 +141,34 @@ namespace DBHelper
 		/// <param name="val"></param>
 		/// <param name="size"></param>
 		/// <param name="dbType"></param>
-		protected void AddParameter(string field, object val, int? size = null, NpgsqlDbType? dbType = null)
+		protected TSQL AddParameter(string field, object val, int? size = null, NpgsqlDbType? dbType = null)
 		{
 			NpgsqlParameter p = new NpgsqlParameter(field, val);
 			if (size != null) p.Size = size.Value;
 			if (dbType.HasValue) p.NpgsqlDbType = dbType.Value;
 			_params.Add(p);
+			return _this;
 		}
-
+		/// <summary>
+		/// 添加参数
+		/// </summary>
+		/// <param name="p"></param>
+		/// <returns></returns>
+		public TSQL AddParameter(NpgsqlParameter p)
+		{
+			_params.Add(p);
+			return _this;
+		}
+		/// <summary>
+		/// 添加参数
+		/// </summary>
+		/// <param name="ps"></param>
+		/// <returns></returns>
+		public TSQL AddParameter(IEnumerable<NpgsqlParameter> ps)
+		{
+			_params.AddRange(ps);
+			return _this;
+		}
 		/// <summary>
 		/// 返回第一个元素
 		/// </summary>

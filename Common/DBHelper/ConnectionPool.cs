@@ -41,19 +41,20 @@ namespace DBHelper
 		/// <summary>
 		/// 等待响应队列
 		/// </summary>
-		readonly Queue<ManualResetEvent> _wait;
+		public readonly Queue<ManualResetEvent> Wait;
 		/// <summary>
 		/// 初始化连接池大小
 		/// </summary>
 		/// <param name="poolSize"></param>
-		public ConnectionPool(int poolSize, string connectionString)
+		public ConnectionPool(string connectionString)
 		{
 			_connectionString = connectionString;
+			var poolSize = GetConnectionPoolSize(connectionString);
 			if (poolSize > 0) _poolSize = poolSize;
 			else _poolSize = DEFAULT_POOL_SIZE;
 			_poolFree = new Queue<NpgsqlConnection>(_poolSize);
 			_poolAll = new List<NpgsqlConnection>(_poolSize);
-			_wait = new Queue<ManualResetEvent>(_poolSize);
+			Wait = new Queue<ManualResetEvent>(_poolSize);
 		}
 		/// <summary>
 		/// 获取数据库连接字符串Maximum Pool Size的值
@@ -81,8 +82,8 @@ namespace DBHelper
 				lock (_lockGetConn)
 					_poolFree.Enqueue(conn); //放回连接池
 				lock (_lock)
-					if (_wait.Count > 0)
-						_wait.Dequeue()?.Set();
+					if (Wait.Count > 0)
+						Wait.Dequeue()?.Set();
 			}
 		}
 		/// <summary>
@@ -104,12 +105,9 @@ namespace DBHelper
 				{
 					var wait = new ManualResetEvent(false);
 					lock (_lock)
-						_wait.Enqueue(wait);
+						Wait.Enqueue(wait);
 					wait.WaitOne(5000); //无通知等待5秒
-					lock (_lockGetConn)
-						canGet = _poolFree.TryDequeue(out conn);
-					if (!canGet)
-						return GetConnection();
+					return GetConnection();
 				}
 			}
 			if (conn != null) OpenConnection(conn);

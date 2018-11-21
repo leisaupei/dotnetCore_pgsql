@@ -22,7 +22,7 @@ namespace DBHelper
 		/// <summary>
 		/// 连接池
 		/// </summary>
-		ConnectionPool _pool;
+		public ConnectionPool Pool;
 		/// <summary>
 		/// constructer
 		/// </summary>
@@ -32,8 +32,7 @@ namespace DBHelper
 		protected PgExecute(string connectionString, ILogger logger)
 		{
 			_logger = logger;
-			var poolSize = ConnectionPool.GetConnectionPoolSize(connectionString);
-			_pool = new ConnectionPool(poolSize, connectionString);
+			Pool = new ConnectionPool(connectionString);
 		}
 
 		NpgsqlTransaction CurrentTransaction
@@ -51,10 +50,10 @@ namespace DBHelper
 		/// </summary>
 		protected void PrepareCommand(NpgsqlCommand cmd, CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
 		{
-			if (_pool == null) throw new ArgumentException("Connection pool is null");
+			if (Pool == null) throw new ArgumentException("Connection pool is null");
 			if (cmdText.IsNullOrEmpty() || cmd == null) throw new ArgumentNullException("Command is error");
 			if (CurrentTransaction == null)
-				cmd.Connection = _pool.GetConnection();
+				cmd.Connection = Pool.GetConnection();
 			else
 			{
 				cmd.Connection = CurrentTransaction.Connection;
@@ -171,7 +170,7 @@ namespace DBHelper
 					cmd.Parameters.Clear();
 				cmd.Dispose();
 			}
-			_pool.ReleaseConnection(connection);
+			Pool.ReleaseConnection(connection);
 		}
 		#region 事务
 		/// <summary>
@@ -182,7 +181,7 @@ namespace DBHelper
 			var tid = Thread.CurrentThread.ManagedThreadId;
 			if (CurrentTransaction != null || _transPool.ContainsKey(tid))
 				CommitTransaction();
-			var tran = _pool.GetConnection().BeginTransaction();
+			var tran = Pool.GetConnection().BeginTransaction();
 			lock (_lockTrans)
 				_transPool.Add(tid, tran);
 		}
@@ -209,7 +208,7 @@ namespace DBHelper
 			var conn = tran.Connection;
 			action?.Invoke(tran);
 			tran.Dispose();
-			_pool.ReleaseConnection(conn);
+			Pool.ReleaseConnection(conn);
 		}
 		#endregion
 
