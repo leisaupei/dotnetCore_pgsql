@@ -1,12 +1,12 @@
-﻿using System;
+﻿using CodeFactory.DAL;
+using DBHelper;
+using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
-using DBHelper;
-using System.Data;
 using System.Text;
-using CodeFactory.DAL;
+using System.Threading.Tasks;
 
 namespace CodeFactory
 {
@@ -25,7 +25,6 @@ namespace CodeFactory
 			Console.OutputEncoding = Encoding.UTF8;
 			GenerateModel model = new GenerateModel();
 			var strings = args.Split(';');
-			if (strings.Length != 7) throw new Exception("Generate string is error");
 			StringBuilder connection = new StringBuilder();
 			foreach (var item in strings)
 			{
@@ -43,11 +42,12 @@ namespace CodeFactory
 					case "maxpool": connection.Append($"maximum pool size={right};pooling=true;"); break;
 					case "name": model.ProjectName = right; break;
 					case "path": model.OutputPath = right; break;
+					case "type": model.TypeName = right.ToUpperPascal(); break;
 				}
 			}
 			model.ConnectionString = connection.ToString();
 			PgSqlHelper.InitDBConnection(model.ConnectionString, null);
-			Build(model.OutputPath, model.ProjectName);
+			Build(model);
 			Console.WriteLine("Done...");
 			Console.ReadLine();
 		}
@@ -56,12 +56,13 @@ namespace CodeFactory
 		/// </summary>
 		/// <param name="outputDir"></param>
 		/// <param name="projectName"></param>e
-		public static void Build(string outputDir, string projectName)
+		public static void Build(GenerateModel buildModel)
 		{
-			if (string.IsNullOrEmpty(outputDir) || string.IsNullOrEmpty(projectName))
+			if (string.IsNullOrEmpty(buildModel.OutputPath) || string.IsNullOrEmpty(buildModel.ProjectName))
 				throw new ArgumentException("outputdir 或 projectname ", "不能为空");
-			OutputDir = outputDir;
-			ProjectName = projectName;
+
+			OutputDir = buildModel.OutputPath;
+			ProjectName = buildModel.ProjectName;
 			CreateDir();
 			CreateCsproj();
 			CreateSln();
@@ -72,7 +73,7 @@ namespace CodeFactory
 				List<TableViewModel> tableList = GetTables(schemaName);
 				foreach (var item in tableList)
 				{
-					TablesDal td = new TablesDal(ProjectName, ModelPath, DalPath, schemaName, item);
+					TablesDal td = new TablesDal(ProjectName, ModelPath, DalPath, schemaName, item, buildModel.TypeName);
 					td.ModelGenerator();
 				}
 			}

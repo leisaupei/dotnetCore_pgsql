@@ -311,7 +311,7 @@ namespace CodeFactory
 			if (isTableName)
 				return schemaName.ToLower() == "public" ? tableName.ToUpperPascal() : schemaName.ToLower() + "." + tableName;
 			tableName = ExceptUnderlineToUpper(tableName);
-			if (isView == true)
+			if (isView)
 				tableName += "View";
 			return schemaName.ToLower() == "public" ? tableName.ToUpperPascal() : schemaName.ToUpperPascal() + tableName;
 		}

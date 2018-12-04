@@ -1,13 +1,17 @@
-﻿using System;
+﻿using NpgsqlTypes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using NpgsqlTypes;
 
 namespace CodeFactory
 {
 	public class GenerateModel
 	{
+		/// <summary>
+		/// 默认主库名称
+		/// </summary>
+		public const string MASTER_DATABASE_TYPE_NAME = "Master";
 		/// <summary>
 		/// 数据库连接字符串
 		/// </summary>
@@ -21,8 +25,9 @@ namespace CodeFactory
 		/// </summary>
 		public string OutputPath { get; set; }
 		/// <summary>
-		/// 数据库
+		/// 数据库(多库字段)
 		/// </summary>
+		public string TypeName { get; set; } = MASTER_DATABASE_TYPE_NAME;
 	}
 
 	public class TableViewModel

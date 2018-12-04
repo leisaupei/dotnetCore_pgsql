@@ -60,11 +60,19 @@ namespace CodeFactory.DAL
 		/// <summary>
 		/// Model后缀
 		/// </summary>
-		readonly string _modelSuffix = "Model";
+		const string _modelSuffix = "Model";
 		/// <summary>
 		/// 外键前缀
 		/// </summary>
-		readonly string _foreignKeyPrefix = "Get";
+		const string _foreignKeyPrefix = "Get";
+		/// <summary>
+		/// 生成项目多库
+		/// </summary>
+		readonly string _dataBaseTypeName;
+		/// <summary>
+		/// 多库枚举 *需要在目标项目添加枚举以及创建该库实例
+		/// </summary>
+		string DataSelectString => _dataBaseTypeName == GenerateModel.MASTER_DATABASE_TYPE_NAME ? "" : $".Data(DatabaseType.{_dataBaseTypeName})";
 		/// <summary>
 		/// Model名称
 		/// </summary>
@@ -72,11 +80,11 @@ namespace CodeFactory.DAL
 		/// <summary>
 		/// DAL名称
 		/// </summary>
-		string DalClassName => $"{Types.DeletePublic(_schemaName, _table.Name)}";
+		string DalClassName => Types.DeletePublic(_schemaName, _table.Name, isView: _isView);
 		/// <summary>
 		/// 表名
 		/// </summary>
-		string TableName => $"{Types.DeletePublic(_schemaName, _table.Name, true, _isView).ToLowerPascal()}";
+		string TableName => Types.DeletePublic(_schemaName, _table.Name, true, _isView).ToLowerPascal();
 		/// <summary>
 		/// 构建函数
 		/// </summary>
@@ -85,8 +93,9 @@ namespace CodeFactory.DAL
 		/// <param name="dalPath"></param>
 		/// <param name="schemaName"></param>
 		/// <param name="table"></param>
-		public TablesDal(string projectName, string modelPath, string dalPath, string schemaName, TableViewModel table)
+		public TablesDal(string projectName, string modelPath, string dalPath, string schemaName, TableViewModel table, string type)
 		{
+			_dataBaseTypeName = type;
 			_projectName = projectName;
 			_modelPath = modelPath;
 			_dalPath = dalPath;
@@ -303,6 +312,7 @@ namespace CodeFactory.DAL
 					if (pkList.Count > 0)
 						writer.WriteLine("\t\tpublic {0}.{0}UpdateBuilder Update => DAL.{0}.Update(this);", DalClassName);
 					writer.WriteLine();
+					writer.WriteLine("\t\tpublic int Delete() => DAL.{0}.Delete(this);", DalClassName);
 					writer.WriteLine("\t\tpublic int Commit() => DAL.{0}.Commit(this);", DalClassName);
 					writer.WriteLine("\t\tpublic {0} Insert() => DAL.{1}.Insert(this);", ModelClassName, DalClassName);
 					writer.WriteLine("\t\t#endregion");
@@ -417,15 +427,15 @@ namespace CodeFactory.DAL
 				writer.WriteLine($"\t\tconst string _field = \"{sb_query.ToString()}\";");
 				writer.WriteLine($"\t\tpublic {DalClassName}() => _fields = _field;");
 			}
-			writer.WriteLine("\t\tpublic static {0} Select => new {0}();", DalClassName);
-			writer.WriteLine("\t\tpublic static {0} SelectDiy(string fields) => new {0} {{ _fields = fields }};", DalClassName);
-			writer.WriteLine("\t\tpublic static {0} SelectDiy(string fields, string alias) => new {0} {{ _fields = fields, _mainAlias = alias }};", DalClassName);
+			writer.WriteLine("\t\tpublic static {0} Select => new {0}(){1};", DalClassName, DataSelectString);
+			writer.WriteLine("\t\tpublic static {0} SelectDiy(string fields) => new {0} {{ _fields = fields }}{1};", DalClassName, DataSelectString);
+			writer.WriteLine("\t\tpublic static {0} SelectDiy(string fields, string alias) => new {0} {{ _fields = fields, _mainAlias = alias }}{1};", DalClassName, DataSelectString);
 			if (_table.Type == "table")
 			{
-				writer.WriteLine("\t\tpublic static {0}UpdateBuilder UpdateDiy => new {0}UpdateBuilder();", DalClassName);
-				writer.WriteLine($"\t\tpublic static DeleteBuilder DeleteDiy => new DeleteBuilder(\"{TableName}\");");
+				writer.WriteLine("\t\tpublic static {0}UpdateBuilder UpdateDiy => new {0}UpdateBuilder(){1};", DalClassName, DataSelectString);
+				writer.WriteLine("\t\tpublic static DeleteBuilder DeleteDiy => new DeleteBuilder(\"{0}\"){1};", TableName, DataSelectString);
 
-				writer.WriteLine($"\t\tpublic static InsertBuilder InsertDiy => new InsertBuilder(\"{TableName}\"{(_isGeometryTable ? ", _field" : "")});");
+				writer.WriteLine("\t\tpublic static InsertBuilder InsertDiy => new InsertBuilder(\"{0}\"{1}){2};", TableName, _isGeometryTable ? ", _field" : "", DataSelectString);
 			}
 		}
 

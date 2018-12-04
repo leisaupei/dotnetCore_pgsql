@@ -44,10 +44,16 @@ namespace DBHelper
 		public object Value { get; set; }
 
 	}
+	/// <summary>
+	/// 并联
+	/// </summary>
 	public enum UnionEnum
 	{
 		INNER_JOIN = 1, LEFT_JOIN, RIGHT_JOIN, LEFT_OUTER_JOIN, RIGHT_OUTER_JOIN
 	}
+	/// <summary>
+	/// 数据库枚举名称 用于查询选库
+	/// </summary>
 	public enum DatabaseType
 	{
 		Master = 1, Slave

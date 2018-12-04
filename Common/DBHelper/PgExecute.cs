@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using Npgsql;
+using System;
 using System.Collections.Generic;
 using System.Data;
-using Npgsql;
-using Microsoft.Extensions.Logging;
-using System.Threading;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace DBHelper
 {
@@ -75,7 +75,7 @@ namespace DBHelper
 		/// <summary>
 		/// 返回一行数据
 		/// </summary>
-		public object ExecuteScalar(CommandType cmdType, string cmdText, params NpgsqlParameter[] cmdParams)
+		public object ExecuteScalar(CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
 		{
 			object ret = null;
 			NpgsqlCommand cmd = new NpgsqlCommand();
@@ -99,7 +99,7 @@ namespace DBHelper
 		/// <summary>
 		/// 执行sql语句
 		/// </summary>
-		public int ExecuteNonQuery(CommandType cmdType, string cmdText, params NpgsqlParameter[] cmdParams)
+		public int ExecuteNonQuery(CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
 		{
 			int ret = 0;
 			NpgsqlCommand cmd = new NpgsqlCommand();
@@ -123,7 +123,7 @@ namespace DBHelper
 		/// <summary>
 		/// 重构读取数据库数据
 		/// </summary>
-		public void ExecuteDataReader(Action<NpgsqlDataReader> action, CommandType cmdType, string cmdText, params NpgsqlParameter[] cmdParams)
+		public void ExecuteDataReader(Action<NpgsqlDataReader> action, CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
 		{
 			NpgsqlCommand cmd = new NpgsqlCommand(); NpgsqlDataReader reader = null;
 			try
