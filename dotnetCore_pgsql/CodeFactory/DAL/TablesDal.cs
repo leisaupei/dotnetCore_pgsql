@@ -12,6 +12,18 @@ namespace CodeFactory.DAL
 	public class TablesDal
 	{
 		/// <summary>
+		/// Model后缀
+		/// </summary>
+		const string ModelSuffix = "Model";
+		/// <summary>
+		/// 外键前缀
+		/// </summary>
+		const string ForeignKeyPrefix = "Get";
+		/// <summary>
+		/// 不生成'?'的类型
+		/// </summary>
+		static readonly string[] NotAddQues = new[] { "string", "JToken", "byte[]", "object", "IPAddress" };
+		/// <summary>
 		/// 项目名称
 		/// </summary>
 		readonly string _projectName;
@@ -23,11 +35,14 @@ namespace CodeFactory.DAL
 		/// DAL路径
 		/// </summary>
 		readonly string _dalPath;
-
 		/// <summary>
 		/// schema 名称
 		/// </summary>
 		readonly string _schemaName;
+		/// <summary>
+		/// 生成项目多库
+		/// </summary>
+		readonly string _dataBaseTypeName;
 		/// <summary>
 		/// 表/视图
 		/// </summary>
@@ -36,7 +51,6 @@ namespace CodeFactory.DAL
 		/// 是不是空间表
 		/// </summary>
 		bool _isGeometryTable = false;
-
 		/// <summary>
 		/// 是否视图
 		/// </summary>
@@ -58,17 +72,9 @@ namespace CodeFactory.DAL
 		/// </summary>
 		List<ConstraintOneToMore> consListOneToMore = new List<ConstraintOneToMore>();
 		/// <summary>
-		/// Model后缀
+		/// 多库前缀
 		/// </summary>
-		const string _modelSuffix = "Model";
-		/// <summary>
-		/// 外键前缀
-		/// </summary>
-		const string _foreignKeyPrefix = "Get";
-		/// <summary>
-		/// 生成项目多库
-		/// </summary>
-		readonly string _dataBaseTypeName;
+		string ModelDalSuffix => _dataBaseTypeName == GenerateModel.MASTER_DATABASE_TYPE_NAME ? "" : _dataBaseTypeName;
 		/// <summary>
 		/// 多库枚举 *需要在目标项目添加枚举以及创建该库实例
 		/// </summary>
@@ -76,11 +82,11 @@ namespace CodeFactory.DAL
 		/// <summary>
 		/// Model名称
 		/// </summary>
-		string ModelClassName => DalClassName + _modelSuffix;
+		string ModelClassName => DalClassName + ModelSuffix;
 		/// <summary>
 		/// DAL名称
 		/// </summary>
-		string DalClassName => Types.DeletePublic(_schemaName, _table.Name, isView: _isView);
+		string DalClassName => ModelDalSuffix + Types.DeletePublic(_schemaName, _table.Name, isView: _isView);
 		/// <summary>
 		/// 表名
 		/// </summary>
@@ -157,7 +163,6 @@ namespace CodeFactory.DAL
 				   return f;
 			   });
 		}
-		static readonly string[] NotAddQues = new[] { "string", "JToken", "byte[]", "object", "IPAddress" };
 
 		/// <summary>
 		/// 获取约束
@@ -267,43 +272,35 @@ namespace CodeFactory.DAL
 				{
 					Hashtable ht = new Hashtable();
 					writer.WriteLine("\t\t#region Foreign Key");
-					void WriteForeignKey(ConstraintMoreToOne item)
+					void WriteForeignKey(string nspname, string tableName, string conname)
 					{
-						string tablename = Types.DeletePublic(item.Nspname, item.TableName);
-						string propertyName = $"{_foreignKeyPrefix}{tablename}";
+						var tableNameWithoutSuffix = Types.DeletePublic(nspname, tableName);
+						string nspTableName = ModelDalSuffix + tableNameWithoutSuffix;
+						string propertyName = $"{ForeignKeyPrefix}{tableNameWithoutSuffix}";
 						if (ht.ContainsKey(propertyName))
-							propertyName = propertyName + "By" + Types.ExceptUnderlineToUpper(item.Conname);
+							propertyName = propertyName + "By" + Types.ExceptUnderlineToUpper(conname);
 						string tmp_var = $"_{propertyName.ToLowerPascal()}";
 						if (ht.Keys.Count != 0)
 							writer.WriteLine();
-						writer.WriteLine("\t\tprivate {0}{1} {2} = null;", tablename, _modelSuffix, tmp_var);
-						writer.WriteLine("\t\tpublic {0}{1} {2} => {3} ?? ({3} = {0}.GetItem({4}));", tablename, _modelSuffix, propertyName, tmp_var, DotValueHelper(item.Conname, fieldList));
-						ht.Add(propertyName, "");
+						writer.WriteLine("\t\tprivate {0}{1} {2} = null;", nspTableName, ModelSuffix, tmp_var);
+						writer.WriteLine("\t\tpublic {0}{1} {2} => {3} ?? ({3} = {0}.GetItem({4}));", nspTableName, ModelSuffix, propertyName, tmp_var, DotValueHelper(conname, fieldList));
+						if (propertyName.IsNotNullOrEmpty())
+							ht.Add(propertyName, "");
 					}
 					foreach (var item in consListMoreToOne.Where(f => $"{f.TableName}_{f.RefColumn}" == f.Conname))
-						WriteForeignKey(item);
+						WriteForeignKey(item.Nspname, item.TableName, item.Conname);
 
 					consListMoreToOne.RemoveAll(f => $"{f.TableName}_{f.RefColumn}" == f.Conname);
 					foreach (var item in consListMoreToOne)
-						WriteForeignKey(item);
+						WriteForeignKey(item.Nspname, item.TableName, item.Conname);
 
 					foreach (var item in consListOneToMore)
 					{
-						string tablename = Types.DeletePublic(item.Nspname, item.TableName);
-						string propertyName = string.Empty;
 						if (item.IsOneToOne)
 						{
-							propertyName = $"{_foreignKeyPrefix}{tablename}";
-							if (ht.Contains(propertyName))
-								propertyName = propertyName + "By" + Types.ExceptUnderlineToUpper(item.Conname);
-							string tmp_var = $"_{propertyName.ToLowerPascal()}";
-							if (ht.Keys.Count != 0)
-								writer.WriteLine();
-							writer.WriteLine("\t\tprivate {0}{1} {2} = null;", tablename, _modelSuffix, tmp_var);
-							writer.WriteLine("\t\tpublic {0}{1} {2} => {3} ?? ({3} = {0}.GetItem({4}));", tablename, _modelSuffix, propertyName, tmp_var, DotValueHelper(item.Conname, fieldList));
+							WriteForeignKey(item.Nspname, item.TableName, item.Conname);
 						}
-						if (propertyName.IsNotNullOrEmpty())
-							ht.Add(propertyName, "");
+
 					}
 
 					writer.WriteLine("\t\t#endregion");
@@ -472,12 +469,12 @@ namespace CodeFactory.DAL
 				writer.WriteLine($"\t\tpublic static int Delete({string.Join(", ", d_key)}) => Delete(new[] {{ {where} }});");
 				if (pkList.Count == 1)
 				{
-					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<{DalClassName}{_modelSuffix}> models) => Delete(models.Select(a => a.{s_key[0].ToUpperPascal()}));");
+					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<{DalClassName}{ModelSuffix}> models) => Delete(models.Select(a => a.{s_key[0].ToUpperPascal()}));");
 					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<{types}> {s_key[0]}) => DeleteDiy.WhereOr(\"{s_key[0]} = {{0}}\", {s_key[0]}{fieldList.FirstOrDefault(f => f.Field == pkList[0].Field).PgDbTypeString}).Commit();");
 				}
 				else if (pkList.Count > 1)
 				{
-					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<{DalClassName}{_modelSuffix}> models) =>  Delete(models.Select(a => ({s_key.Select(a => $"a.{a.ToUpperPascal()}").Join(", ")})));");
+					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<{DalClassName}{ModelSuffix}> models) =>  Delete(models.Select(a => ({s_key.Select(a => $"a.{a.ToUpperPascal()}").Join(", ")})));");
 					writer.WriteLine($"\t\t/// <summary>");
 					writer.WriteLine($"\t\t/// ({s_key.Select(a => $"{a}").Join(", ")})");
 					writer.WriteLine($"\t\t/// </summary>");
@@ -643,12 +640,12 @@ namespace CodeFactory.DAL
 				writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder Update({string.Join(",", d_key)}) => Update(new[] {{ {where2} }});");
 				if (pkList.Count == 1)
 				{
-					writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder Update(IEnumerable<{DalClassName}{_modelSuffix}> models) => Update(models.Select(a => a.{s_key[0].ToUpperPascal()}));");
+					writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder Update(IEnumerable<{DalClassName}{ModelSuffix}> models) => Update(models.Select(a => a.{s_key[0].ToUpperPascal()}));");
 					writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder Update(IEnumerable<{types}> {s_key[0]}s) => UpdateDiy.WhereOr(\"{s_key[0]} = {{0}}\", {s_key[0]}s{fieldList.FirstOrDefault(f => f.Field == pkList[0].Field).PgDbTypeString});");
 				}
 				else if (pkList.Count > 1)
 				{
-					writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder Update(IEnumerable<{DalClassName}{_modelSuffix}> models) => Update(models.Select(a => ({s_key.Select(a => $"a.{a.ToUpperPascal()}").Join(", ")})));");
+					writer.WriteLine($"\t\tpublic static {DalClassName}UpdateBuilder Update(IEnumerable<{DalClassName}{ModelSuffix}> models) => Update(models.Select(a => ({s_key.Select(a => $"a.{a.ToUpperPascal()}").Join(", ")})));");
 					writer.WriteLine($"\t\t/// <summary>");
 					writer.WriteLine($"\t\t/// ({s_key.Select(a => $"{a}").Join(", ")})");
 					writer.WriteLine($"\t\t/// </summary>");
@@ -721,6 +718,7 @@ namespace CodeFactory.DAL
 				writer.WriteLine("\t\t/// </summary>");
 			}
 		}
+
 		/// <summary>
 		/// optional字段加上.Value
 		/// </summary>

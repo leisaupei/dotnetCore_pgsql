@@ -189,6 +189,12 @@ namespace DBHelper
 		protected T ToOne<T>() => PgSqlHelper.ExecuteDataReaderModel<T>(_cmdStr, _params.ToArray(), _type);
 		protected T ToOne<T>(Func<T, T> filter = null) => PgSqlHelper.ExecuteDataReaderModel(_cmdStr, filter, _params.ToArray(), _type);
 		/// <summary>
+		/// 返回修改行数
+		/// </summary>
+		/// <param name="cmdText"></param>
+		/// <returns></returns>
+		protected int ToRows() => PgSqlHelper.ExecuteNonQuery(CommandType.Text, _cmdStr, _params.ToArray(), _type);
+		/// <summary>
 		/// Override ToString()
 		/// </summary>
 		/// <returns></returns>

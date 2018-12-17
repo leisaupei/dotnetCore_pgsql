@@ -14,13 +14,16 @@ namespace DBHelper
 			NpgsqlDbType[] isString = { NpgsqlDbType.Char, NpgsqlDbType.Varchar, NpgsqlDbType.Text };
 			foreach (var p in nps)
 			{
-				var value = GetParamValue(p);
+				var value = GetParamValue(p.Value);
 				var key = string.Concat("@", p.ParameterName);
 				if (value == null)
 					sql = GetNullSql(sql, key);
 				else if (Regex.IsMatch(value, @"(^(\-|\+)?\d+(\.\d+)?$)|(^SELECT\s.+\sFROM\s)|(true)|(false)",
 					RegexOptions.IgnoreCase) && !isString.Contains(p.NpgsqlDbType)) sql = sql.Replace(key, value);
-				else sql = sql.Replace(key, $"'{value}'");
+				else if (value.Contains("array"))
+					sql = sql.Replace(key, value);
+				else
+					sql = sql.Replace(key, $"'{value}'");
 			}
 			return sql.Replace("\r", " ").Replace("\n", " ");
 		}
@@ -38,10 +41,10 @@ namespace DBHelper
 		public static string GetParamValue(object value)
 		{
 			Type type = value.GetType();
-			if (type.BaseType.IsArray)
+			if (type.IsArray)
 			{
-				var arrStr = (value as object[]).Select(a => a.ToEmptyOrString());
-				return $"{{{string.Join(",", arrStr)}}}";
+				var arrStr = (value as object[]).Select(a => $"'{a.ToEmptyOrString()}'");
+				return $"array[{string.Join(",", arrStr)}]";
 			}
 			return value?.ToString();
 		}
