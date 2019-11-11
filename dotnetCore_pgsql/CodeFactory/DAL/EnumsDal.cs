@@ -53,18 +53,6 @@ namespace CodeFactory.DAL
 
 		private static List<EnumTypeInfo> GenerateEnum()
 		{
-			//string sqlText = @"
-			//	SELECT 
-			//	    A.oid,
-			//	    A.typname,
-			//	    b.nspname 
-			//	FROM
-			//	    pg_type A INNER JOIN pg_namespace b ON A.typnamespace = b.oid 
-			//	WHERE
-			//	    A.typtype = 'e' 
-			//	ORDER BY
-			//	    oid ASC
-			//";
 			var list = SQL.Select("a.oid, a.typname, b.nspname").From("pg_type", "a").InnerJoin("pg_namespace", "b", "a.typnamespace = b.oid").Where("a.typtype='e'").OrderBy("oid asc").ToList<EnumTypeInfo>();
 			string fileName = Path.Combine(_modelPath, $"_{TypeName}Enums.cs");
 			using (StreamWriter writer = new StreamWriter(File.Create(fileName), Encoding.UTF8))
@@ -75,8 +63,6 @@ namespace CodeFactory.DAL
 				writer.WriteLine("{");
 				foreach (var item in list)
 				{
-					//string sql = $"select enumlabel from pg_enum WHERE enumtypid = {item.Oid} ORDER BY oid asc";
-					//var enums = PgSqlHelper.ExecuteDataReaderList<string>(sql);
 					var enums = SQL.Select("enumlabel").From("pg_enum").Where($"enumtypid={item.Oid}").OrderBy("oid asc").ToList<string>();
 					if (enums.Count > 0)
 						enums[0] += " = 1";
@@ -93,23 +79,6 @@ namespace CodeFactory.DAL
 
 		public static List<CompositeTypeInfo> GenerateComposites()
 		{
-			/*
-select
-ns.nspname,
-a.typname,
-c.attname,
-d.typname,
-d.typtype,
-c.attndims,
-ns2.nspname
-from pg_type a
-inner join pg_class b on b.reltype = a.oid and b.relkind = 'c'
-inner join pg_attribute c on c.attrelid = b.oid and c.attnum > 0
-inner join pg_type d on d.oid = c.atttypid
-inner join pg_namespace ns on ns.oid = a.typnamespace
-left join pg_namespace ns2 on ns2.oid = d.typnamespace
-where ns.nspname || '.' || a.typname not in ('public.reclassarg','public.geomval','public.addbandarg','public.agg_samealignment','public.geometry_dump','public.summarystats','public.agg_count','public.valid_detail','public.rastbandarg','public.unionarg')
-			 */
 			var notCreateComposites = new[] { "'public.reclassarg'", "'public.geomval'", "'public.addbandarg'", "'public.agg_samealignment'", "'public.geometry_dump'", "'public.summarystats'", "'public.agg_count'", "'public.valid_detail'", "'public.rastbandarg'", "'public.unionarg'", "'topology.getfaceedges_returntype'", "'topology.topogeometry'", "'topology.validatetopology_returntype'", "'public.stdaddr'", "'tiger.norm_addy'" };
 			var compositesSQL = SQL.Select("ns.nspname, a.typname as typename, c.attname, d.typname, c.attndims, d.typtype").From("pg_type")
 				.InnerJoin("pg_class", "b", "b.reltype = a.oid and b.relkind = 'c'")
