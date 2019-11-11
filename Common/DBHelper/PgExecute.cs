@@ -3,18 +3,18 @@ using Npgsql;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace DBHelper
 {
 	public abstract class PgExecute
 	{
-		public static ILogger _logger;
+		public ILogger _logger;
+
 		/// <summary>
 		/// 事务池
 		/// </summary>
-		Dictionary<int, NpgsqlTransaction> _transPool = new Dictionary<int, NpgsqlTransaction>();
+		readonly Dictionary<int, NpgsqlTransaction> _transPool = new Dictionary<int, NpgsqlTransaction>();
 		/// <summary>
 		/// 事务线程锁
 		/// </summary>
@@ -29,10 +29,13 @@ namespace DBHelper
 		/// <param name="poolSize"></param>
 		/// <param name="connectionString"></param>
 		/// <param name="logger"></param>
-		protected PgExecute(string connectionString, ILogger logger)
+		protected PgExecute(string connectionString, ILogger logger, Action<NpgsqlConnection> mapAction = null)
 		{
 			_logger = logger;
-			Pool = new ConnectionPool(connectionString);
+			Pool = new ConnectionPool(connectionString)
+			{
+				MapAction = mapAction
+			};
 		}
 
 		NpgsqlTransaction CurrentTransaction
@@ -50,8 +53,10 @@ namespace DBHelper
 		/// </summary>
 		protected void PrepareCommand(NpgsqlCommand cmd, CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
 		{
-			if (Pool == null) throw new ArgumentException("Connection pool is null");
-			if (cmdText.IsNullOrEmpty() || cmd == null) throw new ArgumentNullException("Command is error");
+			if (Pool == null)
+				throw new ArgumentException("Connection pool is null");
+			if (string.IsNullOrEmpty(cmdText) || cmd == null)
+				throw new ArgumentNullException("Command is error");
 			if (CurrentTransaction == null)
 				cmd.Connection = Pool.GetConnection();
 			else
@@ -78,21 +83,23 @@ namespace DBHelper
 		public object ExecuteScalar(CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
 		{
 			object ret = null;
-			NpgsqlCommand cmd = new NpgsqlCommand();
-			try
+			using (NpgsqlCommand cmd = new NpgsqlCommand())
 			{
-				PrepareCommand(cmd, cmdType, cmdText, cmdParams);
-				ret = cmd.ExecuteScalar();
-			}
-			catch (Exception ex)
-			{
-				ThrowException(cmd, ex);
-				throw ex;
-			}
-			finally
-			{
-				if (CurrentTransaction == null)
-					Close(cmd, cmd.Connection);
+				try
+				{
+					PrepareCommand(cmd, cmdType, cmdText, cmdParams);
+					ret = cmd.ExecuteScalar();
+				}
+				catch (Exception ex)
+				{
+					ThrowException(cmd, ex);
+					throw ex;
+				}
+				finally
+				{
+					if (CurrentTransaction == null)
+						Close(cmd, cmd.Connection);
+				}
 			}
 			return ret;
 		}
@@ -121,17 +128,28 @@ namespace DBHelper
 			return ret;
 		}
 		/// <summary>
-		/// 重构读取数据库数据
+		/// 读取数据库reader
 		/// </summary>
 		public void ExecuteDataReader(Action<NpgsqlDataReader> action, CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
 		{
-			NpgsqlCommand cmd = new NpgsqlCommand(); NpgsqlDataReader reader = null;
+			ExecuteDataReaderBase(dr =>
+			{
+				while (dr.Read())
+					action?.Invoke(dr);
+
+			}, cmdType, cmdText, cmdParams);
+		}
+		/// <summary>
+		/// 读取数据库reader
+		/// </summary>
+		public void ExecuteDataReaderBase(Action<NpgsqlDataReader> action, CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
+		{
+			NpgsqlCommand cmd = new NpgsqlCommand(); NpgsqlDataReader dr = null;
 			try
 			{
 				PrepareCommand(cmd, cmdType, cmdText, cmdParams);
-				using (reader = cmd.ExecuteReader())
-					while (reader.Read())
-						action?.Invoke(reader);
+				using (dr = cmd.ExecuteReader())
+					action?.Invoke(dr);
 			}
 			catch (Exception ex)
 			{
@@ -142,8 +160,8 @@ namespace DBHelper
 			{
 				if (CurrentTransaction == null)
 					Close(cmd, cmd.Connection);
-				if (reader != null && !reader.IsClosed)
-					reader.Close();
+				if (dr != null && !dr.IsClosed)
+					dr.Close();
 			}
 		}
 		/// <summary>
@@ -151,12 +169,12 @@ namespace DBHelper
 		/// </summary>
 		public void ThrowException(NpgsqlCommand cmd, Exception ex)
 		{
+			ex.Data["ConnectionString"] = cmd?.Connection.ConnectionString;
 			string str = string.Empty;
 			if (cmd?.Parameters != null)
 				foreach (NpgsqlParameter item in cmd.Parameters)
 					str += $"{item.ParameterName}:{item.Value}\n";
-			//done: 输出错误日志
-			_logger.LogError(new EventId(111111), ex, "数据库执行出错：===== \n {0}\n{1}\n{2}", cmd.CommandText, cmd.Parameters, str);//输出日志
+			_logger.LogError(new EventId(111111), ex, "数据库执行出错：===== \n{0}\n{1}\nConnectionString:{2}", cmd?.CommandText, str, cmd?.Connection?.ConnectionString);//输出日志
 
 		}
 		/// <summary>

@@ -1,8 +1,6 @@
-﻿using Microsoft.AspNetCore.Hosting;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Reflection;
 using System.Text;
 

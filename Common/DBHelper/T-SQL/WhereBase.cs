@@ -13,48 +13,56 @@ namespace DBHelper
 	public abstract class WhereBase<TSQL> : BuilderBase<TSQL> where TSQL : class, new()
 	{
 
-		TSQL _this => this as TSQL;
+		TSQL This => this as TSQL;
 		protected WhereBase(string table, string alias) : base(table, alias) { }
 		protected WhereBase(string table) : base(table) { }
 		protected WhereBase() { }
 
 		public TSQL Where(string where)
 		{
-			_where.Add($"({where})");
-			return _this;
+			base.WhereList.Add($"({where})");
+			return This;
 		}
 		public TSQL WhereNotIn<T>(string field, SelectBuilder<T> selectBuilder) where T : class, new()
 		{
 			ThrowNullFieldException(selectBuilder);
 			return WhereNotIn(field, selectBuilder.ToString());
 		}
-		public TSQL WhereNotIn<T>(string field, IEnumerable<T> arr) => WhereNotIn(field, arr.Join(", "));
+		public TSQL WhereNotIn<T>(string field, IEnumerable<T> arr) => WhereNotIn(field, string.Join(", ", arr));
 		public TSQL WhereNotIn(string field, string sql) => Where($"{field} NOT IN ({sql})");
 		public TSQL WhereIn<T>(string field, SelectBuilder<T> selectBuilder) where T : class, new()
 		{
 			ThrowNullFieldException(selectBuilder);
 			return WhereIn(field, selectBuilder.ToString());
 		}
-		public TSQL WhereIn<T>(string field, IEnumerable<T> arr) => WhereIn(field, arr.Join(", "));
+		public TSQL WhereIn<T>(string field, IEnumerable<T> arr) => WhereIn(field, string.Join(", ", arr.Select(f => $"'{f}'")));
 		public TSQL WhereIn(string field, string sql) => Where($"{field} IN ({sql})");
-		public TSQL WhereExsit<T>(SelectBuilder<T> selectBuilder) where T : class, new()
+		public TSQL WhereExists<T>(SelectBuilder<T> selectBuilder) where T : class, new()
 		{
 			SetExistsField(selectBuilder);
-			return WhereExsit(selectBuilder.ToString().Replace("a.", "a1."));
+			return WhereExists(selectBuilder.ToString());
 		}
-		public TSQL WhereExsit(string sql) => Where($"EXISTS ({sql})");
+		public TSQL WhereExists(string sql) => Where($"EXISTS ({sql})");
 		public TSQL WhereNotExsit<T>(SelectBuilder<T> selectBuilder) where T : class, new()
 		{
 			SetExistsField(selectBuilder);
-			return WhereNotExsit(selectBuilder.ToString().Replace("a.", "a1."));
+			return WhereNotExists(selectBuilder.ToString());
 		}
-		public TSQL WhereNotExsit(string sql) => Where($"NOT EXISTS ({sql})");
+		public TSQL WhereNotExists(string sql) => Where($"NOT EXISTS ({sql})");
+		public TSQL WhereOrDefault<T>(string filter, IEnumerable<T> val, NpgsqlDbType? dbType = null)
+		{
+			if ((val?.Count() ?? 0) == 0) _enumerableNullReturnDefault = true;
+			else WhereOr(filter, val, dbType);
+			return This;
+		}
 		public TSQL WhereOr<T>(string filter, IEnumerable<T> val, NpgsqlDbType? dbType = null)
 		{
 			object[] _val = null;
 			var typeT = typeof(T);
+			if (val == null)
+				return Where(filter, null);
 			if (val.Count() == 0)
-				return _this;
+				return This;
 			else if (typeT == typeof(char))
 				_val = val.Select(a => new DbTypeValue(a, dbType)).ToArray<object>();
 			else if (typeT == typeof(object))
@@ -73,8 +81,22 @@ namespace DBHelper
 			}
 			return Where(filters, _val);
 		}
-		public TSQL Where(bool isAdd, string filter, params object[] val) => isAdd ? Where(filter, val) : _this;
-		public TSQL Where(bool isAdd, Func<string> filter) => isAdd ? Where(filter.Invoke()) : _this;
+		public TSQL Where(bool isAdd, string filter, params object[] val) => isAdd ? Where(filter, val) : This;
+		public TSQL Where(bool isAdd, Func<string> filter)
+		{
+			if (isAdd)
+				Where(filter.Invoke());
+			return This;
+		}
+		public TSQL Where(bool isAdd, Func<(string, object)> filter)
+		{
+			if (isAdd)
+			{
+				var (sql, ps) = filter.Invoke();
+				Where(sql, ps);
+			}
+			return This;
+		}
 		public TSQL Where<T1, T2>(string[] keys, IEnumerable<(T1, T2)> val, NpgsqlDbType?[] dbTypes = null) => WhereTuple(f =>
 		{
 			var item = val.ElementAt(f.Item2 / keys.Length);
@@ -125,15 +147,16 @@ namespace DBHelper
 		public TSQL Where(string filter, params object[] val)
 		{
 
-			if (val.IsNullOrEmpty()) filter = TypeHelper.GetNullSql(filter, @"\{\d\}");
+			if ((val?.Length ?? 0) == 0)
+				filter = TypeHelper.GetNullSql(filter, @"\{\d\}");
 			else
 			{
 				for (int i = 0; i < val.Length; i++)
 				{
-					var index = $"{{{i}}}";
+					var index = string.Concat("{", i, "}");
 					if (filter.IndexOf(index, StringComparison.Ordinal) == -1) throw new ArgumentException("where 参数错误");
 					if (val[i] == null)
-						filter = TypeHelper.GetNullSql(filter, index);
+						filter = TypeHelper.GetNullSql(filter, index.Replace("{", @"\{").Replace("}", @"\}"));
 					else
 					{
 						var reg = new Regex(@"^SELECT\s.+\sFROM\s");
@@ -142,8 +165,8 @@ namespace DBHelper
 						else
 						{
 							var paramsName = ParamsIndex;
-							if (val[i] is DbTypeValue)
-								AddParameter(paramsName, val[i] as DbTypeValue);
+							if (val[i] is DbTypeValue _val)
+								AddParameter(paramsName, _val);
 							else
 								AddParameter(paramsName, val[i]);
 							filter = filter.Replace(index, "@" + paramsName);
@@ -152,7 +175,7 @@ namespace DBHelper
 				}
 			}
 			Where($"{filter}");
-			return _this;
+			return This;
 		}
 
 		protected TSQL WhereTuple(Action<(List<object>, int)> action, string[] keys, int arrLength)
@@ -176,17 +199,20 @@ namespace DBHelper
 		}
 		private static void ThrowNullFieldException<T>(SelectBuilder<T> selectBuilder) where T : class, new()
 		{
-			Type type = selectBuilder.GetType();
-			var fields = type.GetProperty("_fields", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(selectBuilder).ToString();
-			if (fields.IsNullOrEmpty()) throw new ArgumentNullException("_fields is null.");
+			Type type = typeof(T);
+			var fields = type.GetProperty("Fields", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(selectBuilder).ToString();
+			if (string.IsNullOrEmpty(fields)) throw new ArgumentNullException("Fields is null.");
 		}
 		private static void SetExistsField<T>(SelectBuilder<T> selectBuilder) where T : class, new()
 		{
 			Type type = selectBuilder.GetType();
-			type.GetProperty("_mainAlias", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(selectBuilder, "a1");
-			var fields = type.GetProperty("_fields", BindingFlags.NonPublic | BindingFlags.Instance);
+			var property = type.GetProperty("MainAlias", BindingFlags.NonPublic | BindingFlags.Instance);
+			var refValue = property.GetValue(selectBuilder).ToString();
+			if (refValue == "a")
+				property.SetValue(selectBuilder, "a1");
+			var fields = type.GetProperty("Fields", BindingFlags.NonPublic | BindingFlags.Instance);
 			var fieldStr = fields.GetValue(selectBuilder).ToString();
-			if (fieldStr.IsNullOrEmpty())
+			if (!string.IsNullOrEmpty(fieldStr) && fieldStr.Contains(','))
 				fields.SetValue(selectBuilder, fieldStr.Split(',')[0]);
 		}
 	}

@@ -1,9 +1,7 @@
 ﻿using Npgsql;
 using NpgsqlTypes;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 
 namespace DBHelper
 {
@@ -12,15 +10,16 @@ namespace DBHelper
 		/// <summary>
 		/// 字段列表
 		/// </summary>
-		List<string> _valueList = new List<string>();
+		readonly List<string> _valueList = new List<string>();
+
 		/// <summary>
 		/// 参数化列表
 		/// </summary>
-		List<string> _paramList = new List<string>();
+		readonly List<string> _paramList = new List<string>();
 		/// <summary>
 		/// 是否返回实体类
 		/// </summary>
-		public bool _isReturn = false;
+		bool _isReturn = false;
 		public InsertBuilder() { }
 		public InsertBuilder(string table) : base(table) { }
 		/// <summary>
@@ -28,7 +27,7 @@ namespace DBHelper
 		/// </summary>
 		/// <param name="table"></param>
 		/// <param name="fields"></param>
-		public InsertBuilder(string table, string fields) : base(table) => _fields = fields;
+		public InsertBuilder(string table, string fields) : base(table) => Fields = fields;
 		/// <summary>
 		/// 设置一个列表
 		/// </summary>
@@ -65,7 +64,7 @@ namespace DBHelper
 		{
 			_valueList.Add(field);
 			_paramList.Add(paramStr);
-			_params.AddRange(nps);
+			Params.AddRange(nps);
 			return this;
 		}
 		/// <summary>
@@ -73,6 +72,15 @@ namespace DBHelper
 		/// </summary>
 		/// <returns></returns>
 		public int Commit() => ToRows();
+		/// <summary>
+		/// 返回受影响行数_选库
+		/// </summary>
+		/// <returns></returns>
+		public int Commit(DatabaseType databaseType)
+		{
+			Data(databaseType);
+			return ToRows();
+		}
 		/// <summary>
 		/// 插入数据库并返回数据
 		/// </summary>
@@ -83,17 +91,27 @@ namespace DBHelper
 			_isReturn = true;
 			return ToOne<T>();
 		}
+		/// <summary>
+		/// 插入数据库并返回数据_选库
+		/// </summary>
+		/// <returns></returns>
+		public T Commit<T>(DatabaseType databaseType)
+		{
+			_isReturn = true;
+			Data(databaseType);
+			return ToOne<T>();
+		}
 		#region Override
 		public override string ToString() => base.ToString();
 
-		protected override string SetCommandString()
+		public override string GetCommandTextString()
 		{
-			if (_valueList.IsNullOrEmpty() || _paramList.IsNullOrEmpty()) throw new ArgumentNullException("Insert KeyValuePairs is null.");
+			if ((_valueList?.Count ?? 0) == 0 || (_paramList?.Count ?? 0) == 0) throw new ArgumentNullException("Insert KeyValuePairs is null.");
 			if (_valueList.Count != _paramList.Count) throw new ArgumentNullException("Insert KeyValuePairs length is not equal.");
-			var vs = _valueList.Join(", ");
-			var fs = _fields.IsNullOrEmpty() ? vs : _fields.Replace("a.", "");
+			var vs = string.Join(", ", _valueList);
+			var fs = string.IsNullOrEmpty(Fields) ? vs : Fields.Replace($"{MainAlias}.", "");
 			var ret = _isReturn ? $"RETURNING {fs}" : "";
-			return $"INSERT INTO {_mainTable} ({vs}) VALUES({_paramList.Join(", ")}) {ret}";
+			return $"INSERT INTO {MainTable} ({vs}) VALUES({string.Join(", ", _paramList)}) {ret}";
 		}
 		#endregion
 	}

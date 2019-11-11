@@ -12,69 +12,77 @@ namespace DBHelper
 {
 	public abstract class SelectBuilder<TSQL> : WhereBase<TSQL> where TSQL : class, new()
 	{
-		List<Union> _listUnion { get; set; } = new List<Union>();
+		readonly List<Union> _listUnion = new List<Union>();
 		string _groupBy = string.Empty;
 		string _orderBy = string.Empty;
 		string _limit = string.Empty;
 		string _offset = string.Empty;
 		string _having = string.Empty;
 		string _union = string.Empty;
+		string _tablesampleSystem = string.Empty;
+
 		protected SelectBuilder(string fields, string alias)
 		{
-			_fields = fields;
-			_mainAlias = alias;
+			Fields = fields;
+			MainAlias = alias;
 		}
-		public SelectBuilder(string fields) => _fields = fields;
-		public SelectBuilder() => _fields = "*";
-		TSQL _this => this as TSQL;
+		public SelectBuilder(string fields) => Fields = fields;
+		public SelectBuilder() => Fields = "*";
+		TSQL This => this as TSQL;
 		public TSQL From(string table, string alias = "a")
 		{
-			_mainAlias = alias;
+			MainAlias = alias;
 			if (new Regex(@"^SELECT\s.+\sFROM\s").IsMatch(table))
-				_mainTable = $"({table})";
+				MainTable = $"({table})";
 			else
-				_mainTable = table;
-			return _this;
+				MainTable = table;
+			return This;
 		}
 		public TSQL GroupBy(string s)
 		{
 			_groupBy = $"GROUP BY {s}";
-			return _this;
+			return This;
 		}
 		public TSQL OrderBy(string s)
 		{
 			_orderBy = $"ORDER BY {s}";
-			return _this;
+			return This;
 		}
 		public TSQL Having(string s)
 		{
 			_having = $"HAVING {s}";
-			return _this;
+			return This;
 		}
 		public TSQL Limit(int i)
 		{
 			_limit = $"LIMIT {i}";
-			return _this;
+			return This;
 		}
 		public TSQL Skip(int i)
 		{
 			_offset = $"OFFSET {i}";
-			return _this;
+			return This;
 		}
 		public TSQL Union(string view)
 		{
 			_union = $"UNION ({view})";
-			return _this;
+			return This;
 		}
 		public TSQL Union(TSQL selectBuilder)
 		{
 			_union = $"UNION ({selectBuilder})";
-			return _this;
+			return This;
 		}
 		public TSQL Page(int pageIndex, int pageSize)
 		{
 			Limit(pageSize); Skip(Math.Max(0, pageIndex - 1) * pageSize);
-			return _this;
+			return This;
+		}
+
+		public TSQL TableSampleSystem(double percent)
+		{
+			_tablesampleSystem = $" tablesample system({percent}) ";
+			return This;
 		}
 
 		#region Union
@@ -96,33 +104,51 @@ namespace DBHelper
 			if (new Regex(@"\{\d\}").Matches(on).Count > 0)//参数个数不匹配
 				throw new ArgumentException("on 参数不支持存在参数");
 			_listUnion.Add(new Union(aliasName, table, on, unionType));
-			return _this;
+			return This;
 		}
 		#endregion
-
+		/// <summary>
+		/// 返回一行(管道)
+		/// </summary>
+		public TSQL ToListPipe<T>(string fields = null)
+		{
+			if (!string.IsNullOrEmpty(fields)) Fields = fields;
+			return base.ToPipe<T>(true);
+		}
 		/// <summary>
 		/// 返回列表
 		/// </summary>
-		public List<TResult> ToList<TResult>(string fields = null)
+		public List<T> ToList<T>(string fields = null)
 		{
-			if (!fields.IsNullOrEmpty()) _fields = fields;
-			return base.ToList<TResult>();
+			if (!string.IsNullOrEmpty(fields)) Fields = fields;
+			if (_enumerableNullReturnDefault) return new List<T>();
+
+			return base.ToList<T>();
+		}
+		/// <summary>
+		/// 返回一行(管道)
+		/// </summary>
+		public TSQL ToOnePipe<T>(string fields = null)
+		{
+			_limit = "LIMIT 1";
+			if (!string.IsNullOrEmpty(fields)) Fields = fields;
+			return base.ToPipe<T>(false);
 		}
 		/// <summary>
 		/// 返回一行
 		/// </summary>
-		public TResult ToOne<TResult>(string fields = null)
+		public T ToOne<T>(string fields = null)
 		{
 			_limit = "LIMIT 1";
-			if (!fields.IsNullOrEmpty()) _fields = fields;
-			return base.ToOne<TResult>();
+			if (!string.IsNullOrEmpty(fields)) Fields = fields;
+			return base.ToOne<T>();
 		}
 		/// <summary>
 		/// 返回第一个元素
 		/// </summary>
 		public TResult ToScalar<TResult>(string fields)
 		{
-			_fields = fields;
+			Fields = fields;
 			return (TResult)ToScalar();
 		}
 
@@ -139,19 +165,19 @@ namespace DBHelper
 		#region Override
 		public override string ToString() => base.ToString();
 		public new string ToString(string field) => base.ToString(field);
-		protected override string SetCommandString()
+		public override string GetCommandTextString()
 		{
-			StringBuilder sqlText = new StringBuilder($"SELECT {_fields} FROM {_mainTable} {_mainAlias} ");
+			StringBuilder sqlText = new StringBuilder($"SELECT {Fields} FROM {MainTable} {MainAlias} {_tablesampleSystem}");
 			foreach (var item in _listUnion)
-				sqlText.AppendLine(item.UnionType.ToString().Replace("_", " ") + " " + item.Table + " " + item.AliasName + " ON " + item.Expression);
+				sqlText.AppendLine(string.Format("{0} {1} {2} ON {3}", item.UnionType.ToString().Replace("_", " "), item.Table, item.AliasName, item.Expression));
 			// other
-			if (!_where.IsNullOrEmpty()) sqlText.AppendLine("WHERE " + _where.Join(" AND "));
-			if (!_groupBy.IsNullOrEmpty()) sqlText.AppendLine(_groupBy);
-			if (!_groupBy.IsNullOrEmpty() && !_having.IsNullOrEmpty()) sqlText.AppendLine(_having);
-			if (!_orderBy.IsNullOrEmpty()) sqlText.AppendLine(_orderBy);
-			if (!_limit.IsNullOrEmpty()) sqlText.AppendLine(_limit);
-			if (!_offset.IsNullOrEmpty()) sqlText.AppendLine(_offset);
-			if (!_union.IsNullOrEmpty()) sqlText.AppendLine(_union);
+			if (WhereList?.Count() > 0) sqlText.AppendLine("WHERE " + string.Join(" AND ", WhereList));
+			if (!string.IsNullOrEmpty(_groupBy)) sqlText.AppendLine(_groupBy);
+			if (!string.IsNullOrEmpty(_groupBy) && !string.IsNullOrEmpty(_having)) sqlText.AppendLine(_having);
+			if (!string.IsNullOrEmpty(_orderBy)) sqlText.AppendLine(_orderBy);
+			if (!string.IsNullOrEmpty(_limit)) sqlText.AppendLine(_limit);
+			if (!string.IsNullOrEmpty(_offset)) sqlText.AppendLine(_offset);
+			if (!string.IsNullOrEmpty(_union)) sqlText.AppendLine(_union);
 			return sqlText.ToString();
 		}
 		#endregion

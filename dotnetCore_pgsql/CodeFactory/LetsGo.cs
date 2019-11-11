@@ -1,12 +1,11 @@
 ﻿using CodeFactory.DAL;
+using CodeFactory.Extension;
 using DBHelper;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace CodeFactory
 {
@@ -28,7 +27,6 @@ namespace CodeFactory
 			StringBuilder connection = new StringBuilder();
 			foreach (var item in strings)
 			{
-				//host=localhost;port=5432;user=postgres;pwd=tanweijie;db=postgres;name=test;path=d:\workspace
 				var sp = item.Split('=');
 				var left = sp[0];
 				var right = sp[1];
@@ -42,14 +40,13 @@ namespace CodeFactory
 					case "maxpool": connection.Append($"maximum pool size={right};pooling=true;"); break;
 					case "name": model.ProjectName = right; break;
 					case "path": model.OutputPath = right; break;
-					case "type": model.TypeName = right.ToUpperPascal(); break;
+					case "type": model.TypeName = (string.IsNullOrEmpty(right) ? GenerateModel.MASTER_DATABASE_TYPE_NAME : right).ToUpperPascal(); break;
 				}
 			}
 			model.ConnectionString = connection.ToString();
 			PgSqlHelper.InitDBConnection(model.ConnectionString, null);
 			Build(model);
 			Console.WriteLine("Done...");
-			Console.ReadLine();
 		}
 		/// <summary>
 		/// 构建
@@ -67,7 +64,7 @@ namespace CodeFactory
 			CreateCsproj();
 			CreateSln();
 			List<string> schemaList = SchemaDal.GetSchemas();
-			EnumsDal.Generate(Path.Combine(OutputDir, ProjectName, ProjectName + ".db"), ModelPath, ProjectName, schemaList);
+			EnumsDal.Generate(Path.Combine(OutputDir, ProjectName + ".db"), ModelPath, ProjectName, schemaList, buildModel.TypeName);
 			foreach (var schemaName in schemaList)
 			{
 				List<TableViewModel> tableList = GetTables(schemaName);
@@ -83,22 +80,25 @@ namespace CodeFactory
 		/// </summary>
 		static void CreateDir()
 		{
-			ModelPath = Path.Combine(OutputDir, ProjectName, ProjectName + ".db", "Model", "Build");
-			DalPath = Path.Combine(OutputDir, ProjectName, ProjectName + ".db", "DAL", "Build");
+			ModelPath = Path.Combine(OutputDir, ProjectName + ".db", "Model", "Build");
+			DalPath = Path.Combine(OutputDir, ProjectName + ".db", "DAL", "Build");
 			string[] ps = { ModelPath, DalPath };
 			for (int i = 0; i < ps.Length; i++)
+			{
 				if (!Directory.Exists(ps[i]))
 					Directory.CreateDirectory(ps[i]);
+			}
 		}
 		/// <summary>
 		/// 创建csproj文件
 		/// </summary>
 		static void CreateCsproj()
 		{
-			string targetCommonDirectory = Path.Combine(OutputDir, ProjectName, "Common");
-			if (!Directory.Exists(targetCommonDirectory))
+			//copy common directory
+			string targetCommonDirectory = Path.Combine(OutputDir, "Common");
+			if (!Directory.Exists(targetCommonDirectory)) //if is not exist
 			{
-				var path = Path.Combine("..", "..", "..", "..", "Common");
+				var path = Path.Combine("..", "Common");
 				string commonDirectory = new DirectoryInfo(path).FullName;
 				Console.WriteLine(commonDirectory);
 				DirectoryCopy(commonDirectory, targetCommonDirectory);
@@ -110,7 +110,7 @@ namespace CodeFactory
 		/// </summary>
 		static void CreateSln()
 		{
-			string sln_file = Path.Combine(OutputDir, ProjectName, $"{ProjectName}.sln");
+			string sln_file = Path.Combine(OutputDir, $"{ProjectName}.sln");
 			if (!File.Exists(sln_file))
 			{
 				using (StreamWriter writer = new StreamWriter(File.Create(sln_file), Encoding.UTF8))
@@ -165,7 +165,7 @@ namespace CodeFactory
 			return SQL.Select("tablename AS name,'table' AS type").From("pg_tables")
 				.WhereNotIn($"schemaname", notCreateSchemas)
 				.WhereNotIn($"tablename", notCreateTables)
-				.Where($"schemaname = '{schemaName}'")// and tablename not like '%copy%'
+				.Where($"schemaname = '{schemaName}' and tablename not like '%copy%'")
 			.Union(SQL.Select("viewname AS name,'view' AS type ").From("pg_views")
 				.WhereNotIn($"viewname", notCreateViews)
 				.Where($"schemaname = '{schemaName}'")).ToList<TableViewModel>();

@@ -17,27 +17,15 @@ namespace DBHelper
 		private void Mapping(bool hasField = false)
 		{
 			Type type = typeof(TModel);
-			_mainTable = MappingHelper.GetMapping(type);
+			MainTable = MappingHelper.GetMapping(type);
 			if (!hasField)
-				_fields = EntityHelper.GetAllSelectFieldsString(type, "a");
+				Fields = EntityHelper.GetAllSelectFieldsString(type, MainAlias);
 		}
 
 		public TModel ToOne() => ToOne<TModel>();
+		public TDAL ToOnePipe() => ToOnePipe<TModel>();
 		public List<TModel> ToList() => ToList<TModel>();
+		public TDAL ToListPipe() => ToListPipe<TModel>();
 	}
-	/// <summary>
-	/// Update
-	/// </summary>
-	/// <typeparam name="TDAL"></typeparam>
-	/// <typeparam name="TModel"></typeparam>
-	public class UpdateExchange<TDAL, TModel> : UpdateBuilder<TDAL> where TDAL : class, new()
-	{
-		public UpdateExchange()
-		{
-			Type type = typeof(TModel);
-			_mainTable = MappingHelper.GetMapping(type);
-			_fields = EntityHelper.GetAllSelectFieldsString(type, "a");
-		}
 
-	}
 }

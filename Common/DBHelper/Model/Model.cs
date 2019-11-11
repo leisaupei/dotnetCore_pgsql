@@ -1,8 +1,6 @@
-﻿using NpgsqlTypes;
+﻿using Npgsql;
+using NpgsqlTypes;
 using System;
-using System.Collections.Generic;
-using System.Linq.Expressions;
-using System.Text;
 
 namespace DBHelper
 {
@@ -38,25 +36,25 @@ namespace DBHelper
 		}
 		public override string ToString()
 		{
-			return Value.ToString();
+			return Value?.ToString();
 		}
 		public NpgsqlDbType? DbType { get; set; } = null;
 		public object Value { get; set; }
 
 	}
-	/// <summary>
-	/// 并联
-	/// </summary>
 	public enum UnionEnum
 	{
 		INNER_JOIN = 1, LEFT_JOIN, RIGHT_JOIN, LEFT_OUTER_JOIN, RIGHT_OUTER_JOIN
 	}
-	/// <summary>
-	/// 数据库枚举名称 用于查询选库
-	/// </summary>
 	public enum DatabaseType
 	{
 		Master = 1, Slave
+	}
+
+	public partial class NpgsqlNameTranslator : INpgsqlNameTranslator
+	{
+		public string TranslateMemberName(string clrName) => clrName;
+		public string TranslateTypeName(string clrName) => clrName;
 	}
 }
 

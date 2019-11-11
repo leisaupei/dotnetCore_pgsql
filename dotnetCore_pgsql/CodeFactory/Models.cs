@@ -1,8 +1,4 @@
 ﻿using NpgsqlTypes;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace CodeFactory
 {
@@ -122,6 +118,7 @@ namespace CodeFactory
 		public string RefColumn { get; set; }
 		public string TableName { get; set; }
 		public string Nspname { get; set; }
+		public bool? IsPk { get; set; }
 	}
 	public class ConstraintOneToMore
 	{

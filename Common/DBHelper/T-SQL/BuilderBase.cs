@@ -3,14 +3,10 @@ using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Text.RegularExpressions;
 
 namespace DBHelper
 {
-	public abstract class BuilderBase<TSQL> where TSQL : class, new()
+	public abstract class BuilderBase<TSQL> : IBuilder where TSQL : class, new()
 	{
 		/// <summary>
 		/// 参数计数器
@@ -19,65 +15,79 @@ namespace DBHelper
 		/// <summary>
 		/// 主表
 		/// </summary>
-		protected string _mainTable { get; set; }
+		protected string MainTable { get; set; }
 		/// <summary>
 		/// 主表别名, 默认为"a"
 		/// </summary>
-		protected string _mainAlias { get; set; } = "a";
+		protected string MainAlias { get; set; } = "a";
 		/// <summary>
 		/// 查询字段
 		/// </summary>
-		protected string _fields { get; set; }
+		protected string Fields { get; set; }
 		/// <summary>
 		/// where条件列表
 		/// </summary>
-		protected List<string> _where { get; } = new List<string>();
+		protected List<string> WhereList { get; } = new List<string>();
 		/// <summary>
 		/// 参数后缀
 		/// </summary>
-		protected string ParamsIndex => "parameter_" + _paramsCount++;
+		protected string ParamsIndex => "p" + _paramsCount++.ToString().PadLeft(6, '0');
 		/// <summary>
-		/// 表的类型
+		/// 设置默认数据库
 		/// </summary>
-		protected DatabaseType _type { get; set; } = HostConfig.DefaultDatabase;
+		protected DatabaseType DataType { get; set; } = HostConfig.DEFAULT_DATABASE;
 		/// <summary>
 		/// 是否主库
 		/// </summary>
-		protected bool _isMaster => _type == DatabaseType.Master;
+		protected bool IsMaster => DataType == DatabaseType.Master;
 		/// <summary>
 		/// 参数列表
 		/// </summary>
-		protected List<NpgsqlParameter> _params { get; } = new List<NpgsqlParameter>();
+		public List<NpgsqlParameter> Params { get; } = new List<NpgsqlParameter>();
+		/// <summary>
+		/// 如果输入的数组为空, 直接返回空
+		/// </summary>
+		protected bool _enumerableNullReturnDefault = false;
 		/// <summary>
 		/// 输出sql语句
 		/// </summary>
-		string _cmdStr => SetCommandString();
+		string CmdStr => GetCommandTextString();
 		/// <summary>
 		/// 类型转换
 		/// </summary>
-		TSQL _this => this as TSQL;
+		TSQL This => this as TSQL;
+		/// <summary>
+		/// 返回实例类型
+		/// </summary>
+		public Type Type { get; set; }
+		/// <summary>
+		/// 是否列表
+		/// </summary>
+		public bool IsList { get; set; }
+
 		/// <summary>
 		/// 初始化主表与别名
 		/// </summary>
 		/// <param name="table"></param>
 		/// <param name="alias"></param>
-		protected BuilderBase(string table, string alias)
+		protected BuilderBase(string table, string alias) : this(table)
 		{
-			_mainTable = table;
-			_mainAlias = alias;
+			MainAlias = alias;
 		}
 		/// <summary>
 		/// 初始化主表
 		/// </summary>
 		/// <param name="table"></param>
-		protected BuilderBase(string table)
+		protected BuilderBase(string table) : this()
 		{
-			_mainTable = table;
+			MainTable = table;
 		}
 		/// <summary>
 		/// 默认构造函数
 		/// </summary>
-		protected BuilderBase() { }
+		protected BuilderBase()
+		{
+		}
 		/// <summary>
 		/// 
 		/// </summary>
@@ -86,9 +96,9 @@ namespace DBHelper
 		/// <returns></returns>
 		public virtual TSQL Table(string table, string alias)
 		{
-			_mainTable = table;
-			_mainAlias = alias;
-			return _this;
+			MainTable = table;
+			MainAlias = alias;
+			return This;
 		}
 		/// <summary>
 		/// 
@@ -97,8 +107,8 @@ namespace DBHelper
 		/// <returns></returns>
 		public virtual TSQL Table(string table)
 		{
-			_mainTable = table;
-			return _this;
+			MainTable = table;
+			return This;
 		}
 		/// <summary>
 		/// 
@@ -107,8 +117,8 @@ namespace DBHelper
 		/// <returns></returns>
 		public virtual TSQL Alias(string alias)
 		{
-			_mainAlias = alias;
-			return _this;
+			MainAlias = alias;
+			return This;
 		}
 		/// <summary>
 		/// 选择表的类型
@@ -117,11 +127,8 @@ namespace DBHelper
 		/// <returns></returns>
 		public TSQL Data(DatabaseType type)
 		{
-			if (type == DatabaseType.Slave && PgSqlHelper.HasSlave)
-				_type = type;
-			else if (type == DatabaseType.Master)
-				_type = DatabaseType.Master;
-			return _this;
+			DataType = type;
+			return This;
 		}
 		public TSQL BySlave() => Data(DatabaseType.Slave);
 		public TSQL ByMaster() => Data(DatabaseType.Master);
@@ -132,8 +139,7 @@ namespace DBHelper
 		/// <param name="val"></param>
 		/// <param name="size"></param>
 		/// <returns></returns>
-		protected TSQL AddParameter(string field, DbTypeValue val, int? size = null) => AddParameter(field, val.Value, size, val.DbType);
-
+		public TSQL AddParameter(string field, DbTypeValue val, int? size = null) => AddParameter(field, val.Value, size, val.DbType);
 		/// <summary>
 		/// 添加参数
 		/// </summary>
@@ -141,13 +147,13 @@ namespace DBHelper
 		/// <param name="val"></param>
 		/// <param name="size"></param>
 		/// <param name="dbType"></param>
-		protected TSQL AddParameter(string field, object val, int? size = null, NpgsqlDbType? dbType = null)
+		public TSQL AddParameter(string field, object val, int? size = null, NpgsqlDbType? dbType = null)
 		{
 			NpgsqlParameter p = new NpgsqlParameter(field, val);
-			if (size != null) p.Size = size.Value;
+			if (size.HasValue) p.Size = size.Value;
 			if (dbType.HasValue) p.NpgsqlDbType = dbType.Value;
-			_params.Add(p);
-			return _this;
+			Params.Add(p);
+			return This;
 		}
 		/// <summary>
 		/// 添加参数
@@ -156,8 +162,8 @@ namespace DBHelper
 		/// <returns></returns>
 		public TSQL AddParameter(NpgsqlParameter p)
 		{
-			_params.Add(p);
-			return _this;
+			Params.Add(p);
+			return This;
 		}
 		/// <summary>
 		/// 添加参数
@@ -166,34 +172,45 @@ namespace DBHelper
 		/// <returns></returns>
 		public TSQL AddParameter(IEnumerable<NpgsqlParameter> ps)
 		{
-			_params.AddRange(ps);
-			return _this;
+			Params.AddRange(ps);
+			return This;
 		}
 		/// <summary>
 		/// 返回第一个元素
 		/// </summary>
 		/// <returns></returns>
-		protected object ToScalar() => PgSqlHelper.ExecuteScalar(CommandType.Text, _cmdStr, _params.ToArray(), _type);
+		protected object ToScalar() => PgSqlHelper.ExecuteScalar(CommandType.Text, CmdStr, Params.ToArray(), DataType);
 		/// <summary>
 		/// 返回List<Model>
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		protected List<T> ToList<T>() => PgSqlHelper.ExecuteDataReaderList<T>(_cmdStr, _params.ToArray(), _type);
-		public List<T> ToList<T>(Func<T, T> filter = null) => PgSqlHelper.ExecuteDataReaderList(_cmdStr, filter, _params.ToArray(), _type);
+		protected List<T> ToList<T>() => PgSqlHelper.ExecuteDataReaderList<T>(CmdStr, Params.ToArray(), DataType);
+
 		/// <summary>
 		/// 返回一个Model
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		protected T ToOne<T>() => PgSqlHelper.ExecuteDataReaderModel<T>(_cmdStr, _params.ToArray(), _type);
-		protected T ToOne<T>(Func<T, T> filter = null) => PgSqlHelper.ExecuteDataReaderModel(_cmdStr, filter, _params.ToArray(), _type);
+		protected T ToOne<T>() => PgSqlHelper.ExecuteDataReaderModel<T>(CmdStr, Params.ToArray(), DataType);
+		/// <summary>
+		/// 输出管道元素
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		protected TSQL ToPipe<T>(bool isList)
+		{
+			Type = typeof(T);
+			IsList = isList;
+			return This;
+		}
+
 		/// <summary>
 		/// 返回修改行数
 		/// </summary>
 		/// <param name="cmdText"></param>
 		/// <returns></returns>
-		protected int ToRows() => PgSqlHelper.ExecuteNonQuery(CommandType.Text, _cmdStr, _params.ToArray(), _type);
+		protected int ToRows() => PgSqlHelper.ExecuteNonQuery(CommandType.Text, CmdStr, Params.ToArray(), DataType);
 		/// <summary>
 		/// Override ToString()
 		/// </summary>
@@ -206,13 +223,14 @@ namespace DBHelper
 		/// <returns></returns>
 		public string ToString(string field)
 		{
-			if (!string.IsNullOrEmpty(field)) _fields = field;
-			return TypeHelper.SqlToString(_cmdStr, _params);
+			if (!string.IsNullOrEmpty(field)) Fields = field;
+			return TypeHelper.SqlToString(CmdStr, Params);
 		}
 		/// <summary>
 		/// 设置sql语句
 		/// </summary>
 		/// <returns></returns>
-		protected abstract string SetCommandString();
+		public abstract string GetCommandTextString();
+
 	}
 }

@@ -1,8 +1,7 @@
-﻿using NpgsqlTypes;
+﻿using CodeFactory.Extension;
+using NpgsqlTypes;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace CodeFactory
 {
@@ -185,7 +184,9 @@ namespace CodeFactory
 		{
 			NpgsqlDbType _type = NpgsqlDbType.Unknown;
 			if (dataType == "e" || dataType == "c")
-				return NpgsqlDbType.Unknown;
+				return NpgsqlDbType.Unknown;  //   _dbtype = item.Db_type.ToUpperPascal();
+
+			//var _type = string.Empty;
 			switch (dbType)
 			{
 				case "bit": _type = NpgsqlDbType.Bit; break;

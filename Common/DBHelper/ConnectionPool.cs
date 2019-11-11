@@ -1,11 +1,11 @@
-﻿using System;
+﻿using Npgsql;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Npgsql;
 namespace DBHelper
 {
 	public class ConnectionPool
@@ -43,13 +43,17 @@ namespace DBHelper
 		/// </summary>
 		public readonly Queue<ManualResetEvent> Wait;
 		/// <summary>
+		/// NpgsqlConnection设置
+		/// </summary>
+		public Action<NpgsqlConnection> MapAction { get; set; } = null;
+		/// <summary>
 		/// 初始化连接池大小
 		/// </summary>
 		/// <param name="poolSize"></param>
 		public ConnectionPool(string connectionString)
 		{
 			_connectionString = connectionString;
-			var poolSize = GetConnectionPoolSize(connectionString);
+			var poolSize = GetConnectionPoolSize;
 			if (poolSize > 0) _poolSize = poolSize;
 			else _poolSize = DEFAULT_POOL_SIZE;
 			_poolFree = new Queue<NpgsqlConnection>(_poolSize);
@@ -59,16 +63,18 @@ namespace DBHelper
 		/// <summary>
 		/// 获取数据库连接字符串Maximum Pool Size的值
 		/// </summary>
-		/// <param name="connectionString"></param>
 		/// <returns></returns>
-		public static int GetConnectionPoolSize(string connectionString)
+		private int GetConnectionPoolSize
 		{
-			var poolSize = 32;
-			var pattern = @"Maximum\s+Pool\s+Size\s*=\s*(\d+)";
-			Match match = Regex.Match(connectionString, pattern, RegexOptions.IgnoreCase);
-			if (match.Success)
-				int.TryParse(match.Groups[1].Value, out poolSize);
-			return poolSize;
+			get
+			{
+				var poolSize = 32;
+				var pattern = @"Maximum\s+Pool\s+Size\s*=\s*(\d+)";
+				Match match = Regex.Match(_connectionString, pattern, RegexOptions.IgnoreCase);
+				if (match.Success)
+					int.TryParse(match.Groups[1].Value, out poolSize);
+				return poolSize;
+			}
 		}
 		/// <summary>
 		/// 释放连接池
@@ -100,7 +106,7 @@ namespace DBHelper
 			{
 				if (_poolAll.Count < _poolSize) //如果当前连接池没有满 
 					lock (_lockGetConn)
-						_poolAll.Add(conn = CreateConnection());
+						_poolAll.Add(conn = CreateConnection);
 				else
 				{
 					var wait = new ManualResetEvent(false);
@@ -118,8 +124,16 @@ namespace DBHelper
 		/// 创建连接
 		/// </summary>
 		/// <returns></returns>
-		NpgsqlConnection CreateConnection() => !_connectionString.IsNullOrEmpty() ? new NpgsqlConnection(_connectionString) : throw new ArgumentNullException("Connection String is null.");
-
+		NpgsqlConnection CreateConnection
+		{
+			get
+			{
+				if (string.IsNullOrEmpty(_connectionString))
+					throw new ArgumentNullException("Connection String is null.");
+				var conn = new NpgsqlConnection(_connectionString);
+				return conn;
+			}
+		}
 		/// <summary>
 		/// 打开连接
 		/// </summary>
@@ -127,7 +141,11 @@ namespace DBHelper
 		public void OpenConnection(NpgsqlConnection conn)
 		{
 			if (conn?.State == ConnectionState.Broken) conn.Close();
-			if (conn?.State != ConnectionState.Open) conn.Open();
+			if (conn != null && conn?.State != ConnectionState.Open)
+			{
+				conn.Open();
+				MapAction?.Invoke(conn);
+			}
 		}
 		/// <summary>
 		/// 关闭连接
@@ -135,7 +153,7 @@ namespace DBHelper
 		/// <param name="conn"></param>
 		public void CloseConnection(NpgsqlConnection conn)
 		{
-			if (conn?.State != ConnectionState.Closed) conn.Close();
+			if (conn != null && conn?.State != ConnectionState.Closed) conn.Close();
 		}
 	}
 }

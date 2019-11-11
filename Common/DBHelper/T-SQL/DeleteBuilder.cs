@@ -17,10 +17,10 @@ namespace DBHelper
 
 		#region Override
 		public override string ToString() => base.ToString();
-		protected override string SetCommandString()
+		public override string GetCommandTextString()
 		{
-			if (_where.Count < 1) throw new ArgumentException("delete语句必须带where条件");
-			return $"DELETE FROM {_mainTable} {_mainAlias} WHERE {_where.Join("\nAND")}";
+			if (WhereList.Count < 1) throw new ArgumentException("delete语句必须带where条件");
+			return $"DELETE FROM {MainTable} {MainAlias} WHERE {string.Join("\nAND", WhereList)}";
 		}
 		#endregion
 	}
