@@ -15,8 +15,7 @@
 
 #### 多库
 - 使用','分隔
-`dotnet dotnetCore_pgsql.dll host=localhost;port=5432;user=postgres;pwd=123456;db=postgres;maxpool=50;name=Test;path=d:\workspace\Test,host=localhost;port=5432;user=postgres;pwd=123456;db=postgres;maxpool=50;name=Test;path=d:\workspace\Test`
-
+- `dotnet dotnetCore_pgsql.dll host=localhost;port=5432;user=postgres;pwd=123456;db=postgres;maxpool=50;name=Test;path=d:\workspace\Test;type=Master,host=localhost;port=5432;user=postgres;pwd=123456;db=postgres;maxpool=50;name=Test;path=d:\workspace\Test;Type=xxx`
 #### 参数
 - `host` host
 - `port` port
