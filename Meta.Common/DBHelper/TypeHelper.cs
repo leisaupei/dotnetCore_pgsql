@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace DBHelper
+namespace Meta.Common.DBHelper
 {
 	public class TypeHelper
 	{

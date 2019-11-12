@@ -1,4 +1,6 @@
-﻿using Npgsql;
+﻿using Meta.Common.DBHelper;
+using Meta.Common.Model;
+using Npgsql;
 using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
@@ -8,7 +10,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace DBHelper
+namespace Meta.Common.SqlBuilder
 {
 	public abstract class WhereBase<TSQL> : BuilderBase<TSQL> where TSQL : class, new()
 	{

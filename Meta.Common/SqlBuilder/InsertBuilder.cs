@@ -1,9 +1,11 @@
-﻿using Npgsql;
+﻿using Meta.Common.Model;
+using Npgsql;
 using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
 
-namespace DBHelper
+
+namespace Meta.Common.SqlBuilder
 {
 	public class InsertBuilder : BuilderBase<InsertBuilder>
 	{

@@ -1,8 +1,10 @@
-﻿using System;
+﻿using Meta.Common.Model;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace DBHelper
+
+namespace Meta.Common.SqlBuilder
 {
 	/// <summary>
 	/// Select
@@ -16,10 +18,9 @@ namespace DBHelper
 		public SelectExchange() => Mapping();
 		private void Mapping(bool hasField = false)
 		{
-			Type type = typeof(TModel);
-			MainTable = MappingHelper.GetMapping(type);
+			MainTable = MappingHelper.GetMapping<TModel>();
 			if (!hasField)
-				Fields = EntityHelper.GetAllSelectFieldsString(type, MainAlias);
+				Fields = EntityHelper.GetAllSelectFieldsString<TModel>(MainAlias);
 		}
 
 		public TModel ToOne() => ToOne<TModel>();

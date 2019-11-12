@@ -1,14 +1,11 @@
-﻿using DBHelper;
-using Npgsql;
-using NpgsqlTypes;
+﻿using Meta.Common.Model;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace DBHelper
+namespace Meta.Common.SqlBuilder
 {
 	public abstract class SelectBuilder<TSQL> : WhereBase<TSQL> where TSQL : class, new()
 	{
@@ -98,7 +95,7 @@ namespace DBHelper
 		public TSQL InnerJoin<TTarget>(string alias, string on) => Join<TTarget>(UnionEnum.INNER_JOIN, alias, on);
 		public TSQL LeftJoin<TTarget>(string alias, string on) => Join<TTarget>(UnionEnum.LEFT_JOIN, alias, on);
 		public TSQL RightJoin<TTarget>(string alias, string on) => Join<TTarget>(UnionEnum.RIGHT_JOIN, alias, on);
-		public TSQL Join<TTarget>(UnionEnum unionType, string alias, string on) => Join(unionType, MappingHelper.GetMapping(typeof(TTarget)), alias, on);
+		public TSQL Join<TTarget>(UnionEnum unionType, string alias, string on) => Join(unionType, MappingHelper.GetMapping<TTarget>(), alias, on);
 		public TSQL Join(UnionEnum unionType, string table, string aliasName, string on)
 		{
 			if (new Regex(@"\{\d\}").Matches(on).Count > 0)//参数个数不匹配

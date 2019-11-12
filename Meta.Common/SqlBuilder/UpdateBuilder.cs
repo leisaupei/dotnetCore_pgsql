@@ -1,12 +1,12 @@
-﻿using Npgsql;
+﻿using Meta.Common.Model;
+using Npgsql;
 using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
-
-namespace DBHelper
+namespace Meta.Common.SqlBuilder
 {
 	public abstract class UpdateBuilder<TDAL, TModel> : WhereBase<TDAL> where TDAL : class, new()
 	{
@@ -27,9 +27,8 @@ namespace DBHelper
 		public UpdateBuilder(string table, string alias) : base(table, alias) { }
 		public UpdateBuilder()
 		{
-			Type type = typeof(TModel);
-			MainTable = MappingHelper.GetMapping(type);
-			Fields = EntityHelper.GetAllSelectFieldsString(type, MainAlias);
+			MainTable = MappingHelper.GetMapping<TModel>();
+			Fields = EntityHelper.GetAllSelectFieldsString<TModel>(MainAlias);
 		}
 		/// <summary>
 		/// 字段自增

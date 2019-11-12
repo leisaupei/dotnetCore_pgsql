@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27130.2010
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29503.13
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dotnetCore_pgsql", "dotnetCore_pgsql\dotnetCore_pgsql.csproj", "{EF006DA7-80A2-4A46-93D4-1DEC71F01F3C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Meta.App", "Meta.App\Meta.App.csproj", "{EF006DA7-80A2-4A46-93D4-1DEC71F01F3C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Common", "Common\Common.csproj", "{AB4361E2-CB03-421D-9EFB-A54C499A7620}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Meta.Common", "Meta.Common\Meta.Common.csproj", "{AB4361E2-CB03-421D-9EFB-A54C499A7620}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

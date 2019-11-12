@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 
-namespace DBHelper
+namespace Meta.Common.Model
 {
 	/// <summary>
 	/// 数据库表特性
@@ -22,15 +22,15 @@ namespace DBHelper
 		/// </summary>
 		/// <param name="t"></param>
 		/// <returns></returns>
-		public static string GetMapping(Type t)
+		public static string GetMapping<T>()
 		{
 			string tableName = string.Empty;
-			GetMappingAttr(t, m => { tableName = m.TableName; });
+			GetMappingAttr<T>(m => { tableName = m.TableName; });
 			return tableName;
 		}
-		static void GetMappingAttr(Type t, Action<MappingAttribute> action)
+		static void GetMappingAttr<T>(Action<MappingAttribute> action)
 		{
-			TypeInfo typeInfo = t.GetTypeInfo();
+			TypeInfo typeInfo = typeof(T).GetTypeInfo();
 			if (typeInfo.GetCustomAttribute(typeof(MappingAttribute)) is MappingAttribute mapping)
 				action?.Invoke(mapping);
 			else
@@ -52,14 +52,14 @@ namespace DBHelper
 		/// <param name="type"></param>
 		/// <param name="alias"></param>
 		/// <returns></returns>
-		public static List<string> GetAllFields(Type type, string alias)
+		public static List<string> GetAllFields<T>(string alias)
 		{
 			List<string> list = new List<string>();
 			alias = !string.IsNullOrEmpty(alias) ? alias + "." : "";
-			GetAllFields(type, (p) =>
-			{
-				list.Add(alias + p.Name.ToLower());
-			});
+			GetAllFields<T>(p =>
+		   {
+			   list.Add(alias + p.Name.ToLower());
+		   });
 			return list;
 		}
 		/// <summary>
@@ -68,17 +68,17 @@ namespace DBHelper
 		/// <param name="type"></param>
 		/// <param name="alias"></param>
 		/// <returns></returns>
-		public static string GetAllSelectFieldsString(Type type, string alias)
+		public static string GetAllSelectFieldsString<T>(string alias)
 		{
 			StringBuilder ret = new StringBuilder();
 			alias = !string.IsNullOrEmpty(alias) ? alias + "." : "";
-			GetAllFields(type, p => ret.Append(alias).Append(p.Name.ToLower()).Append(", "));
+			GetAllFields<T>(p => ret.Append(alias).Append(p.Name.ToLower()).Append(", "));
 			return ret.ToString().TrimEnd(' ', ',');
 		}
 
-		public static void GetAllFields(Type type, Action<PropertyInfo> action)
+		public static void GetAllFields<T>(Action<PropertyInfo> action)
 		{
-			PropertyInfo[] pi = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+			PropertyInfo[] pi = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
 			for (int i = 0; i < pi.Length; i++)
 			{
 				if (ToBsonAttribute(pi[i]))

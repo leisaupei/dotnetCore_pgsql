@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Threading;
 
-namespace DBHelper
+namespace Meta.Common.DBHelper
 {
 	public abstract class PgExecute
 	{
@@ -109,7 +109,7 @@ namespace DBHelper
 		public int ExecuteNonQuery(CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
 		{
 			int ret = 0;
-			NpgsqlCommand cmd = new NpgsqlCommand();
+			using NpgsqlCommand cmd = new NpgsqlCommand();
 			try
 			{
 				PrepareCommand(cmd, cmdType, cmdText, cmdParams);
@@ -144,7 +144,8 @@ namespace DBHelper
 		/// </summary>
 		public void ExecuteDataReaderBase(Action<NpgsqlDataReader> action, CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
 		{
-			NpgsqlCommand cmd = new NpgsqlCommand(); NpgsqlDataReader dr = null;
+			using NpgsqlCommand cmd = new NpgsqlCommand();
+			NpgsqlDataReader dr = null;
 			try
 			{
 				PrepareCommand(cmd, cmdType, cmdText, cmdParams);

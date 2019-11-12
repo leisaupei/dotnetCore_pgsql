@@ -2,7 +2,7 @@
 using NpgsqlTypes;
 using System;
 
-namespace DBHelper
+namespace Meta.Common.Model
 {
 	public class Union
 	{

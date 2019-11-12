@@ -6,7 +6,8 @@ using System.Data;
 using System.Reflection;
 using System.Text;
 
-namespace Common.Extension
+
+namespace Meta.Common.Extensions
 {
 	static class Extensions
 	{

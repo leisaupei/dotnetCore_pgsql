@@ -57,3 +57,5 @@ Thumbs.db
 # git commit -m update .gitignore
 /.vs/dotnetCore_pgsql/v16/Server/sqlite3
 /.vs/dotnetCore_pgsql/v16/TestStore/0
+/.vs/Meta/v16/Server/sqlite3
+/.vs/Meta/DesignTimeBuild

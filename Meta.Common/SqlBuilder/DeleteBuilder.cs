@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DBHelper
+namespace Meta.Common.SqlBuilder
 {
 	public class DeleteBuilder : WhereBase<DeleteBuilder>
 	{

@@ -1,5 +1,5 @@
-﻿using Common;
-using Common.Extension;
+﻿using Meta.Common.Extensions;
+using Meta.Common.Model;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using System;
@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 
-namespace DBHelper
+namespace Meta.Common.DBHelper
 {
 	public static class PgSqlHelper
 	{
@@ -120,7 +120,7 @@ namespace DBHelper
 		public static T ExecuteDataReaderModel<T>(CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams = null, DatabaseType type = HostConfig.DEFAULT_DATABASE)
 		{
 			var list = ExecuteDataReaderList<T>(cmdType, cmdText, cmdParams, type);
-			return list.Count > 0 ? list[0] : default(T);
+			return list.Count > 0 ? list[0] : default;
 		}
 
 		#region overload

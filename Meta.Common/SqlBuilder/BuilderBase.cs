@@ -1,10 +1,12 @@
-﻿using Npgsql;
+﻿using Meta.Common.DBHelper;
+using Meta.Common.Model;
+using Npgsql;
 using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
 using System.Data;
 
-namespace DBHelper
+namespace Meta.Common.SqlBuilder
 {
 	public abstract class BuilderBase<TSQL> : IBuilder where TSQL : class, new()
 	{

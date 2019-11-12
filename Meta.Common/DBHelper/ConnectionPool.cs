@@ -6,7 +6,8 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-namespace DBHelper
+
+namespace Meta.Common.DBHelper
 {
 	public class ConnectionPool
 	{
