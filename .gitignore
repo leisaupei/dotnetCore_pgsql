@@ -30,7 +30,7 @@ Thumbs.db
 
 # Mac bundle stuff
 *.dmg
-*.app
+
 
 # resharper
 *_Resharper.*
@@ -59,3 +59,4 @@ Thumbs.db
 /.vs/dotnetCore_pgsql/v16/TestStore/0
 /.vs/Meta/v16/Server/sqlite3
 /.vs/Meta/DesignTimeBuild
+/Meta.App/Properties
