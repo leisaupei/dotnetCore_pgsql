@@ -98,7 +98,7 @@ namespace CodeFactory
 			string targetCommonDirectory = Path.Combine(OutputDir, "Common");
 			if (!Directory.Exists(targetCommonDirectory)) //if is not exist
 			{
-				var path = Path.Combine("..", "Common");
+				var path = Path.Combine("..", "..", "..", "..", "Common");
 				string commonDirectory = new DirectoryInfo(path).FullName;
 				Console.WriteLine(commonDirectory);
 				DirectoryCopy(commonDirectory, targetCommonDirectory);
