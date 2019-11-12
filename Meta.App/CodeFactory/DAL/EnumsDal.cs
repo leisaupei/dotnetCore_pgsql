@@ -44,7 +44,7 @@ namespace CodeFactory.DAL
 			_modelPath = modelPath;
 			_projectName = projectName;
 			var listEnum = GenerateEnum();
-			var listComposite = GenerateComposites();
+			var listComposite = new List<CompositeTypeInfo>();  // GenerateComposites();
 
 			GenerateMapping(listEnum, listComposite);
 			GenerateCsproj();
@@ -186,9 +186,8 @@ namespace CodeFactory.DAL
 			foreach (var item in list)
 				writer.WriteLine($"\t\t\t\tconn.TypeMapper.MapEnum<{TypeName}{Types.DeletePublic(item.Nspname, item.Typname)}>(\"{item.Nspname}.{item.Typname}\", translator);");
 			foreach (var item in listComposite)
-			{
-				//	writer.WriteLine($"\t\t\t\tconn.TypeMapper.MapComposite<{TypeName}{Types.DeletePublic(item.Nspname, item.Typname)}>(\"{item.Nspname}.{item.Typname}\");");
-			}
+				writer.WriteLine($"\t\t\t\tconn.TypeMapper.MapComposite<{TypeName}{Types.DeletePublic(item.Nspname, item.Typname)}>(\"{item.Nspname}.{item.Typname}\");");
+
 			writer.WriteLine("\t\t\t});");
 			writer.WriteLine("\t\t}");
 			writer.WriteLine("\t}");
