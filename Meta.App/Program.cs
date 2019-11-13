@@ -42,7 +42,16 @@ namespace dotnetCore_pgsql
 			{
 				if (args[0].Contains(","))
 				{
-					foreach (var item in args[0].Split(","))
+                    var connStringArray = args[0].Split(",");
+                    if (connStringArray.Length == 0)
+                    {
+                        Console.WriteLine("length of the connection string array is 0");
+                        return;
+                    }
+                    var finalConnString = connStringArray[^1];
+                    LetsGo.finalType = LetsGo.GetGenerateModel(finalConnString).TypeName;
+
+                    foreach (var item in connStringArray)
 						LetsGo.Produce(item);
 				}
 				else
