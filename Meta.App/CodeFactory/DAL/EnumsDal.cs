@@ -30,6 +30,10 @@ namespace CodeFactory.DAL
 		/// 数据库类别名称
 		/// </summary>
 		static string _typeName = string.Empty;
+
+		static StringBuilder _sbConstTypeName = new StringBuilder();
+
+		static StringBuilder _sbConstTypeConstrutor = new StringBuilder();
 		/// <summary>
 		/// 生成枚举数据库枚举类型(覆盖生成)
 		/// </summary>
@@ -58,7 +62,7 @@ namespace CodeFactory.DAL
 			{
 				writer.WriteLine("using System;");
 				writer.WriteLine();
-				writer.WriteLine($"namespace {_projectName}.Model{NamespaceTypeName}");
+				writer.WriteLine($"namespace {_projectName}.Model");
 				writer.WriteLine("{");
 				foreach (var item in list)
 				{
@@ -154,44 +158,52 @@ namespace CodeFactory.DAL
 		/// <param name="listComposite"></param>
 		public static void GenerateMapping(List<EnumTypeInfo> list, List<CompositeTypeInfo> listComposite)
 		{
-			var startupRoot = Path.Combine(_rootPath, "Startup");
-			if (!Directory.Exists(startupRoot))
-				Directory.CreateDirectory(startupRoot);
-			var fileName = Path.Combine(startupRoot, $"_{TypeName}Startup.cs");
-			using StreamWriter writer = new StreamWriter(File.Create(fileName), Encoding.UTF8);
-			writer.WriteLine($"using {_projectName}.Model{NamespaceTypeName};");
-			writer.WriteLine("using System;");
-			writer.WriteLine("using Microsoft.Extensions.Logging;");
-			writer.WriteLine("using Meta.Common.Model;");
-			writer.WriteLine("using Meta.Common.DBHelper;");
-			writer.WriteLine("using Npgsql;");
-			writer.WriteLine();
-			writer.WriteLine($"namespace {_projectName}.Startup");
-			writer.WriteLine("{");
-			writer.WriteLine($"\tpublic class _{TypeName}Startup");
-			writer.WriteLine("\t{");
-			writer.WriteLine();
-			writer.WriteLine("\t\t/// <summary>");
-			writer.WriteLine("\t\t/// 初始化数据库连接 如果报错需要仿照PgSqlHelper.InitDBConnection创建方法 用新的实例接收");
-			writer.WriteLine("\t\t/// </summary>");
-			writer.WriteLine("\t\t/// <param name=\"connectionString\">主库</param>");
-			writer.WriteLine("\t\t/// <param name=\"logger\">数据库语句执行日志</param>");
-			writer.WriteLine("\t\t/// <param name=\"slaveConnectionString\">从库(为空直接调用主库)</param>");
-			writer.WriteLine("\t\tpublic static void Init(string connectionString, ILogger logger, string[] slaveConnectionString = null)");
-			writer.WriteLine("\t\t{");
-			writer.WriteLine("\t\t\tNpgsqlNameTranslator translator = new NpgsqlNameTranslator();");
-			writer.WriteLine($"\t\t\tPgSqlHelper.{TypeName}InitDBConnection(connectionString, logger, slaveConnectionString, mapAction: conn =>");
-			writer.WriteLine("\t\t\t{");
-			writer.WriteLine("\t\t\t\tconn.TypeMapper.UseJsonNet();");
-			foreach (var item in list)
-				writer.WriteLine($"\t\t\t\tconn.TypeMapper.MapEnum<{TypeName}{Types.DeletePublic(item.Nspname, item.Typname)}>(\"{item.Nspname}.{item.Typname}\", translator);");
-			foreach (var item in listComposite)
-				writer.WriteLine($"\t\t\t\tconn.TypeMapper.MapComposite<{TypeName}{Types.DeletePublic(item.Nspname, item.Typname)}>(\"{item.Nspname}.{item.Typname}\");");
+			_sbConstTypeName.AppendFormat("\t\t/// <summary>\n\t\t/// {0}主库\n\t\t/// </summary>\n", TypeName);
+			_sbConstTypeName.AppendFormat("\t\tpublic const string {0}Master = \"{1}\";\n", TypeName.ToUpperPascal(), _typeName.ToLower());
+			_sbConstTypeName.AppendFormat("\t\t/// <summary>\n\t\t/// {0}从库\n\t\t/// </summary>\n", TypeName);
+			_sbConstTypeName.AppendFormat("\t\tpublic const string {0}Slave = \"{1}\";\n", TypeName.ToUpperPascal(), _typeName.ToLower() + PgSqlHelper.SlaveSuffix);
 
-			writer.WriteLine("\t\t\t});");
-			writer.WriteLine("\t\t}");
-			writer.WriteLine("\t}");
-			writer.WriteLine("}"); // namespace end
+			_sbConstTypeConstrutor.AppendFormat("\t\t#region {0}\n", _typeName);
+			_sbConstTypeConstrutor.AppendFormat("\t\tpublic class {0}DbOption : BaseDbOption\n", _typeName.ToUpperPascal());
+			_sbConstTypeConstrutor.AppendLine("\t\t{");
+			_sbConstTypeConstrutor.AppendFormat("\t\t\tpublic {0}DbOption(string connectionString, string[] slaveConnectionString, ILogger logger) : base({1}Master, connectionString, slaveConnectionString, logger)\n", _typeName.ToUpperPascal(), TypeName);
+			_sbConstTypeConstrutor.AppendLine("\t\t\t{");
+			_sbConstTypeConstrutor.AppendLine("\t\t\t\tNpgsqlNameTranslator translator = new NpgsqlNameTranslator();");
+			_sbConstTypeConstrutor.AppendLine("\t\t\t\tMapAction = conn =>");
+			_sbConstTypeConstrutor.AppendLine("\t\t\t\t{");
+			_sbConstTypeConstrutor.AppendLine("\t\t\t\t\tconn.TypeMapper.UseJsonNet();");
+			foreach (var item in list)
+				_sbConstTypeConstrutor.AppendLine($"\t\t\t\t\tconn.TypeMapper.MapEnum<{TypeName}{Types.DeletePublic(item.Nspname, item.Typname)}>(\"{item.Nspname}.{item.Typname}\", translator);");
+			foreach (var item in listComposite)
+				_sbConstTypeConstrutor.AppendLine($"\t\t\t\t\tconn.TypeMapper.MapComposite<{TypeName}{Types.DeletePublic(item.Nspname, item.Typname)}>(\"{item.Nspname}.{item.Typname}\");");
+			_sbConstTypeConstrutor.AppendLine("\t\t\t\t};");
+			_sbConstTypeConstrutor.AppendLine("\t\t\t}");
+			_sbConstTypeConstrutor.AppendLine("\t\t}");
+			_sbConstTypeConstrutor.AppendLine("\t\t#endregion\n");
+			if (_typeName == LetsGo.FinalType)
+			{
+				var startupRoot = Path.Combine(_rootPath, "Options");
+				if (!Directory.Exists(startupRoot))
+					Directory.CreateDirectory(startupRoot);
+				var fileName = Path.Combine(startupRoot, $"DbOptions.cs");
+				using StreamWriter writer = new StreamWriter(File.Create(fileName), Encoding.UTF8);
+				writer.WriteLine($"using {_projectName}.Model;");
+				writer.WriteLine("using System;");
+				writer.WriteLine("using Microsoft.Extensions.Logging;");
+				writer.WriteLine("using Meta.Common.Model;");
+				writer.WriteLine("using Meta.Common.DBHelper;");
+				writer.WriteLine("using Npgsql;");
+				writer.WriteLine();
+				writer.WriteLine($"namespace {_projectName}.Options");
+				writer.WriteLine("{");
+				writer.WriteLine($"\tpublic class DbOptions");
+				writer.WriteLine("\t{");
+				writer.Write(_sbConstTypeName);
+				writer.WriteLine();
+				writer.Write(_sbConstTypeConstrutor);
+				writer.WriteLine("\t}");
+				writer.WriteLine("}"); // namespace end
+			}
 		}
 		/// <summary>
 		/// 
@@ -220,45 +232,6 @@ namespace CodeFactory.DAL
 			writer.WriteLine("\t</ItemGroup>");
 			writer.WriteLine();
 			writer.WriteLine("</Project>");
-		}
-		/// <summary>
-		/// 生成RedisHelper.cs(存在不生成)
-		/// </summary>
-		public static void GenerateRedisHepler()
-		{
-			string fileName = Path.Combine(_rootPath, "RedisHelper.cs");
-			if (File.Exists(fileName)) return;
-			using (StreamWriter writer = new StreamWriter(File.Create(fileName), Encoding.UTF8))
-			{
-				writer.WriteLine("using System;");
-				writer.WriteLine("using System.Collections.Generic;");
-				writer.WriteLine("using Microsoft.Extensions.Configuration;");
-				writer.WriteLine("using StackExchange.Redis;");
-				writer.WriteLine("");
-				writer.WriteLine($"namespace {_projectName}.db");
-				writer.WriteLine("{");
-				writer.WriteLine("\tpublic class RedisHelper");
-				writer.WriteLine("\t{");
-				writer.WriteLine("\t\tpublic static IConfiguration Configuration { get; internal set; }");
-				writer.WriteLine("\t\tpublic static void InitializeConfiguration(IConfiguration cfg)");
-				writer.WriteLine("\t\t{");
-				//note: 
-				writer.WriteLine("/*");
-				writer.WriteLine("appsetting.json里面添加");
-				writer.WriteLine("\"ConnectionStrings\": {");
-				writer.WriteLine("\t\"redis\": \"127.0.0.1:6379,defaultDatabase=13,name = dev,abortConnect=false,password=123456\",");
-				writer.WriteLine("}");
-				writer.WriteLine("*/");
-
-				writer.WriteLine("\t\t\tConfiguration = cfg;");
-				writer.WriteLine("\t\t\tMultiplexer = ConnectionMultiplexer.Connect(cfg[\"ConnectionStrings:redis\"]);");
-				writer.WriteLine("\t\t}");
-				writer.WriteLine("\t\tpublic static IDatabase DbClient => Multiplexer.GetDatabase();");
-				writer.WriteLine("\t\tpublic static ConnectionMultiplexer Multiplexer { get; internal set; }");
-				writer.WriteLine("\t\tpublic static IDatabase GetDatabase(int db = -1) => Multiplexer.GetDatabase(db);");
-				writer.WriteLine("\t}");
-				writer.WriteLine("}");
-			};
 		}
 	}
 }

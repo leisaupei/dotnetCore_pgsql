@@ -37,11 +37,11 @@ namespace Meta.Common.SqlBuilder
 		/// <summary>
 		/// 设置默认数据库
 		/// </summary>
-		protected DatabaseType DataType { get; set; } = HostConfig.DEFAULT_DATABASE;
+		protected string DataType { get; set; } = "master";
 		/// <summary>
 		/// 是否主库
 		/// </summary>
-		protected bool IsMaster => DataType == DatabaseType.Master;
+		protected bool IsMaster => DataType == "master";
 		/// <summary>
 		/// 参数列表
 		/// </summary>
@@ -127,13 +127,13 @@ namespace Meta.Common.SqlBuilder
 		/// </summary>
 		/// <param name="type"></param>
 		/// <returns></returns>
-		public TSQL Data(DatabaseType type)
+		public TSQL Data(string type)
 		{
 			DataType = type;
 			return This;
 		}
-		public TSQL BySlave() => Data(DatabaseType.Slave);
-		public TSQL ByMaster() => Data(DatabaseType.Master);
+		public TSQL BySlave() => Data("slave");
+		public TSQL ByMaster() => Data("master");
 		/// <summary>
 		/// 添加参数
 		/// </summary>

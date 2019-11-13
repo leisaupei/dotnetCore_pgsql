@@ -85,7 +85,7 @@ namespace CodeFactory.DAL
 		/// <summary>
 		/// 多库枚举 *需要在目标项目添加枚举以及创建该库实例
 		/// </summary>
-		string DataSelectString => _dataBaseTypeName == GenerateModel.MASTER_DATABASE_TYPE_NAME ? "" : $".Data(DatabaseType.{_dataBaseTypeName})";
+		string DataSelectString => _dataBaseTypeName == GenerateModel.MASTER_DATABASE_TYPE_NAME ? "" : $".Data(DbOptions.{_dataBaseTypeName}Master)";
 		/// <summary>
 		/// Model名称
 		/// </summary>
@@ -285,8 +285,6 @@ namespace CodeFactory.DAL
 			writer.WriteLine("using Newtonsoft.Json;");
 			writer.WriteLine("using Newtonsoft.Json.Linq;");
 			writer.WriteLine("using System.Net;");
-			if (ModelDalSuffix != "")
-				writer.WriteLine($"using {_projectName}.Model.{ModelDalSuffix};");
 			writer.WriteLine($"using {_projectName}.DAL;");
 			writer.WriteLine();
 			writer.WriteLine($"namespace {_projectName}.Model");
@@ -407,7 +405,8 @@ namespace CodeFactory.DAL
 			using StreamWriter writer = new StreamWriter(File.Create(_filename), Encoding.UTF8);
 			writer.WriteLine("using Meta.Common.SqlBuilder;");
 			writer.WriteLine("using Meta.Common.Model;");
-			writer.WriteLine($"using {_projectName}.Model;");
+			writer.WriteLine($"using {_projectName}.{ModelSuffix};");
+			writer.WriteLine($"using {_projectName}.Options;");
 			writer.WriteLine("using NpgsqlTypes;");
 			writer.WriteLine("using System;");
 			writer.WriteLine("using System.Collections.Generic;");
@@ -416,8 +415,6 @@ namespace CodeFactory.DAL
 			writer.WriteLine("using System.Threading.Tasks;");
 			writer.WriteLine("using Newtonsoft.Json.Linq;");
 			writer.WriteLine("using System.Net;");
-			if (ModelDalSuffix != "")
-				writer.WriteLine($"using {_projectName}.Model.{ModelDalSuffix};");
 			if (_isGeometryTable)
 				writer.WriteLine("using Npgsql;");
 			writer.WriteLine();

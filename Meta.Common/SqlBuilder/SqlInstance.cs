@@ -17,13 +17,13 @@ namespace Meta.Common.SqlBuilder
 		public static DeleteSQL Delete() => new DeleteSQL();
 		public static DeleteSQL Delete(string table) => new DeleteSQL(table);
 
-		public static object[] SelectPipe(DatabaseType type, params IBuilder[] builders)
+		public static object[] SelectPipe(string type, params IBuilder[] builders)
 		{
 			return PgSqlHelper.ExecuteDataReaderPipe(CommandType.Text, builders, type);
 		}
 		public static object[] SelectPipe(params IBuilder[] builders)
 		{
-			return PgSqlHelper.ExecuteDataReaderPipe(CommandType.Text, builders, HostConfig.DEFAULT_DATABASE);
+			return PgSqlHelper.ExecuteDataReaderPipe(CommandType.Text, builders, "master");
 		}
 		//public static UpdateSQL Update() => new UpdateSQL();
 		//public static UpdateSQL Update(string table) => new UpdateSQL(table);

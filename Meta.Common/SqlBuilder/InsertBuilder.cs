@@ -78,7 +78,7 @@ namespace Meta.Common.SqlBuilder
 		/// 返回受影响行数_选库
 		/// </summary>
 		/// <returns></returns>
-		public int Commit(DatabaseType databaseType)
+		public int Commit(string databaseType)
 		{
 			Data(databaseType);
 			return ToRows();
@@ -97,7 +97,7 @@ namespace Meta.Common.SqlBuilder
 		/// 插入数据库并返回数据_选库
 		/// </summary>
 		/// <returns></returns>
-		public T Commit<T>(DatabaseType databaseType)
+		public T Commit<T>(string databaseType)
 		{
 			_isReturn = true;
 			Data(databaseType);

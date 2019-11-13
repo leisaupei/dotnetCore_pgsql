@@ -49,7 +49,7 @@ namespace dotnetCore_pgsql
                         return;
                     }
                     var finalConnString = connStringArray[^1];
-                    LetsGo.finalType = LetsGo.GetGenerateModel(finalConnString).TypeName;
+                    LetsGo.FinalType = LetsGo.GetGenerateModel(finalConnString).TypeName;
 
                     foreach (var item in connStringArray)
 						LetsGo.Produce(item);
@@ -62,7 +62,6 @@ namespace dotnetCore_pgsql
 				LetsGo.Produce(Console.ReadLine());
 			}
 			Console.WriteLine("successful...");
-			Console.ReadLine();
 		}
 	}
 }
