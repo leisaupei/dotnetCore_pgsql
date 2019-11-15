@@ -20,25 +20,63 @@ namespace Meta.Common.SqlBuilder
 		protected WhereBase(string table) : base(table) { }
 		protected WhereBase() { }
 
+		/// <summary>
+		/// 字符串where语句
+		/// </summary>
+		/// <param name="where"></param>
+		/// <returns></returns>
 		public TSQL Where(string where)
 		{
 			base.WhereList.Add($"({where})");
 			return This;
 		}
+		/// <summary>
+		/// not in
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="field"></param>
+		/// <param name="selectBuilder"></param>
+		/// <returns></returns>
 		public TSQL WhereNotIn<T>(string field, SelectBuilder<T> selectBuilder) where T : class, new()
 		{
 			ThrowNullFieldException(selectBuilder);
 			return WhereNotIn(field, selectBuilder.ToString());
 		}
-		public TSQL WhereNotIn<T>(string field, IEnumerable<T> arr) => WhereNotIn(field, string.Join(", ", arr));
-		public TSQL WhereNotIn(string field, string sql) => Where($"{field} NOT IN ({sql})");
+		public TSQL WhereNotIn<T>(string field, IEnumerable<T> arr)
+		{
+			if (arr == null || arr.Count() == 0)
+				throw new ArgumentNullException(nameof(arr));
+			return WhereNotIn(field, string.Join(", ", arr));
+		}
+		public TSQL WhereNotIn(string field, string sql)
+		{
+			if (!string.IsNullOrEmpty(sql))
+				throw new ArgumentNullException(nameof(sql));
+			return Where($"{field} NOT IN ({sql})");
+		}
 		public TSQL WhereIn<T>(string field, SelectBuilder<T> selectBuilder) where T : class, new()
 		{
 			ThrowNullFieldException(selectBuilder);
 			return WhereIn(field, selectBuilder.ToString());
 		}
-		public TSQL WhereIn<T>(string field, IEnumerable<T> arr) => WhereIn(field, string.Join(", ", arr.Select(f => $"'{f}'")));
-		public TSQL WhereIn(string field, string sql) => Where($"{field} IN ({sql})");
+		public TSQL WhereIn<T>(string field, IEnumerable<T> arr)
+		{
+			if (arr == null || arr.Count() == 0)
+				throw new ArgumentNullException(nameof(arr));
+			return WhereIn(field, string.Join(", ", arr.Select(f => $"'{f}'")));
+		}
+		public TSQL WhereInDefault<T>(string field, IEnumerable<T> arr)
+		{
+			if ((arr?.Count() ?? 0) == 0) _enumerableNullReturnDefault = true;
+			else WhereIn(field, string.Join(", ", arr.Select(f => $"'{f}'")));
+			return This;
+		}
+		public TSQL WhereIn(string field, string sql)
+		{
+			if (!string.IsNullOrEmpty(sql))
+				throw new ArgumentNullException(nameof(sql));
+			return Where($"{field} IN ({sql})");
+		}
 		public TSQL WhereExists<T>(SelectBuilder<T> selectBuilder) where T : class, new()
 		{
 			SetExistsField(selectBuilder);
@@ -51,12 +89,29 @@ namespace Meta.Common.SqlBuilder
 			return WhereNotExists(selectBuilder.ToString());
 		}
 		public TSQL WhereNotExists(string sql) => Where($"NOT EXISTS ({sql})");
+		/// <summary>
+		/// where or 如果val 是空或长度为0 直接返回空数据
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="filter"></param>
+		/// <param name="val"></param>
+		/// <param name="dbType"></param>
+		/// <returns></returns>
 		public TSQL WhereOrDefault<T>(string filter, IEnumerable<T> val, NpgsqlDbType? dbType = null)
 		{
 			if ((val?.Count() ?? 0) == 0) _enumerableNullReturnDefault = true;
 			else WhereOr(filter, val, dbType);
 			return This;
 		}
+		/// <summary>
+		/// where or条件
+		/// </summary>
+		/// <typeparam name="T">数组类型</typeparam>
+		/// <param name="filter">xxx={0}</param>
+		/// <param name="val">{0}的数组</param>
+		/// <param name="dbType">CLR类型</param>
+		/// <example>WhereOr("xxx={0}",new[]{1,2},NpgsqlDbType.Integer)</example>
+		/// <returns></returns>
 		public TSQL WhereOr<T>(string filter, IEnumerable<T> val, NpgsqlDbType? dbType = null)
 		{
 			object[] _val = null;
@@ -84,12 +139,26 @@ namespace Meta.Common.SqlBuilder
 			return Where(filters, _val);
 		}
 		public TSQL Where(bool isAdd, string filter, params object[] val) => isAdd ? Where(filter, val) : This;
+		/// <summary>
+		/// 是否添加func返回的where语句
+		/// </summary>
+		/// <param name="isAdd"></param>
+		/// <param name="filter"></param>
+		/// <example>Where(bool, () => $"xxx='{xxx}'")</example>
+		/// <returns></returns>
 		public TSQL Where(bool isAdd, Func<string> filter)
 		{
 			if (isAdd)
 				Where(filter.Invoke());
 			return This;
 		}
+		/// <summary>
+		/// 是否添加func返回的where语句, format格式
+		/// </summary>
+		/// <param name="isAdd">是否添加</param>
+		/// <param name="filter">返回Where(string,object) </param>
+		/// <example>Where(bool, () => ("xxx={0}", value))</example>
+		/// <returns></returns>
 		public TSQL Where(bool isAdd, Func<(string, object)> filter)
 		{
 			if (isAdd)
@@ -99,6 +168,15 @@ namespace Meta.Common.SqlBuilder
 			}
 			return This;
 		}
+		/// <summary>
+		/// 双主键
+		/// </summary>
+		/// <typeparam name="T1"></typeparam>
+		/// <typeparam name="T2"></typeparam>
+		/// <param name="keys"></param>
+		/// <param name="val"></param>
+		/// <param name="dbTypes"></param>
+		/// <returns></returns>
 		public TSQL Where<T1, T2>(string[] keys, IEnumerable<(T1, T2)> val, NpgsqlDbType?[] dbTypes = null) => WhereTuple(f =>
 		{
 			var item = val.ElementAt(f.Item2 / keys.Length);
@@ -113,6 +191,16 @@ namespace Meta.Common.SqlBuilder
 				f.Item1.Add(new DbTypeValue(item.Item2, dbTypes[1]));
 			}
 		}, keys, val.Count());
+		/// <summary>
+		/// 三主键
+		/// </summary>
+		/// <typeparam name="T1"></typeparam>
+		/// <typeparam name="T2"></typeparam>
+		/// <typeparam name="T3"></typeparam>
+		/// <param name="keys"></param>
+		/// <param name="val"></param>
+		/// <param name="dbTypes"></param>
+		/// <returns></returns>
 		public TSQL Where<T1, T2, T3>(string[] keys, IEnumerable<(T1, T2, T3)> val, NpgsqlDbType?[] dbTypes = null) => WhereTuple(f =>
 		{
 			var item = val.ElementAt(f.Item2 / keys.Length);
@@ -129,6 +217,17 @@ namespace Meta.Common.SqlBuilder
 				f.Item1.Add(new DbTypeValue(item.Item3, dbTypes[2]));
 			}
 		}, keys, val.Count());
+		/// <summary>
+		/// 四主键
+		/// </summary>
+		/// <typeparam name="T1"></typeparam>
+		/// <typeparam name="T2"></typeparam>
+		/// <typeparam name="T3"></typeparam>
+		/// <typeparam name="T4"></typeparam>
+		/// <param name="keys"></param>
+		/// <param name="val"></param>
+		/// <param name="dbTypes"></param>
+		/// <returns></returns>
 		public TSQL Where<T1, T2, T3, T4>(string[] keys, IEnumerable<(T1, T2, T3, T4)> val, NpgsqlDbType?[] dbTypes = null) => WhereTuple(f =>
 		{
 			var item = val.ElementAt(f.Item2 / keys.Length);

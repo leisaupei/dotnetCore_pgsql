@@ -4,11 +4,26 @@ using System;
 
 namespace Meta.Common.Model
 {
+	/// <summary>
+	/// 联表实体类
+	/// </summary>
 	public class Union
 	{
+		/// <summary>
+		/// 别名
+		/// </summary>
 		public string AliasName { get; set; }
+		/// <summary>
+		/// 标明
+		/// </summary>
 		public string Table { get; set; }
+		/// <summary>
+		/// on表达式
+		/// </summary>
 		public string Expression { get; set; }
+		/// <summary>
+		/// 联表类型
+		/// </summary>
 		public UnionEnum UnionType { get; set; }
 		public Union(string aliasName, string table, string expression, UnionEnum unionType)
 		{
@@ -18,6 +33,9 @@ namespace Meta.Common.Model
 			UnionType = unionType;
 		}
 	}
+	/// <summary>
+	/// 
+	/// </summary>
 	public class DbTypeValue
 	{
 		public DbTypeValue() { }
