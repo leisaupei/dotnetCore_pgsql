@@ -50,7 +50,7 @@ namespace Meta.Common.SqlBuilder
 		}
 		public TSQL WhereNotIn(string field, string sql)
 		{
-			if (!string.IsNullOrEmpty(sql))
+			if (string.IsNullOrEmpty(sql))
 				throw new ArgumentNullException(nameof(sql));
 			return Where($"{field} NOT IN ({sql})");
 		}
@@ -73,7 +73,7 @@ namespace Meta.Common.SqlBuilder
 		}
 		public TSQL WhereIn(string field, string sql)
 		{
-			if (!string.IsNullOrEmpty(sql))
+			if (string.IsNullOrEmpty(sql))
 				throw new ArgumentNullException(nameof(sql));
 			return Where($"{field} IN ({sql})");
 		}

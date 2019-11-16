@@ -3,6 +3,8 @@ using Npgsql;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
+using System.Linq;
 using System.Threading;
 
 namespace Meta.Common.DBHelper
@@ -51,55 +53,56 @@ namespace Meta.Common.DBHelper
 		/// <summary>
 		/// 执行命令前准备
 		/// </summary>
-		protected void PrepareCommand(NpgsqlCommand cmd, CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
+		protected NpgsqlCommand PrepareCommand(CommandType cmdType, string cmdText, DbParameter[] cmdParams)
 		{
 			if (Pool == null)
 				throw new ArgumentException("Connection pool is null");
-			if (string.IsNullOrEmpty(cmdText) || cmd == null)
+			if (string.IsNullOrEmpty(cmdText))
 				throw new ArgumentNullException("Command is error");
+			NpgsqlCommand cmd;
 			if (CurrentTransaction == null)
-				cmd.Connection = Pool.GetConnection();
+			{
+				cmd = Pool.GetConnection().CreateCommand();
+			}
 			else
 			{
-				cmd.Connection = CurrentTransaction.Connection;
+				cmd = CurrentTransaction.Connection.CreateCommand();
 				cmd.Transaction = CurrentTransaction;
 			}
 			cmd.CommandText = cmdText;
 			cmd.CommandType = cmdType;
-			if (cmdParams != null)
+			if (cmdParams?.Any() != true) return cmd;
+
+			foreach (var p in cmdParams)
 			{
-				foreach (var p in cmdParams)
-				{
-					if (p == null) continue;
-					if ((p.Direction == ParameterDirection.Input || p.Direction == ParameterDirection.InputOutput) && p.Value == null)
-						p.Value = DBNull.Value;
-					cmd.Parameters.Add(p);
-				}
+				if (p == null) continue;
+				if ((p.Direction == ParameterDirection.Input || p.Direction == ParameterDirection.InputOutput) && p.Value == null)
+					p.Value = DBNull.Value;
+				cmd.Parameters.Add(p);
 			}
+			return cmd;
 		}
 		/// <summary>
 		/// 返回一行数据
 		/// </summary>
 		public object ExecuteScalar(CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
 		{
+			NpgsqlCommand cmd = null;
 			object ret = null;
-			using (NpgsqlCommand cmd = new NpgsqlCommand())
+			try
 			{
-				try
-				{
-					PrepareCommand(cmd, cmdType, cmdText, cmdParams);
-					ret = cmd.ExecuteScalar();
-				}
-				catch (Exception ex)
-				{
-					ThrowException(cmd, ex);
-					throw ex;
-				}
-				finally
-				{
-					if (CurrentTransaction == null)
-						Close(cmd, cmd.Connection);
-				}
+				cmd = PrepareCommand(cmdType, cmdText, cmdParams);
+				ret = cmd.ExecuteScalar();
+			}
+			catch (Exception ex)
+			{
+				ThrowException(cmd, ex);
+				throw ex;
+			}
+			finally
+			{
+				if (CurrentTransaction == null)
+					Close(cmd, cmd.Connection);
 			}
 			return ret;
 		}
@@ -109,10 +112,10 @@ namespace Meta.Common.DBHelper
 		public int ExecuteNonQuery(CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
 		{
 			int ret = 0;
-			using NpgsqlCommand cmd = new NpgsqlCommand();
+			NpgsqlCommand cmd = null;
 			try
 			{
-				PrepareCommand(cmd, cmdType, cmdText, cmdParams);
+				cmd = PrepareCommand(cmdType, cmdText, cmdParams);
 				ret = cmd.ExecuteNonQuery();
 			}
 			catch (Exception ex)
@@ -144,11 +147,12 @@ namespace Meta.Common.DBHelper
 		/// </summary>
 		public void ExecuteDataReaderBase(Action<NpgsqlDataReader> action, CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
 		{
-			using NpgsqlCommand cmd = new NpgsqlCommand();
+
 			NpgsqlDataReader dr = null;
+			NpgsqlCommand cmd = null;
 			try
 			{
-				PrepareCommand(cmd, cmdType, cmdText, cmdParams);
+				cmd = PrepareCommand(cmdType, cmdText, cmdParams);
 				using (dr = cmd.ExecuteReader())
 					action?.Invoke(dr);
 			}
@@ -175,7 +179,7 @@ namespace Meta.Common.DBHelper
 			if (cmd?.Parameters != null)
 				foreach (NpgsqlParameter item in cmd.Parameters)
 					str += $"{item.ParameterName}:{item.Value}\n";
-			_logger.LogError(new EventId(111111), ex, "数据库执行出错：===== \n{0}\n{1}\nConnectionString:{2}", cmd?.CommandText, str, cmd?.Connection?.ConnectionString);//输出日志
+			_logger.LogError(new EventId(111111), ex, "数据库执行出错：===== \n{0}\n{1}\nConnectionString:{2}", cmd?.CommandText, str, cmd?.Connection.ConnectionString);//输出日志
 
 		}
 		/// <summary>
@@ -220,14 +224,12 @@ namespace Meta.Common.DBHelper
 		void ReleaseTransaction(Action<NpgsqlTransaction> action)
 		{
 			var tran = CurrentTransaction;
-			if (tran == null || tran.Connection == null || tran?.IsCompleted == true) return;
+			if (tran == null || tran.Connection == null || tran.IsCompleted == true) return;
 			var tid = Thread.CurrentThread.ManagedThreadId;
 			lock (_lockTrans)
 				_transPool.Remove(tid);
-			var conn = tran.Connection;
 			action?.Invoke(tran);
-			tran.Dispose();
-			Pool.ReleaseConnection(conn);
+			Pool.ReleaseConnection(tran.Connection);
 		}
 		#endregion
 

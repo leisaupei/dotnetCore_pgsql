@@ -19,6 +19,9 @@ namespace CodeFactory
 		static string DalPath = string.Empty;
 		static string ProjectName = string.Empty;
 		static string OutputDir = string.Empty;
+		/// <summary>
+		/// 最后一个数据库名
+		/// </summary>
 		public static string FinalType;
 		/// <summary>
 		/// 生成
@@ -32,6 +35,11 @@ namespace CodeFactory
 			Build(model);
 			Console.WriteLine("Done...");
 		}
+		/// <summary>
+		/// 构建数据库连接实体
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
 
 		public static GenerateModel GetGenerateModel(string args)
 		{
