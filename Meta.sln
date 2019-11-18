@@ -17,7 +17,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Meta.xUnitTest.db", "Meta.x
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sql", "sql", "{A97EA18D-15AB-4AE6-A6F8-D60136471A2B}"
 	ProjectSection(SolutionItems) = preProject
-		C:\Users\Administrator\Desktop\test.sql = C:\Users\Administrator\Desktop\test.sql
+		test.sql = test.sql
 	EndProjectSection
 EndProject
 Global
