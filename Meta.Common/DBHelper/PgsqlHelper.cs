@@ -28,7 +28,7 @@ namespace Meta.Common.DBHelper
 			if (executeDictString.ContainsKey(type))
 			{
 				if (executeDictString[type].Count == 0)
-					if (type.EndsWith(SlaveSuffix))
+					if (type.EndsWith(SlaveSuffix, StringComparison.Ordinal))
 						return GetExecute(type.Replace(SlaveSuffix, string.Empty));
 
 				var execute = executeDictString[type];
@@ -38,16 +38,14 @@ namespace Meta.Common.DBHelper
 				else if (executeDictString[type].Count > 1)
 					return executeDictString[type].OrderBy(f => f.Pool.Wait.Count).First();
 			}
-			else if (type.EndsWith(SlaveSuffix))
+			else if (type.EndsWith(SlaveSuffix, StringComparison.Ordinal))
 				return GetExecute(type.Replace(SlaveSuffix, string.Empty));
 			throw new ArgumentNullException($"not exist {type} execute");
 		}
 		/// <summary>
 		/// 初始化一主多从数据库连接
 		/// </summary>
-		/// <param name="connectionString">主库</param>
-		/// <param name="logger"></param>
-		/// <param name="slaveConnectionString">从库</param>
+        /// <param name="options"></param>
 		public static void InitDBConnectionOption(params BaseDbOption[] options)
 		{
 			if (options == null)
