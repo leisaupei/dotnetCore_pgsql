@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Meta.Common.Model
+namespace Meta.Common.Interface
 {
 	public interface IBuilder
 	{

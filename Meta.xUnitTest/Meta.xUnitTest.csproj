@@ -13,4 +13,8 @@
     <PackageReference Include="coverlet.collector" Version="1.0.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Meta.xUnitTest.db\Meta.xUnitTest.db.csproj" />
+  </ItemGroup>
+
 </Project>

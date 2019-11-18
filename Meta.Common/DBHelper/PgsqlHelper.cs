@@ -1,4 +1,5 @@
 ﻿using Meta.Common.Extensions;
+using Meta.Common.Interface;
 using Meta.Common.Model;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -11,13 +12,29 @@ namespace Meta.Common.DBHelper
 {
 	public static class PgSqlHelper
 	{
+		/// <summary>
+		/// 从库后缀
+		/// </summary>
 		public const string SlaveSuffix = "-slave";
+		/// <summary>
+		/// 实例键值对
+		/// </summary>
+		static readonly Dictionary<string, List<Execute>> _executeDictString = new Dictionary<string, List<Execute>>();
+		/// <summary>
+		/// 随机从库
+		/// </summary>
+		static readonly Random _ran;
 		public class Execute : PgExecute
 		{
 			public Execute(string connectionString, ILogger logger, Action<NpgsqlConnection> mapAction)
 				: base(connectionString, logger, mapAction) { }
 		}
-		static readonly Dictionary<string, List<Execute>> executeDictString = new Dictionary<string, List<Execute>>();
+
+		static PgSqlHelper()
+		{
+			_ran = new Random(DateTime.Now.GetHashCode());
+		}
+
 		/// <summary>
 		/// 获取连接实例
 		/// </summary>
@@ -25,29 +42,26 @@ namespace Meta.Common.DBHelper
 		/// <returns>对应实例</returns>
 		static PgExecute GetExecute(string type)
 		{
-			if (executeDictString.ContainsKey(type))
+			if (_executeDictString.ContainsKey(type))
 			{
-				if (executeDictString[type].Count == 0)
+				var execute = _executeDictString[type];
+				if (execute.Count == 0)
 					if (type.EndsWith(SlaveSuffix))
 						return GetExecute(type.Replace(SlaveSuffix, string.Empty));
 
-				var execute = executeDictString[type];
-				if (executeDictString[type].Count == 1)
-					return executeDictString[type][0];
+				if (execute.Count == 1)
+					return execute[0];
 
-				else if (executeDictString[type].Count > 1)
-					return executeDictString[type].OrderBy(f => f.Pool.Wait.Count).First();
+				else if (execute.Count > 1)
+					return execute[_ran.Next(0, execute.Count)];
 			}
-			else if (type.EndsWith(SlaveSuffix))
-				return GetExecute(type.Replace(SlaveSuffix, string.Empty));
+			// 从没有从库连接会查主库->如果没有连接会报错
 			throw new ArgumentNullException($"not exist {type} execute");
 		}
 		/// <summary>
 		/// 初始化一主多从数据库连接
 		/// </summary>
-		/// <param name="connectionString">主库</param>
-		/// <param name="logger"></param>
-		/// <param name="slaveConnectionString">从库</param>
+		/// <param name="options">数据库连接</param>
 		public static void InitDBConnectionOption(params BaseDbOption[] options)
 		{
 			if (options == null)
@@ -57,16 +71,24 @@ namespace Meta.Common.DBHelper
 			foreach (var item in options)
 				InitDB(item.ConnectionString, item.Logger, item.SlaveConnectionString, item.MapAction, item.TypeName);
 		}
-		private static void InitDB(string connectionString, ILogger logger, string[] slaveConnectionString, Action<NpgsqlConnection> mapAction, string type)
+		/// <summary>
+		/// 初始化数据库
+		/// </summary>
+		/// <param name="connectionString"></param>
+		/// <param name="logger"></param>
+		/// <param name="slaveConnectionString"></param>
+		/// <param name="mapAction"></param>
+		/// <param name="type"></param>
+		static void InitDB(string connectionString, ILogger logger, string[] slaveConnectionString, Action<NpgsqlConnection> mapAction, string type)
 		{
 			if (string.IsNullOrEmpty(connectionString))
-				throw new ArgumentNullException($"{type} Connection String is null");
-			executeDictString[type] = new List<Execute> { new Execute(connectionString, logger, mapAction) };
+				throw new ArgumentNullException(nameof(connectionString), $"{type} Connection String is null");
+			_executeDictString[type] = new List<Execute> { new Execute(connectionString, logger, mapAction) };
 			if (slaveConnectionString?.Length > 0)
 			{
-				executeDictString[type + SlaveSuffix] = new List<Execute>();
+				_executeDictString[type + SlaveSuffix] = new List<Execute>();
 				foreach (var item in slaveConnectionString)
-					executeDictString[type + SlaveSuffix].Add(new Execute(item, logger, mapAction));
+					_executeDictString[type + SlaveSuffix].Add(new Execute(item, logger, mapAction));
 			}
 		}
 		/// <summary>
@@ -192,15 +214,13 @@ namespace Meta.Common.DBHelper
 		/// <returns>实体</returns>
 		public static object[] ExecuteDataReaderPipe(CommandType cmdType, IEnumerable<IBuilder> builders, string type = "master")
 		{
-			if ((builders?.Count() ?? 0) == 0)
-				throw new ArgumentNullException("buiders is null");
+			if (builders?.Any() != true)
+				throw new ArgumentNullException(nameof(builders));
 			object[] results = new object[builders.Count()];
 			List<NpgsqlParameter> paras = new List<NpgsqlParameter>();
 			int _paramsCount = 0;
-			string ParamsIndex()
-			{
-				return "p" + _paramsCount++.ToString().PadLeft(6, '0');
-			}
+			string ParamsIndex() => "p" + _paramsCount++.ToString().PadLeft(6, '0');
+
 			var cmdText = string.Empty;
 			foreach (var item in builders)
 			{
@@ -263,12 +283,11 @@ namespace Meta.Common.DBHelper
 		public static void Transaction(Func<bool> func, string type = "master")
 		{
 			if (func == null)
-				throw new NotSupportedException("func is require");
+				throw new ArgumentNullException(nameof(func));
 			try
 			{
 				GetExecute(type).BeginTransaction();
-				bool f = func.Invoke();
-				if (f == true)
+				if (func.Invoke())
 					GetExecute(type).CommitTransaction();
 				else
 					GetExecute(type).RollBackTransaction();

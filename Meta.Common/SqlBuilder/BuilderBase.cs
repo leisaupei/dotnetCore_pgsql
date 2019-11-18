@@ -1,4 +1,5 @@
 ﻿using Meta.Common.DBHelper;
+using Meta.Common.Interface;
 using Meta.Common.Model;
 using Npgsql;
 using NpgsqlTypes;
