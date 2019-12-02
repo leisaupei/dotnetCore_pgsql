@@ -1,6 +1,6 @@
 ﻿/*
  * ##########################################################
- * #     .net core 2.1+npsql 4.0.2 Postgresql Code Maker    #
+ * #     .net core 3.0 + npsql Postgresql Code Maker        #
  * #                author by leisaupei                     #
  * #      https://github.com/leisaupei/dotnetCore_pgsql     #
  * ##########################################################
@@ -20,7 +20,7 @@ namespace dotnetCore_pgsql
 			Console.InputEncoding = Encoding.GetEncoding("UTF-8");
 			Console.WriteLine(@"
 ##########################################################
-#     .net core 3.0+npsql 4.1.1 Postgresql Code Maker    #
+#     .net core 3.0 + npsql Postgresql Code Maker        #
 #                author by leisaupei                     #
 #      https://github.com/leisaupei/dotnetCore_pgsql     #
 ##########################################################
@@ -40,22 +40,25 @@ namespace dotnetCore_pgsql
 ");
 			if (args?.Length > 0)
 			{
-				if (args[0].Contains(","))
+				if (args[0].Contains(','))
 				{
-                    var connStringArray = args[0].Split(",");
-                    if (connStringArray.Length == 0)
-                    {
-                        Console.WriteLine("length of the connection string array is 0");
-                        return;
-                    }
-                    var finalConnString = connStringArray[^1];
-                    LetsGo.FinalType = LetsGo.GetGenerateModel(finalConnString).TypeName;
+					var connStringArray = args[0].Split(',');
+					if (connStringArray.Length == 0)
+					{
+						Console.WriteLine("length of the connection string array is 0");
+						return;
+					}
+					var finalConnString = connStringArray[^1];
+					LetsGo.FinalType = LetsGo.GetGenerateModel(finalConnString).TypeName;
 
-                    foreach (var item in connStringArray)
+					foreach (var item in connStringArray)
 						LetsGo.Produce(item);
 				}
 				else
+				{
+					LetsGo.FinalType = LetsGo.GetGenerateModel(args[0]).TypeName;
 					LetsGo.Produce(args[0]);
+				}
 			}
 			else
 			{

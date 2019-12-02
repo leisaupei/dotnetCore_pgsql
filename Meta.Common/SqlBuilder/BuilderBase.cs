@@ -1,4 +1,5 @@
-﻿using Meta.Common.DBHelper;
+﻿using Meta.Common.DbHelper;
+using Meta.Common.Extensions;
 using Meta.Common.Interface;
 using Meta.Common.Model;
 using Npgsql;
@@ -9,8 +10,9 @@ using System.Data;
 
 namespace Meta.Common.SqlBuilder
 {
-	public abstract class BuilderBase<TSQL> : IBuilder where TSQL : class, new()
+	public abstract class BuilderBase<TSQL> : ISqlBuilder where TSQL : class, new()
 	{
+		#region Identity
 		/// <summary>
 		/// 参数计数器
 		/// </summary>
@@ -32,42 +34,33 @@ namespace Meta.Common.SqlBuilder
 		/// </summary>
 		protected List<string> WhereList { get; } = new List<string>();
 		/// <summary>
-		/// 参数后缀
-		/// </summary>
-		protected string ParamsIndex => "p" + _paramsCount++.ToString().PadLeft(6, '0');
-		/// <summary>
 		/// 设置默认数据库
 		/// </summary>
 		protected string DataType { get; set; } = "master";
 		/// <summary>
-		/// 是否主库
+		/// 是否返回默认值
 		/// </summary>
-		protected bool IsMaster => DataType == "master";
-		/// <summary>
-		/// 参数列表
-		/// </summary>
-		public List<NpgsqlParameter> Params { get; } = new List<NpgsqlParameter>();
-		/// <summary>
-		/// 如果输入的数组为空, 直接返回空
-		/// </summary>
-		protected bool _enumerableNullReturnDefault = false;
-		/// <summary>
-		/// 输出sql语句
-		/// </summary>
-		string CmdStr => GetCommandTextString();
-		/// <summary>
-		/// 类型转换
-		/// </summary>
-		TSQL This => this as TSQL;
+		public bool IsReturnDefault { get; set; } = false;
 		/// <summary>
 		/// 返回实例类型
 		/// </summary>
 		public Type Type { get; set; }
 		/// <summary>
-		/// 是否列表
+		/// 返回类型
 		/// </summary>
-		public bool IsList { get; set; }
+		public PipeReturnType ReturnType { get; set; }
+		/// <summary>
+		/// 参数列表
+		/// </summary>
+		public List<NpgsqlParameter> Params { get; } = new List<NpgsqlParameter>();
+		#endregion
 
+		/// <summary>
+		/// 参数后缀
+		/// </summary>
+		protected string ParamsIndex => "p" + _paramsCount++.ToString().PadLeft(6, '0');
+
+		#region Constructor
 		/// <summary>
 		/// 初始化主表与别名
 		/// </summary>
@@ -91,6 +84,8 @@ namespace Meta.Common.SqlBuilder
 		protected BuilderBase()
 		{
 		}
+		#endregion
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -201,10 +196,10 @@ namespace Meta.Common.SqlBuilder
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		protected TSQL ToPipe<T>(bool isList)
+		protected TSQL ToPipe<T>(PipeReturnType returnType)
 		{
 			Type = typeof(T);
-			IsList = isList;
+			ReturnType = returnType;
 			return This;
 		}
 
@@ -219,6 +214,16 @@ namespace Meta.Common.SqlBuilder
 		/// </summary>
 		/// <returns></returns>
 		public override string ToString() => ToString(null);
+
+		/// <summary>
+		/// 输出sql语句
+		/// </summary>
+		string CmdStr => GetCommandTextString();
+		/// <summary>
+		/// 类型转换
+		/// </summary>
+		TSQL This => this as TSQL;
+
 		/// <summary>
 		/// 调试或输出用
 		/// </summary>
@@ -235,5 +240,8 @@ namespace Meta.Common.SqlBuilder
 		/// <returns></returns>
 		public abstract string GetCommandTextString();
 
+		#region Implicit
+		public static implicit operator string(BuilderBase<TSQL> builder) => builder.ToString();
+		#endregion
 	}
 }

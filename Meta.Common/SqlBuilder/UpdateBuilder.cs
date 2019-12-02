@@ -1,4 +1,5 @@
-﻿using Meta.Common.Model;
+﻿using Meta.Common.DbHelper;
+using Meta.Common.Model;
 using Npgsql;
 using NpgsqlTypes;
 using System;
@@ -8,46 +9,46 @@ using System.Linq.Expressions;
 using System.Text;
 namespace Meta.Common.SqlBuilder
 {
-	public abstract class UpdateBuilder<TDAL, TModel> : WhereBase<TDAL> where TDAL : class, new()
+	public abstract class UpdateBuilder<TSQL, TModel> : WhereBase<TSQL> where TSQL : class, new()
 	{
 		/// <summary>
 		/// 设置列表
 		/// </summary>
 		readonly List<string> _setList = new List<string>();
-		/// <summary>
-		/// 是否返回实体类
-		/// </summary>
-		bool _isReturn = false;
-		TDAL This => this as TDAL;
-		/// <summary>
-		/// 初始化Table
-		/// </summary>
-		/// <param name="table"></param>
-		public UpdateBuilder(string table) : base(table) { }
-		public UpdateBuilder(string table, string alias) : base(table, alias) { }
-		public UpdateBuilder()
-		{
-			MainTable = MappingHelper.GetMapping<TModel>();
-			Fields = EntityHelper.GetAllSelectFieldsString<TModel>(MainAlias);
-		}
-		/// <summary>
-		/// 字段自增
-		/// </summary>
-		/// <param name="field">字段名称</param>
-		/// <param name="increment">自增值</param>
-		/// <param name="size"></param>
-		/// <returns></returns>
-		public TDAL SetIncrement(string field, object increment, int? size = null, NpgsqlDbType? dbType = null)
-		{
-			var param_name = ParamsIndex;
-			var coalesce = dbType.HasValue && IncrementDic.ContainsKey(dbType.Value) ? IncrementDic[dbType.Value] : "0";
-			return SetExp(string.Format("{0} = COALESCE({0}, {1}) + @{2}", field, coalesce, param_name), param_name, increment, size, increment is TimeSpan ? NpgsqlDbType.Interval : dbType);
-		}
-		static readonly Dictionary<NpgsqlDbType, string> IncrementDic = new Dictionary<NpgsqlDbType, string>
+
+		static readonly Dictionary<NpgsqlDbType, string> _incrementDic = new Dictionary<NpgsqlDbType, string>
 		{
 			{ NpgsqlDbType.Date, "now()::date" }, { NpgsqlDbType.Interval, "'00:00:00'" }, { NpgsqlDbType.Time, "'00:00:00'" },
 			{ NpgsqlDbType.Timestamp, "now()" }, { NpgsqlDbType.Money, "0::money" }
 		};
+		/// <summary>
+		/// 是否返回实体类
+		/// </summary>
+		bool _isReturn = false;
+		TSQL This => this as TSQL;
+		#region Contructor
+		public UpdateBuilder(string table) : base(table) { }
+		public UpdateBuilder(string table, string alias) : base(table, alias) { }
+		public UpdateBuilder()
+		{
+			MainTable = EntityHelper.GetTableName<TModel>();
+			Fields = EntityHelper.GetModelTypeFieldsString<TModel>(MainAlias);
+		}
+		#endregion
+
+		/// <summary>
+		/// 字段自增
+		/// </summary>
+		/// <param name="field">字段名称</param>
+		/// <param name="value">自增值</param>
+		/// <param name="size"></param>
+		/// <returns></returns>
+		public TSQL SetIncrement(string field, object value, int? size = null, NpgsqlDbType? dbType = null)
+		{
+			var param_name = ParamsIndex;
+			var coalesce = dbType.HasValue && _incrementDic.ContainsKey(dbType.Value) ? _incrementDic[dbType.Value] : "0";
+			return SetExp(string.Format("{0} = COALESCE({0}, {1}) + @{2}", field, coalesce, param_name), param_name, value, size, value is TimeSpan ? NpgsqlDbType.Interval : dbType);
+		}
 		/// <summary>
 		/// 添加元素到数组
 		/// </summary>
@@ -55,7 +56,7 @@ namespace Meta.Common.SqlBuilder
 		/// <param name="value">值或数组</param>
 		/// <param name="size"></param>
 		/// <returns></returns>
-		public TDAL SetJoin(string field, object value, int? size = null, NpgsqlDbType? dbType = null)
+		public TSQL SetJoin(string field, object value, int? size = null, NpgsqlDbType? dbType = null)
 		{
 			var param_name = ParamsIndex;
 			return SetExp(string.Format("{0} = {0} || @{1}", field, param_name), param_name, value, size, dbType);
@@ -68,7 +69,7 @@ namespace Meta.Common.SqlBuilder
 		/// <param name="y">纬度</param>
 		/// <param name="srid">空间坐标系唯一标识</param>
 		/// <returns></returns>
-		protected TDAL SetGeometry(string field, float x, float y, int srid)
+		protected TSQL SetGeometry(string field, float x, float y, int srid)
 		{
 			var pointName = ParamsIndex;
 			var sridName = ParamsIndex;
@@ -84,7 +85,7 @@ namespace Meta.Common.SqlBuilder
 		/// <param name="value">需要移除的值</param>
 		/// <param name="size"></param>
 		/// <returns></returns>
-		public TDAL SetRemove(string field, object value, int? size = null, NpgsqlDbType? dbType = null)
+		public TSQL SetRemove(string field, object value, int? size = null, NpgsqlDbType? dbType = null)
 		{
 			var param_name = ParamsIndex;
 			return SetExp(string.Format("{0} = array_remove({0}, @{1})", field, param_name), param_name, value, size, dbType);
@@ -97,13 +98,22 @@ namespace Meta.Common.SqlBuilder
 		/// <param name="value">值</param>
 		/// <param name="size"></param>
 		/// <returns></returns>
-		public TDAL SetExp(string exp, string param, object value, int? size = null, NpgsqlDbType? dbType = null)
+		public TSQL SetExp(string exp, string param, object value, int? size = null, NpgsqlDbType? dbType = null)
 		{
 			AddParameter(param, value, size, dbType);
 			_setList.Add(exp);
 			return This;
 		}
-		public TDAL Set(bool isAdd, string field, object value, int? size = null, NpgsqlDbType? dbType = null)
+		/// <summary>
+		/// 是否添加set语句
+		/// </summary>
+		/// <param name="isAdd"></param>
+		/// <param name="field"></param>
+		/// <param name="value"></param>
+		/// <param name="size"></param>
+		/// <param name="dbType"></param>
+		/// <returns></returns>
+		public TSQL Set(bool isAdd, string field, object value, int? size = null, NpgsqlDbType? dbType = null)
 		{
 			if (!isAdd) return This;
 			var param_name = ParamsIndex;
@@ -115,7 +125,7 @@ namespace Meta.Common.SqlBuilder
 		/// <param name="field">字段名称</param>
 		/// <param name="value">值</param>
 		/// <returns></returns>
-		public TDAL Set(string field, object value, int? size = null, NpgsqlDbType? dbType = null)
+		public TSQL Set(string field, object value, int? size = null, NpgsqlDbType? dbType = null)
 		{
 			var param_name = ParamsIndex;
 			return SetExp($"{field} = @{param_name}", param_name, value, size, dbType);
@@ -126,7 +136,7 @@ namespace Meta.Common.SqlBuilder
 		/// <param name="field">字段名字</param>
 		/// <param name="sqlStr">SQL语句</param>
 		/// <returns></returns>
-		public TDAL Set(string field, string sqlStr)
+		public TSQL Set(string field, string sqlStr)
 		{
 			_setList.Add($"{field} = ({sqlStr})");
 			return This;
@@ -137,7 +147,7 @@ namespace Meta.Common.SqlBuilder
 		/// <param name="field">字段名字</param>
 		/// <param name="sqlStr">SQL语句</param>
 		/// <returns></returns>
-		public TDAL Set(string field, TDAL selectBuilder)
+		public TSQL Set(string field, TSQL selectBuilder)
 		{
 			Set(field, selectBuilder.ToString());
 			return This;
@@ -175,11 +185,17 @@ namespace Meta.Common.SqlBuilder
 			refInfo = info;
 			return info.Count;
 		}
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <returns></returns>
+		public TSQL ToPipe() => base.ToPipe<int>(PipeReturnType.Rows);
 		#region Override
 		public override string ToString() => base.ToString();
 		public override string GetCommandTextString()
 		{
-			if (WhereList.Count < 1) throw new ArgumentException("update语句必须带where条件");
+			if (WhereList.Count < 1)
+				throw new ArgumentNullException(nameof(WhereList));
 			if (!string.IsNullOrEmpty(Fields))
 			{
 				//if (_fields.IndexOf($"{_mainAlias}.update_time", StringComparison.Ordinal) > 0

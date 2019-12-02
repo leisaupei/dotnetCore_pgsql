@@ -188,87 +188,87 @@ namespace CodeFactory
 		/// <returns></returns>
 		public static NpgsqlDbType ConvertDbTypeToNpgsqlDbType(string dataType, string dbType, bool isArray)
 		{
-			NpgsqlDbType _type = NpgsqlDbType.Unknown;
+			NpgsqlDbType type = NpgsqlDbType.Unknown;
 			if (dataType == "e" || dataType == "c")
 				return NpgsqlDbType.Unknown;  //   _dbtype = item.Db_type.ToUpperPascal();
 
 			//var _type = string.Empty;
 			switch (dbType)
 			{
-				case "bit": _type = NpgsqlDbType.Bit; break;
-				case "varbit": _type = NpgsqlDbType.Varbit; break;
+				case "bit": type = NpgsqlDbType.Bit; break;
+				case "varbit": type = NpgsqlDbType.Varbit; break;
 
-				case "bool": _type = NpgsqlDbType.Boolean; break;
-				case "box": _type = NpgsqlDbType.Box; break;
-				case "bytea": _type = NpgsqlDbType.Bytea; break;
-				case "circle": _type = NpgsqlDbType.Circle; break;
+				case "bool": type = NpgsqlDbType.Boolean; break;
+				case "box": type = NpgsqlDbType.Box; break;
+				case "bytea": type = NpgsqlDbType.Bytea; break;
+				case "circle": type = NpgsqlDbType.Circle; break;
 
-				case "float4": _type = NpgsqlDbType.Real; break;
-				case "float8": _type = NpgsqlDbType.Double; break;
+				case "float4": type = NpgsqlDbType.Real; break;
+				case "float8": type = NpgsqlDbType.Double; break;
 
-				case "money": _type = NpgsqlDbType.Money; break;
+				case "money": type = NpgsqlDbType.Money; break;
 				case "decimal":
-				case "numeric": _type = NpgsqlDbType.Numeric; break;
+				case "numeric": type = NpgsqlDbType.Numeric; break;
 
-				case "cid": _type = NpgsqlDbType.Cid; break;
-				case "cidr": _type = NpgsqlDbType.Cidr; break;
-				case "inet": _type = NpgsqlDbType.Inet; break;
+				case "cid": type = NpgsqlDbType.Cid; break;
+				case "cidr": type = NpgsqlDbType.Cidr; break;
+				case "inet": type = NpgsqlDbType.Inet; break;
 
 				case "serial2":
-				case "int2": _type = NpgsqlDbType.Smallint; break;
+				case "int2": type = NpgsqlDbType.Smallint; break;
 
 				case "serial4":
-				case "int4": _type = NpgsqlDbType.Integer; break;
+				case "int4": type = NpgsqlDbType.Integer; break;
 
 				case "serial8":
-				case "int8": _type = NpgsqlDbType.Bigint; break;
+				case "int8": type = NpgsqlDbType.Bigint; break;
 
-				case "time": _type = NpgsqlDbType.Time; break;
-				case "interval": _type = NpgsqlDbType.Interval; break;
+				case "time": type = NpgsqlDbType.Time; break;
+				case "interval": type = NpgsqlDbType.Interval; break;
 
-				case "json": _type = NpgsqlDbType.Json; break;
-				case "jsonb": _type = NpgsqlDbType.Jsonb; break;
+				case "json": type = NpgsqlDbType.Json; break;
+				case "jsonb": type = NpgsqlDbType.Jsonb; break;
 
-				case "line": _type = NpgsqlDbType.Line; break;
-				case "lseg": _type = NpgsqlDbType.LSeg; break;
-				case "macaddr": _type = NpgsqlDbType.MacAddr; break;
-				case "path": _type = NpgsqlDbType.Path; break;
-				case "point": _type = NpgsqlDbType.Point; break;
-				case "polygon": _type = NpgsqlDbType.Polygon; break;
+				case "line": type = NpgsqlDbType.Line; break;
+				case "lseg": type = NpgsqlDbType.LSeg; break;
+				case "macaddr": type = NpgsqlDbType.MacAddr; break;
+				case "path": type = NpgsqlDbType.Path; break;
+				case "point": type = NpgsqlDbType.Point; break;
+				case "polygon": type = NpgsqlDbType.Polygon; break;
 
-				case "xml": _type = NpgsqlDbType.Xml; break;
-				case "char": _type = NpgsqlDbType.InternalChar; break;
-				case "bpchar": _type = NpgsqlDbType.Char; break;
-				case "varchar": _type = NpgsqlDbType.Varchar; break;
-				case "text": _type = NpgsqlDbType.Text; break;
+				case "xml": type = NpgsqlDbType.Xml; break;
+				case "char": type = NpgsqlDbType.InternalChar; break;
+				case "bpchar": type = NpgsqlDbType.Char; break;
+				case "varchar": type = NpgsqlDbType.Varchar; break;
+				case "text": type = NpgsqlDbType.Text; break;
 
-				case "name": _type = NpgsqlDbType.Name; break;
-				case "date": _type = NpgsqlDbType.Date; break;
-				case "timetz": _type = NpgsqlDbType.TimeTz; break;
-				case "timestamp": _type = NpgsqlDbType.Timestamp; break;
-				case "timestamptz": _type = NpgsqlDbType.TimestampTz; break;
+				case "name": type = NpgsqlDbType.Name; break;
+				case "date": type = NpgsqlDbType.Date; break;
+				case "timetz": type = NpgsqlDbType.TimeTz; break;
+				case "timestamp": type = NpgsqlDbType.Timestamp; break;
+				case "timestamptz": type = NpgsqlDbType.TimestampTz; break;
 
-				case "tsquery": _type = NpgsqlDbType.TsQuery; break;
+				case "tsquery": type = NpgsqlDbType.TsQuery; break;
 
-				case "tsvector": _type = NpgsqlDbType.TsVector; break;
-				case "int2vector": _type = NpgsqlDbType.Int2Vector; break;
-				case "hstore": _type = NpgsqlDbType.Hstore; break;
-				case "macaddr8": _type = NpgsqlDbType.MacAddr8; break;
-				case "uuid": _type = NpgsqlDbType.Uuid; break;
-				case "oid": _type = NpgsqlDbType.Oid; break;
-				case "oidvector": _type = NpgsqlDbType.Oidvector; break;
-				case "refcursor": _type = NpgsqlDbType.Refcursor; break;
-				case "regtype": _type = NpgsqlDbType.Regtype; break;
-				case "tid": _type = NpgsqlDbType.Tid; break;
-				case "xid": _type = NpgsqlDbType.Xid; break;
+				case "tsvector": type = NpgsqlDbType.TsVector; break;
+				case "int2vector": type = NpgsqlDbType.Int2Vector; break;
+				case "hstore": type = NpgsqlDbType.Hstore; break;
+				case "macaddr8": type = NpgsqlDbType.MacAddr8; break;
+				case "uuid": type = NpgsqlDbType.Uuid; break;
+				case "oid": type = NpgsqlDbType.Oid; break;
+				case "oidvector": type = NpgsqlDbType.Oidvector; break;
+				case "refcursor": type = NpgsqlDbType.Refcursor; break;
+				case "regtype": type = NpgsqlDbType.Regtype; break;
+				case "tid": type = NpgsqlDbType.Tid; break;
+				case "xid": type = NpgsqlDbType.Xid; break;
 			}
 			if (isArray)
 			{
-				if (_type == NpgsqlDbType.Unknown)
-					_type = NpgsqlDbType.Array;
-				_type |= NpgsqlDbType.Array;
+				if (type == NpgsqlDbType.Unknown)
+					type = NpgsqlDbType.Array;
+				type |= NpgsqlDbType.Array;
 			}
-			return _type;
+			return type;
 		}
 		/// <summary>
 		/// 排除生成whereor条件的字段类型

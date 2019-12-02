@@ -1,11 +1,13 @@
-﻿using Npgsql;
+﻿using Meta.Common.Extensions;
+using Meta.Common.Model;
+using Npgsql;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace Meta.Common.Interface
 {
-	public interface IBuilder
+	public interface ISqlBuilder
 	{
 		/// <summary>
 		/// sql参数列表
@@ -23,6 +25,10 @@ namespace Meta.Common.Interface
 		/// <summary>
 		/// 是否列表
 		/// </summary>
-		bool IsList { get; set; }
+		PipeReturnType ReturnType { get; set; }
+		/// <summary>
+		/// 是否直接返回默认值
+		/// </summary>
+		bool IsReturnDefault { get; set; }
 	}
 }

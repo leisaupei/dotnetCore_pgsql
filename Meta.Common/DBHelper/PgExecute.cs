@@ -7,9 +7,9 @@ using System.Data.Common;
 using System.Linq;
 using System.Threading;
 
-namespace Meta.Common.DBHelper
+namespace Meta.Common.DbHelper
 {
-	public abstract class PgExecute
+	internal abstract class PgExecute
 	{
 		/// <summary>
 		/// 连接字符串
@@ -27,10 +27,6 @@ namespace Meta.Common.DBHelper
 		/// 事务池
 		/// </summary>
 		readonly Dictionary<int, NpgsqlTransaction> _transPool = new Dictionary<int, NpgsqlTransaction>();
-		/// <summary>
-		/// 事务线程锁
-		/// </summary>
-		static readonly object _lockTrans = new object();
 		/// <summary>
 		/// constructer
 		/// </summary>
@@ -63,7 +59,7 @@ namespace Meta.Common.DBHelper
 		protected NpgsqlCommand PrepareCommand(CommandType cmdType, string cmdText, DbParameter[] cmdParams)
 		{
 			if (string.IsNullOrEmpty(cmdText))
-				throw new ArgumentNullException("Command is error");
+				throw new ArgumentNullException(nameof(cmdText));
 			NpgsqlCommand cmd;
 			if (CurrentTransaction == null)
 			{
@@ -106,8 +102,7 @@ namespace Meta.Common.DBHelper
 			}
 			finally
 			{
-				if (CurrentTransaction == null)
-					CloseCommand(cmd);
+				CloseCommand(cmd);
 			}
 			return ret;
 		}
@@ -130,8 +125,7 @@ namespace Meta.Common.DBHelper
 			}
 			finally
 			{
-				if (CurrentTransaction == null)
-					CloseCommand(cmd);
+				CloseCommand(cmd);
 			}
 			return ret;
 		}
@@ -168,8 +162,7 @@ namespace Meta.Common.DBHelper
 			}
 			finally
 			{
-				if (CurrentTransaction == null)
-					CloseCommand(cmd);
+				CloseCommand(cmd);
 				if (dr != null && !dr.IsClosed)
 					dr.Close();
 			}
@@ -203,41 +196,41 @@ namespace Meta.Common.DBHelper
 				return conn;
 			}
 		}
-
 		/// <summary>
 		/// 打开连接
 		/// </summary>
-		/// <param name="conn"></param>
-		void OpenConnection(NpgsqlConnection conn)
+		/// <param name="connection"></param>
+		void OpenConnection(NpgsqlConnection connection)
 		{
-			ConnectionNullCheck(conn);
+			ConnectionNullCheck(connection);
 
-			if (conn.State == ConnectionState.Broken)
-				conn.Close();
-			if (conn.State != ConnectionState.Open)
+			if (connection.State == ConnectionState.Broken)
+				connection.Close();
+			if (connection.State != ConnectionState.Open)
 			{
-				conn.Open();
-				_mapAction?.Invoke(conn);
+				connection.Open();
+				_mapAction?.Invoke(connection);
+
 			}
 		}
 		/// <summary>
 		/// 检查连接是否为空
 		/// </summary>
-		/// <param name="conn"></param>
-		void ConnectionNullCheck(NpgsqlConnection conn)
+		/// <param name="connection"></param>
+		void ConnectionNullCheck(NpgsqlConnection connection)
 		{
-			if (conn == null)
-				throw new ArgumentNullException(nameof(conn));
+			if (connection == null)
+				throw new ArgumentNullException(nameof(connection));
 		}
 		/// <summary>
 		/// 关闭连接
 		/// </summary>
-		/// <param name="conn"></param>
-		void CloseConnection(NpgsqlConnection conn)
+		/// <param name="connection"></param>
+		void CloseConnection(NpgsqlConnection connection)
 		{
-			if (conn == null) return;
-			if (conn.State != ConnectionState.Closed)
-				conn.Close();
+			if (connection == null) return;
+			if (connection.State != ConnectionState.Closed)
+				connection.Dispose();
 		}
 		/// <summary>
 		/// 关闭命令及连接
@@ -247,8 +240,9 @@ namespace Meta.Common.DBHelper
 			if (cmd == null) return;
 			if (cmd.Parameters != null)
 				cmd.Parameters.Clear();
+			if (CurrentTransaction == null)
+				CloseConnection(cmd.Connection);
 			cmd.Dispose();
-			CloseConnection(cmd.Connection);
 		}
 
 		#region 事务
@@ -259,10 +253,9 @@ namespace Meta.Common.DBHelper
 		{
 			var tid = Thread.CurrentThread.ManagedThreadId;
 			if (CurrentTransaction != null || _transPool.ContainsKey(tid))
-				CommitTransaction();
+				throw new Exception("this thread exists a transaction already");
 			var tran = CreateConnection.BeginTransaction();
-			lock (_lockTrans)
-				_transPool.Add(tid, tran);
+			_transPool[tid] = tran;
 		}
 		/// <summary>
 		/// 确认事务
@@ -280,13 +273,11 @@ namespace Meta.Common.DBHelper
 		void ReleaseTransaction(Action<NpgsqlTransaction> action)
 		{
 			var tran = CurrentTransaction;
-			if (tran == null || tran.Connection == null) return;
+			if (tran == null) return;
 			var tid = Thread.CurrentThread.ManagedThreadId;
-			lock (_lockTrans)
-				_transPool.Remove(tid);
-			action?.Invoke(tran);
-			CloseConnection(tran.Connection);
-			tran.Dispose();
+			_transPool.Remove(tid);
+			using var conn = tran.Connection;
+			action.Invoke(tran);
 		}
 		#endregion
 

@@ -13,13 +13,13 @@ namespace Meta.Common.SqlBuilder
 		public DeleteBuilder(string table) : base(table) { }
 		public DeleteBuilder(string table, string alias) : base(table, alias) { }
 		public DeleteBuilder() { }
-		public int Commit() => ToRows();
+		public new int ToRows() => base.ToRows();
 
 		#region Override
 		public override string ToString() => base.ToString();
 		public override string GetCommandTextString()
 		{
-			if (WhereList.Count < 1) throw new ArgumentException("delete语句必须带where条件");
+			if (WhereList.Count < 1) throw new ArgumentNullException(nameof(WhereList));
 			return $"DELETE FROM {MainTable} {MainAlias} WHERE {string.Join("\nAND", WhereList)}";
 		}
 		#endregion

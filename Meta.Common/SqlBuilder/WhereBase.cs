@@ -1,4 +1,5 @@
-﻿using Meta.Common.DBHelper;
+﻿using Meta.Common.DbHelper;
+using Meta.Common.Extensions;
 using Meta.Common.Model;
 using Npgsql;
 using NpgsqlTypes;
@@ -14,11 +15,12 @@ namespace Meta.Common.SqlBuilder
 {
 	public abstract class WhereBase<TSQL> : BuilderBase<TSQL> where TSQL : class, new()
 	{
-
 		TSQL This => this as TSQL;
+		#region Constructor
 		protected WhereBase(string table, string alias) : base(table, alias) { }
 		protected WhereBase(string table) : base(table) { }
 		protected WhereBase() { }
+		#endregion
 
 		/// <summary>
 		/// 字符串where语句
@@ -36,59 +38,152 @@ namespace Meta.Common.SqlBuilder
 		/// <typeparam name="T"></typeparam>
 		/// <param name="field"></param>
 		/// <param name="selectBuilder"></param>
+		/// <example>WhereNotIn("a.id",xxx.SelectDiy("id").Where())</example>
 		/// <returns></returns>
 		public TSQL WhereNotIn<T>(string field, SelectBuilder<T> selectBuilder) where T : class, new()
 		{
 			ThrowNullFieldException(selectBuilder);
 			return WhereNotIn(field, selectBuilder.ToString());
 		}
-		public TSQL WhereNotIn<T>(string field, IEnumerable<T> arr)
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="field"></param>
+		/// <param name="value"></param>
+		/// <example>WhereNotIn("a.id",new Guid[]{})</example>
+		/// <exception cref="ArgumentNullException">values is null or length is zero</exception>
+		/// <returns></returns>
+		public TSQL WhereNotIn<T>(string field, IEnumerable<T> values)
 		{
-			if (arr == null || arr.Count() == 0)
-				throw new ArgumentNullException(nameof(arr));
-			return WhereNotIn(field, string.Join(", ", arr));
+			if (values.IsNullOrEmpty())
+				throw new ArgumentNullException(nameof(values));
+			return WhereNotIn(field, string.Join(", ", values));
 		}
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="field"></param>
+		/// <param name="sql"></param>
+		/// <exception cref="ArgumentNullException">sql is null or empty</exception>
+		/// <returns></returns>
 		public TSQL WhereNotIn(string field, string sql)
 		{
 			if (string.IsNullOrEmpty(sql))
 				throw new ArgumentNullException(nameof(sql));
 			return Where($"{field} NOT IN ({sql})");
 		}
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="field"></param>
+		/// <param name="selectBuilder"></param>
+		/// <returns></returns>
 		public TSQL WhereIn<T>(string field, SelectBuilder<T> selectBuilder) where T : class, new()
 		{
 			ThrowNullFieldException(selectBuilder);
 			return WhereIn(field, selectBuilder.ToString());
 		}
-		public TSQL WhereIn<T>(string field, IEnumerable<T> arr)
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="field"></param>
+		/// <param name="sql"></param>
+		/// <exception cref="ArgumentNullException">value is null or empty</exception>
+		/// <returns></returns>
+		public TSQL WhereIn<T>(string field, IEnumerable<T> values)
 		{
-			if (arr == null || arr.Count() == 0)
-				throw new ArgumentNullException(nameof(arr));
-			return WhereIn(field, string.Join(", ", arr.Select(f => $"'{f}'")));
+			if (values.IsNullOrEmpty())
+				throw new ArgumentNullException(nameof(values));
+			return WhereIn(field, string.Join(", ", values.Select(f => $"'{f}'")));
 		}
-		public TSQL WhereInDefault<T>(string field, IEnumerable<T> arr)
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="field"></param>
+		/// <param name="values"></param>
+		/// <returns></returns>
+		public TSQL WhereInDefault<T>(string field, IEnumerable<T> values)
 		{
-			if ((arr?.Count() ?? 0) == 0) _enumerableNullReturnDefault = true;
-			else WhereIn(field, string.Join(", ", arr.Select(f => $"'{f}'")));
+			if (values.IsNullOrEmpty()) IsReturnDefault = true;
+			else WhereIn(field, string.Join(", ", values.Select(f => $"'{f}'")));
 			return This;
 		}
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="field"></param>
+		/// <param name="values"></param>
+		/// <returns></returns>
+		public TSQL WhereAnyDefault<T>(string field, IEnumerable<T> values)
+		{
+			if (values.IsNullOrEmpty()) IsReturnDefault = true;
+			else Where(field + " = any({0})", new object[] { values.ToArray() });
+			return This;
+		}
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="field"></param>
+		/// <param name="sql"></param>
+		/// <exception cref="ArgumentNullException">value is null or empty</exception>
+		/// <returns></returns>
 		public TSQL WhereIn(string field, string sql)
 		{
 			if (string.IsNullOrEmpty(sql))
 				throw new ArgumentNullException(nameof(sql));
 			return Where($"{field} IN ({sql})");
 		}
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="selectBuilder"></param>
+		/// <returns></returns>
 		public TSQL WhereExists<T>(SelectBuilder<T> selectBuilder) where T : class, new()
 		{
 			SetExistsField(selectBuilder);
 			return WhereExists(selectBuilder.ToString());
 		}
-		public TSQL WhereExists(string sql) => Where($"EXISTS ({sql})");
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="sql"></param>
+		/// <exception cref="ArgumentNullException">value is null or empty</exception>
+		/// <returns></returns>
+		public TSQL WhereExists(string sql)
+		{
+			if (string.IsNullOrEmpty(sql))
+				throw new ArgumentNullException(nameof(sql));
+			return Where($"EXISTS ({sql})");
+
+		}
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="selectBuilder"></param>
+		/// <returns></returns>
 		public TSQL WhereNotExsit<T>(SelectBuilder<T> selectBuilder) where T : class, new()
 		{
 			SetExistsField(selectBuilder);
 			return WhereNotExists(selectBuilder.ToString());
 		}
-		public TSQL WhereNotExists(string sql) => Where($"NOT EXISTS ({sql})");
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="sql"></param>
+		/// <exception cref="ArgumentNullException">value is null or empty</exception>
+		/// <returns></returns>
+		public TSQL WhereNotExists(string sql)
+		{
+			if (string.IsNullOrEmpty(sql))
+				throw new ArgumentNullException(nameof(sql));
+			return Where($"NOT EXISTS ({sql})");
+		}
 		/// <summary>
 		/// where or 如果val 是空或长度为0 直接返回空数据
 		/// </summary>
@@ -99,7 +194,7 @@ namespace Meta.Common.SqlBuilder
 		/// <returns></returns>
 		public TSQL WhereOrDefault<T>(string filter, IEnumerable<T> val, NpgsqlDbType? dbType = null)
 		{
-			if ((val?.Count() ?? 0) == 0) _enumerableNullReturnDefault = true;
+			if (val.IsNullOrEmpty()) IsReturnDefault = true;
 			else WhereOr(filter, val, dbType);
 			return This;
 		}
@@ -127,8 +222,10 @@ namespace Meta.Common.SqlBuilder
 			else if (typeT == typeof(DbTypeValue))
 				_val = val as object[];
 			else if (val.Count() == 1)
+			{
+				if (val.ElementAt(0) == null) return Where(filter, null);
 				_val = dbType.HasValue ? new object[] { new DbTypeValue(val.ElementAt(0), dbType) } : new object[] { val.ElementAt(0) };
-
+			}
 			string filters = filter;
 			if (_val == null)
 			{
@@ -138,6 +235,13 @@ namespace Meta.Common.SqlBuilder
 			}
 			return Where(filters, _val);
 		}
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="isAdd"></param>
+		/// <param name="filter"></param>
+		/// <param name="val"></param>
+		/// <returns></returns>
 		public TSQL Where(bool isAdd, string filter, params object[] val) => isAdd ? Where(filter, val) : This;
 		/// <summary>
 		/// 是否添加func返回的where语句
@@ -244,18 +348,38 @@ namespace Meta.Common.SqlBuilder
 				f.Item1.Add(new DbTypeValue(item.Item4, dbTypes[3]));
 			}
 		}, keys, val.Count());
-		public TSQL WhereArray<T>(string filter, IEnumerable<T> val, NpgsqlDbType? dbType = null) => dbType.HasValue ? Where(filter, new[] { new DbTypeValue(val, dbType) }) : Where(filter, new object[] { val });
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="filter"></param>
+		/// <param name="value"></param>
+		/// <param name="dbType"></param>
+		/// <exception cref="ArgumentNullException">value is null or empty</exception>
+		/// <returns></returns>
+		public TSQL WhereArray<T>(string filter, IEnumerable<T> value, NpgsqlDbType? dbType = null)
+		{
+			if (value == null)
+				throw new ArgumentNullException(nameof(value));
+			return dbType.HasValue ? Where(filter, new[] { new DbTypeValue(value, dbType) }) : Where(filter, new object[] { value });
+		}
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="filter"></param>
+		/// <param name="val"></param>
+		/// <returns></returns>
 		public TSQL Where(string filter, params object[] val)
 		{
-
-			if ((val?.Length ?? 0) == 0)
+			if (val.IsNullOrEmpty())
 				filter = TypeHelper.GetNullSql(filter, @"\{\d\}");
 			else
 			{
 				for (int i = 0; i < val.Length; i++)
 				{
 					var index = string.Concat("{", i, "}");
-					if (filter.IndexOf(index, StringComparison.Ordinal) == -1) throw new ArgumentException("where 参数错误");
+					if (filter.IndexOf(index, StringComparison.Ordinal) == -1)
+						throw new ArgumentException(nameof(filter));
 					if (val[i] == null)
 						filter = TypeHelper.GetNullSql(filter, index.Replace("{", @"\{").Replace("}", @"\}"));
 					else
@@ -278,7 +402,13 @@ namespace Meta.Common.SqlBuilder
 			Where($"{filter}");
 			return This;
 		}
-
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="action"></param>
+		/// <param name="keys"></param>
+		/// <param name="arrLength"></param>
+		/// <returns></returns>
 		protected TSQL WhereTuple(Action<(List<object>, int)> action, string[] keys, int arrLength)
 		{
 			var parms = new List<object>();
@@ -298,13 +428,24 @@ namespace Meta.Common.SqlBuilder
 			}
 			return Where(sb.ToString(), parms.ToArray());
 		}
-		private static void ThrowNullFieldException<T>(SelectBuilder<T> selectBuilder) where T : class, new()
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="selectBuilder"></param>
+		static void ThrowNullFieldException<T>(SelectBuilder<T> selectBuilder) where T : class, new()
 		{
 			Type type = typeof(T);
 			var fields = type.GetProperty("Fields", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(selectBuilder).ToString();
-			if (string.IsNullOrEmpty(fields)) throw new ArgumentNullException("Fields is null.");
+			if (string.IsNullOrEmpty(fields))
+				throw new ArgumentNullException(nameof(fields));
 		}
-		private static void SetExistsField<T>(SelectBuilder<T> selectBuilder) where T : class, new()
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="selectBuilder"></param>
+		static void SetExistsField<T>(SelectBuilder<T> selectBuilder) where T : class, new()
 		{
 			Type type = selectBuilder.GetType();
 			var property = type.GetProperty("MainAlias", BindingFlags.NonPublic | BindingFlags.Instance);

@@ -17,6 +17,7 @@ namespace Meta.xUnitTest.DAL
 	public partial class ClassGrade : SelectExchange<ClassGrade, ClassGradeModel>
 	{
 		#region Properties
+		public const string CacheKey = "meta_xunittest_model_classgrademodel_{0}";
 		public static ClassGrade Select => new ClassGrade();
 		public static ClassGrade SelectDiy(string fields) => new ClassGrade { Fields = fields };
 		public static ClassGrade SelectDiy(string fields, string alias) => new ClassGrade { Fields = fields, MainAlias = alias };
@@ -29,24 +30,36 @@ namespace Meta.xUnitTest.DAL
 		public static int Delete(ClassGradeModel model) => Delete(new[] { model.Id });
 		public static int Delete(Guid id) => Delete(new[] { id });
 		public static int Delete(IEnumerable<ClassGradeModel> models) => Delete(models.Select(a => a.Id));
-		public static int Delete(IEnumerable<Guid> id) => DeleteDiy.WhereOr("id = {0}", id, NpgsqlDbType.Uuid).Commit();
+		public static int Delete(IEnumerable<Guid> ids)
+		{
+			if (ids == null)
+				throw new ArgumentNullException(nameof(ids));
+			RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
+			return DeleteDiy.WhereOr("id = {0}", ids, NpgsqlDbType.Uuid).ToRows();
+		}
 		#endregion
 
 		#region Insert
-		public static int Commit(ClassGradeModel model) => GetInsertBuilder(model).Commit();
-		public static ClassGradeModel Insert(ClassGradeModel model) => GetInsertBuilder(model).Commit<ClassGradeModel>();
+		public static int Commit(ClassGradeModel model) => SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows());
+		public static ClassGradeModel Insert(ClassGradeModel model)
+		{
+			SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));
+			return model;
+		}
 		private static InsertBuilder GetInsertBuilder(ClassGradeModel model)
 		{
+			if (model == null)
+				throw new ArgumentNullException(nameof(model));
 			return InsertDiy
-				.Set("id", model.Id == Guid.Empty ? Guid.NewGuid() : model.Id, 16, NpgsqlDbType.Uuid)
+				.Set("id", model.Id = model.Id == Guid.Empty ? Guid.NewGuid() : model.Id, 16, NpgsqlDbType.Uuid)
 				.Set("name", model.Name, 255, NpgsqlDbType.Varchar)
-				.Set("create_time", model.Create_time.Ticks == 0 ? DateTime.Now : model.Create_time, 8, NpgsqlDbType.Timestamp);
+				.Set("create_time", model.Create_time = model.Create_time.Ticks == 0 ? DateTime.Now : model.Create_time, 8, NpgsqlDbType.Timestamp);
 		}
 		#endregion
 
 		#region Select
-		public static ClassGradeModel GetItem(Guid id) => Select.WhereId(id).ToOne();
-		public static List<ClassGradeModel> GetItems(IEnumerable<Guid> id) => Select.WhereOr("id = {0}", id, NpgsqlDbType.Uuid).ToList();
+		public static ClassGradeModel GetItem(Guid id) => GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.WhereId(id).ToOne());
+		public static List<ClassGradeModel> GetItems(IEnumerable<Guid> id) => Select.WhereId(id.ToArray()).ToList();
 		public ClassGrade WhereId(params Guid[] id) => WhereOr($"{MainAlias}.id = {{0}}", id, NpgsqlDbType.Uuid);
 		public ClassGrade WhereName(params string[] name) => WhereOr($"{MainAlias}.name = {{0}}", name, NpgsqlDbType.Varchar);
 		public ClassGrade WhereNameLike(params string[] name) => WhereOr($"{MainAlias}.name LIKE {{0}}", name.Select(a => $"%{a}%"), NpgsqlDbType.Varchar);
@@ -58,7 +71,13 @@ namespace Meta.xUnitTest.DAL
 		public static ClassGradeUpdateBuilder Update(ClassGradeModel model) => Update(new[] { model.Id });
 		public static ClassGradeUpdateBuilder Update(Guid id) => Update(new[] { id });
 		public static ClassGradeUpdateBuilder Update(IEnumerable<ClassGradeModel> models) => Update(models.Select(a => a.Id));
-		public static ClassGradeUpdateBuilder Update(IEnumerable<Guid> ids) => UpdateDiy.WhereOr("id = {0}", ids, NpgsqlDbType.Uuid);
+		public static ClassGradeUpdateBuilder Update(IEnumerable<Guid> ids)
+		{
+			if (ids == null)
+				throw new ArgumentNullException(nameof(ids));
+			RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
+			return UpdateDiy.WhereOr("id = {0}", ids, NpgsqlDbType.Uuid);
+		}
 		public class ClassGradeUpdateBuilder : UpdateBuilder<ClassGradeUpdateBuilder, ClassGradeModel>
 		{
 			public ClassGradeUpdateBuilder SetId(Guid id) => Set("id", id, 16, NpgsqlDbType.Uuid);

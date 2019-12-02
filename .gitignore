@@ -38,13 +38,6 @@ Thumbs.db
 
 # dotCover
 *.dotCover
-
-#vs
-/.vs/dotnetCore_pgsql/DesignTimeBuild
-/.vs/dotnetCore_pgsql/v15/sqlite3
-/.vs/dotnetCore_pgsql/v15/Server/sqlite3
-/dotnetCore_pgsql/bin/Debug/netcoreapp2.1
-/Common/bin/Debug/netcoreapp2.1
 # 这是注释行，将被忽略  
 # *.a       # 忽略所有以.a为扩展名的文件      
 # !lib.a    # 但是名为lib.a的文件或目录不要忽略，即使前面设置了对*.a的忽略  
@@ -55,9 +48,20 @@ Thumbs.db
 # git rm -r --cached .
 # git add .
 # git commit -m update .gitignore
+
+#vs
+/.vs/dotnetCore_pgsql/DesignTimeBuild
+/.vs/dotnetCore_pgsql/v15/sqlite3
+/.vs/dotnetCore_pgsql/v15/Server/sqlite3
+/dotnetCore_pgsql/bin/Debug/netcoreapp2.1
+/Common/bin/Debug/netcoreapp2.1
+
 /.vs/dotnetCore_pgsql/v16/Server/sqlite3
 /.vs/dotnetCore_pgsql/v16/TestStore/0
 /.vs/Meta/v16/Server/sqlite3
 /.vs/Meta/DesignTimeBuild
 /Meta.App/Properties
 /.vs/Meta/v16/TestStore/0
+/.vs/Meta/v16/TestStore/1
+
+

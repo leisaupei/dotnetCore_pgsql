@@ -5,9 +5,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Meta.Common.DBHelper
+namespace Meta.Common.DbHelper
 {
-	public class TypeHelper
+	internal class TypeHelper
 	{
 		public static string SqlToString(string sql, List<NpgsqlParameter> nps)
 		{

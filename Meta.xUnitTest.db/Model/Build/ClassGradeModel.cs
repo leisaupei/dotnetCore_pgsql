@@ -16,6 +16,9 @@ namespace Meta.xUnitTest.Model
 	{
 		#region Properties
 		[JsonProperty] public Guid Id { get; set; }
+		/// <summary>
+		/// 班级名称
+		/// </summary>
 		[JsonProperty] public string Name { get; set; }
 		[JsonProperty] public DateTime Create_time { get; set; }
 		#endregion

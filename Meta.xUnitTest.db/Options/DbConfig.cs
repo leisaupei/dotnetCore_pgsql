@@ -1,10 +1,10 @@
-﻿using Meta.Common.Model;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 
-namespace Meta.Common
+namespace Meta.xUnitTest.Options
 {
-	public class HostConfig
+	public class DbConfig
 	{
+		public const int DbCacheTimeOut = 60;
 		/// <summary>
 		/// 全局配置
 		/// </summary>

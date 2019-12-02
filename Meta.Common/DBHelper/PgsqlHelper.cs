@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 
-namespace Meta.Common.DBHelper
+namespace Meta.Common.DbHelper
 {
 	public static class PgSqlHelper
 	{
@@ -24,7 +24,7 @@ namespace Meta.Common.DBHelper
 		/// 随机从库
 		/// </summary>
 		static readonly Random _ran;
-		public class Execute : PgExecute
+		internal class Execute : PgExecute
 		{
 			public Execute(string connectionString, ILogger logger, Action<NpgsqlConnection> mapAction)
 				: base(connectionString, logger, mapAction) { }
@@ -212,7 +212,7 @@ namespace Meta.Common.DBHelper
 		/// <param name="cmdParams">sql参数</param>
 		/// <param name="type">数据库类型</param>
 		/// <returns>实体</returns>
-		public static object[] ExecuteDataReaderPipe(CommandType cmdType, IEnumerable<IBuilder> builders, string type = "master")
+		public static object[] ExecuteDataReaderPipe(CommandType cmdType, IEnumerable<ISqlBuilder> builders, string type = "master")
 		{
 			if (builders?.Any() != true)
 				throw new ArgumentNullException(nameof(builders));
@@ -244,11 +244,14 @@ namespace Meta.Common.DBHelper
 					while (dr.Read())
 						list.Add(dr.ReaderToModel(item.Type));
 
-					if (item.IsList)
-						results[i] = list.ToArray();
-					else
-						results[i] = list.Count > 0 ? list[0] : null;
-
+					results[i] = item.ReturnType switch
+					{
+						var t when t == PipeReturnType.List => list.ToArray(),
+						var t when t == PipeReturnType.One => list.Count > 0 ? list[0] : null,
+						var t when t == PipeReturnType.Rows => "",
+						_ => null,
+					};
+					
 					dr.NextResult();
 				}
 			}, cmdType, cmdText, paras.ToArray());

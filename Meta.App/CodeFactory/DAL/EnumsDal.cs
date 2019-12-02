@@ -1,5 +1,5 @@
 ﻿using CodeFactory.Extension;
-using Meta.Common.DBHelper;
+using Meta.Common.DbHelper;
 using Meta.Common.SqlBuilder;
 using System;
 using System.Collections.Generic;
@@ -52,6 +52,42 @@ namespace CodeFactory.DAL
 
 			GenerateMapping(listEnum, listComposite);
 			GenerateCsproj();
+			GenerateDbConfig();
+		}
+
+		private static void GenerateDbConfig()
+		{
+			var root = Path.Combine(_rootPath, "Options");
+			if (!Directory.Exists(root))
+				Directory.CreateDirectory(root);
+
+			var fileName = Path.Combine(root, "DbConfig.cs");
+			if (File.Exists(fileName))
+				return;
+
+			using StreamWriter writer = new StreamWriter(File.Create(fileName), Encoding.UTF8);
+
+			writer.WriteLine("using Microsoft.Extensions.Configuration;");
+			writer.WriteLine("");
+			writer.WriteLine($"namespace {_projectName}.Options");
+			writer.WriteLine("{");
+			writer.WriteLine("\tpublic class DbConfig");
+			writer.WriteLine("\t{");
+			writer.WriteLine("\t\t/// <summary>");
+			writer.WriteLine("\t\t/// 数据库缓存超时时间 单位: 秒");
+			writer.WriteLine("\t\t/// </summary>");
+			writer.WriteLine("\t\tpublic const int DbCacheTimeOut = 60;");
+			writer.WriteLine("\t\t/// <summary>");
+			writer.WriteLine("\t\t/// 全局配置");
+			writer.WriteLine("\t\t/// </summary>");
+			writer.WriteLine("\t\tpublic static IConfiguration Configuration { get; private set; }");
+			writer.WriteLine("");
+			writer.WriteLine("\t\tpublic static void SetConfiguration(IConfiguration cfg)");
+			writer.WriteLine("\t\t{");
+			writer.WriteLine("\t\t\tConfiguration = cfg;");
+			writer.WriteLine("\t\t}");
+			writer.WriteLine("\t}");
+			writer.WriteLine("}");
 		}
 
 		private static List<EnumTypeInfo> GenerateEnum()
@@ -191,12 +227,12 @@ namespace CodeFactory.DAL
 				writer.WriteLine("using System;");
 				writer.WriteLine("using Microsoft.Extensions.Logging;");
 				writer.WriteLine("using Meta.Common.Model;");
-				writer.WriteLine("using Meta.Common.DBHelper;");
+				writer.WriteLine("using Meta.Common.DbHelper;");
 				writer.WriteLine("using Npgsql;");
 				writer.WriteLine();
 				writer.WriteLine($"namespace {_projectName}.Options");
 				writer.WriteLine("{");
-				writer.WriteLine($"\tpublic class DbOptions");
+				writer.WriteLine($"\tpublic static class DbOptions");
 				writer.WriteLine("\t{");
 				writer.Write(_sbConstTypeName);
 				writer.WriteLine();

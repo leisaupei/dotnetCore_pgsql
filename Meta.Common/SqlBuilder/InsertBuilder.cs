@@ -1,4 +1,5 @@
-﻿using Meta.Common.Model;
+﻿using Meta.Common.Extensions;
+using Meta.Common.Model;
 using Npgsql;
 using NpgsqlTypes;
 using System;
@@ -12,12 +13,7 @@ namespace Meta.Common.SqlBuilder
 		/// <summary>
 		/// 字段列表
 		/// </summary>
-		readonly List<string> _valueList = new List<string>();
-
-		/// <summary>
-		/// 参数化列表
-		/// </summary>
-		readonly List<string> _paramList = new List<string>();
+		readonly Dictionary<string, string> _insertList = new Dictionary<string, string>();
 		/// <summary>
 		/// 是否返回实体类
 		/// </summary>
@@ -37,9 +33,9 @@ namespace Meta.Common.SqlBuilder
 		/// <returns></returns>
 		public InsertBuilder Set(Dictionary<string, object> values)
 		{
-			using (var e = values.GetEnumerator())
-				while (e.MoveNext())
-					Set(e.Current.Key, e.Current.Value);
+			using var e = values.GetEnumerator();
+			while (e.MoveNext())
+				Set(e.Current.Key, e.Current.Value);
 			return this;
 		}
 		/// <summary>
@@ -47,25 +43,25 @@ namespace Meta.Common.SqlBuilder
 		/// </summary>
 		/// <param name="field"></param>
 		/// <param name="value"></param>
+		/// <param name="size"></param>
+		/// <param name="dbType"></param>
 		/// <returns></returns>
 		public InsertBuilder Set(string field, object value, int? size = null, NpgsqlDbType? dbType = null)
 		{
-			_valueList.Add(field);
-			_paramList.Add($"@{field}");
+			_insertList[field] = $"@{field}";
 			AddParameter(field, value, size, dbType);
 			return this;
 		}
 		/// <summary>
-		/// 默认设置方法
+		/// 设置语句
 		/// </summary>
-		/// <param name="field"></param>
-		/// <param name="paramStr"></param>
-		/// <param name="nps"></param>
+		/// <param name="field">字段名称</param>
+		/// <param name="paramStr">可以传入一个带参/无参的sql语句或一个@参数</param>
+		/// <param name="nps">参数</param>
 		/// <returns></returns>
-		public InsertBuilder Set(string field, string paramStr, List<NpgsqlParameter> nps)
+		public InsertBuilder Set(string field, string paramStr, params NpgsqlParameter[] nps)
 		{
-			_valueList.Add(field);
-			_paramList.Add(paramStr);
+			_insertList[field] = paramStr;
 			Params.AddRange(nps);
 			return this;
 		}
@@ -73,47 +69,30 @@ namespace Meta.Common.SqlBuilder
 		/// 返回受影响行数
 		/// </summary>
 		/// <returns></returns>
-		public int Commit() => ToRows();
-		/// <summary>
-		/// 返回受影响行数_选库
-		/// </summary>
-		/// <returns></returns>
-		public int Commit(string databaseType)
-		{
-			Data(databaseType);
-			return ToRows();
-		}
+		public new int ToRows() => base.ToRows();
+
 		/// <summary>
 		/// 插入数据库并返回数据
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		public T Commit<T>()
+		public int ToRows<T>(ref T info)
 		{
 			_isReturn = true;
-			return ToOne<T>();
+			info = ToOne<T>();
+			return info != null ? 1 : 0;
 		}
-		/// <summary>
-		/// 插入数据库并返回数据_选库
-		/// </summary>
-		/// <returns></returns>
-		public T Commit<T>(string databaseType)
-		{
-			_isReturn = true;
-			Data(databaseType);
-			return ToOne<T>();
-		}
+
 		#region Override
 		public override string ToString() => base.ToString();
 
 		public override string GetCommandTextString()
 		{
-			if ((_valueList?.Count ?? 0) == 0 || (_paramList?.Count ?? 0) == 0) throw new ArgumentNullException("Insert KeyValuePairs is null.");
-			if (_valueList.Count != _paramList.Count) throw new ArgumentNullException("Insert KeyValuePairs length is not equal.");
-			var vs = string.Join(", ", _valueList);
-			var fs = string.IsNullOrEmpty(Fields) ? vs : Fields.Replace($"{MainAlias}.", "");
-			var ret = _isReturn ? $"RETURNING {fs}" : "";
-			return $"INSERT INTO {MainTable} ({vs}) VALUES({string.Join(", ", _paramList)}) {ret}";
+			if (_insertList.IsNullOrEmpty())
+				throw new ArgumentNullException(nameof(_insertList));
+			var vs = string.Join(", ", _insertList.Keys);
+			var ret = _isReturn ? $"RETURNING {vs}" : "";
+			return $"INSERT INTO {MainTable} ({vs}) VALUES({string.Join(", ", _insertList.Values)}) {ret}";
 		}
 		#endregion
 	}

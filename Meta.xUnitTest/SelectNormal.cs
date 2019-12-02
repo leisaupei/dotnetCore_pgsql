@@ -1,27 +1,261 @@
+using Meta.Common.Interface;
+using Meta.Common.SqlBuilder;
 using Meta.xUnitTest.DAL;
+using Meta.xUnitTest.Extensions;
+using Meta.xUnitTest.Model;
+using Meta.xUnitTest.Options;
+using Newtonsoft.Json.Linq;
 using Npgsql;
 using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Linq;
 using Xunit;
+using Xunit.Abstractions;
+using Xunit.Extensions.Ordering;
 
 namespace Meta.xUnitTest
 {
+	[Order(2)]
 	public class SelectNormal : BaseTest
 	{
-		[Fact]
-		public void ToOne()
+		public SelectNormal(ITestOutputHelper output) : base(output)
 		{
-			var info = Student.Select.WhereId(Guid.Empty).ToOne();
-		}
-		[Fact]
-		public void GetItem()
-		{
-			var info = Student.GetItem(Guid.Empty);
-		}
-		[Fact]
-		public void GetItems()
-		{
-			var info = Student.GetItems(new[] { Guid.Empty, Guid.Empty });
 		}
 
+		[Fact, Order(1)]
+		public void ToOne()
+		{
+			var info = Student.Select.WherePeople_id(StuPeopleId1).ToOne();
+
+			Assert.Equal(StuPeopleId1, info.People_id);
+		}
+
+		[Fact, Order(2)]
+		public void GetItem()
+		{
+			var info = People.GetItem(StuPeopleId1);
+			//Assert.Equal(StuPeopleId1, info.Id);
+		}
+		[Fact, Order(3), Description("return a List<T>")]
+		public void GetItems()
+		{
+			var info = Student.GetItemsByPeople_id(new[] { StuPeopleId1, StuPeopleId2 });
+
+			Assert.IsType<List<StudentModel>>(info);
+			Assert.Contains(info, f => f.People_id == StuPeopleId1);
+			Assert.Contains(info, f => f.People_id == StuPeopleId2);
+		}
+
+		[Fact, Order(4)]
+		public void ToOneT()
+		{
+			var peopleId = Student.Select.WherePeople_id(StuPeopleId1).ToOne<Guid>("people_id");
+			var info = People.Select.WhereId(StuPeopleId1).ToOne<ToOneTTestModel>("name,id");
+
+			var emptyNullablePeopleId = Student.Select.WherePeople_id(Guid.Empty).ToOne<Guid?>("people_id");
+			var emptyPeopleId = Student.Select.WherePeople_id(Guid.Empty).ToOne<Guid>("people_id");
+
+			Assert.IsType<ToOneTTestModel>(info);
+			Assert.Equal(StuPeopleId1, info.Id);
+			Assert.Equal(StuPeopleId1, peopleId);
+			Assert.Null(emptyNullablePeopleId);
+			Assert.Equal(Guid.Empty, emptyPeopleId);
+		}
+
+		[Fact, Order(5)]
+		public void ToOneTuple()
+		{
+			var info = People.Select.WhereId(StuPeopleId1).ToOne<(Guid id, string name)>("id,name");
+			// if not found
+			var notFoundInfo = People.Select.WhereId(Guid.Empty).ToOne<(Guid id, string name)>("id,name");
+			var notFoundNullableInfo = People.Select.WhereId(Guid.Empty).ToOne<(Guid? id, string name)>("id,name");
+
+
+			Assert.Equal(StuPeopleId1, info.id);
+			Assert.Equal(Guid.Empty, notFoundInfo.id);
+			Assert.Null(notFoundNullableInfo.id);
+		}
+
+		[Fact, Order(6)]
+		public void GetItemByUniqueKey()
+		{
+			var info = Student.GetItemByStu_no(StuNo1);
+
+			Assert.Equal(StuNo1, info.Stu_no);
+		}
+
+		[Fact, Order(7)]
+		public void GetItemsByUniqueKey()
+		{
+			var info = Student.GetItemsByStu_no(new[] { StuNo1, StuNo2 });
+
+			Assert.Contains(info, f => f.Stu_no == StuNo1);
+			Assert.Contains(info, f => f.Stu_no == StuNo2);
+		}
+
+		[Fact, Order(8)]
+		public void ToOneDictonary()
+		{
+			// all
+			var info = People.Select.WhereId(StuPeopleId1).ToOne<Dictionary<string, object>>();
+			// option
+			var info1 = People.Select.WhereId(StuPeopleId1).ToOne<Dictionary<string, object>>("name,id");
+			Assert.Equal(StuPeopleId1, Guid.Parse(info["id"].ToString()));
+			Assert.Equal(StuPeopleId1, Guid.Parse(info1["id"].ToString()));
+		}
+
+		[Fact, Order(9)]
+		public void ToList()
+		{
+			var info = People.Select.WhereId(StuPeopleId1, StuPeopleId2).ToList();
+
+			Assert.Contains(info, f => f.Id == StuPeopleId1);
+			Assert.Contains(info, f => f.Id == StuPeopleId2);
+		}
+
+		[Fact, Order(10)]
+		public void ToListTuple()
+		{
+			var info = People.Select.WhereId(StuPeopleId1, StuPeopleId2).ToList<(Guid, string)>("id,name");
+
+			Assert.Contains(info, f => f.Item1 == StuPeopleId1);
+			Assert.Contains(info, f => f.Item1 == StuPeopleId2);
+		}
+
+		[Fact, Order(11)]
+		public void ToListDictonary()
+		{
+			// all
+			var info = People.Select.WhereId(StuPeopleId1, StuPeopleId2).ToList<Dictionary<string, object>>();
+			// option
+			var info1 = People.Select.WhereId(StuPeopleId1, StuPeopleId2).ToList<Dictionary<string, object>>("name,id");
+
+			Assert.Contains(info, f => f["id"].ToString() == StuPeopleId1.ToString());
+			Assert.Contains(info, f => f["id"].ToString() == StuPeopleId2.ToString());
+			Assert.Contains(info1, f => f["id"].ToString() == StuPeopleId1.ToString());
+			Assert.Contains(info1, f => f["id"].ToString() == StuPeopleId2.ToString());
+		}
+
+		[Fact, Order(12)]
+		public void ToPipe()
+		{
+			object[] obj = SqlInstance.SelectPipe(new ISqlBuilder[] {
+				People.Select.WhereId(StuPeopleId1, StuPeopleId2).ToListPipe(),
+				People.Select.WhereId(StuPeopleId1).ToOnePipe<(Guid, string)>("id,name"),
+				People.Select.WhereId(StuPeopleId1).ToListPipe<(Guid, string)>("id,name"),
+				People.Select.WhereId(StuPeopleId1, StuPeopleId2).ToListPipe<Dictionary<string, object>>("name,id"),
+				People.Select.WhereId(StuPeopleId1).ToOnePipe<ToOneTTestModel>("name,id"),
+				Student.Select.WherePeople_id(StuPeopleId1).ToOnePipe<Guid>("people_id"),
+				Student.Select.WherePeople_id(Guid.Empty).ToOnePipe() // if not found
+				 });
+			var info = obj[0].ToObjectArray().OfType<PeopleModel>();
+			var info1 = ((Guid, string))obj[1];
+			var info2 = obj[2].ToObjectArray().OfType<(Guid, string)>();
+			var info3 = obj[3].ToObjectArray().OfType<Dictionary<string, object>>();
+			var info4 = (ToOneTTestModel)obj[4];
+			var info5 = (Guid)obj[5];
+			var info6 = (StudentModel)obj[6];
+
+			Assert.Contains(info, f => f.Id == StuPeopleId1);
+			Assert.Equal(StuPeopleId1, info1.Item1);
+			Assert.Contains(info2, f => f.Item1 == StuPeopleId1);
+			Assert.Contains(info3, f => f["id"].ToString() == StuPeopleId1.ToString());
+			Assert.Equal(StuPeopleId1, info4.Id);
+			Assert.Equal(StuPeopleId1, info5);
+			Assert.Null(info6);
+		}
+		[Fact, Order(13)]
+		public void Count()
+		{
+			var count = People.Select.Count();
+			Assert.True(count >= 0);
+		}
+		[Fact, Order(14)]
+		public void Max()
+		{
+			var maxAge = People.Select.Max<int>("age");
+			Assert.True(maxAge >= 0);
+		}
+		[Fact, Order(15)]
+		public void Min()
+		{
+			var minAge = People.Select.Min<int>("age");
+			Assert.True(minAge >= 0);
+		}
+		[Fact, Order(16), Description("the type of T must be same as the column's type")]
+		public void Avg()
+		{
+			var avgAge = People.Select.Avg<decimal>("age");
+			Assert.True(avgAge >= 0);
+		}
+		[Fact, Order(17), Description("same usage as ToOne<T>(), but T is ValueType")]
+		public void ToScalar()
+		{
+			var id = People.Select.WhereId(StuPeopleId1).ToScalar<Guid>("id");
+			Assert.Equal(StuPeopleId1, id);
+		}
+		[Fact, Order(18)]
+		public void OrderBy()
+		{
+			//var infos = People.Select.InnerJoin<StudentModel>((a, b) => a.Id == b.People_id)
+			//	.OrderByDescing(f => f.Age).ToList();
+		}
+		[Fact, Order(19)]
+		public void GroupBy()
+		{
+
+		}
+		[Fact, Order(20)]
+		public void Page()
+		{
+
+		}
+		[Fact, Order(21)]
+		public void Limit()
+		{
+
+		}
+		[Fact, Order(22)]
+		public void Skip()
+		{
+
+		}
+		[Fact, Order(23), Description("using with group by expression")]
+		public void Having()
+		{
+
+		}
+		[Fact, Order(24), Description("")]
+		public void ToUnion()
+		{
+			Stopwatch stop = new Stopwatch();
+			stop.Start();
+			var union0 = Student.Select.InnerJoinRef<People>("b", "a.people_id = b.id").WhereStu_no(StuNo1).ToOneUnion<PeopleModel>();
+			var a = stop.ElapsedMilliseconds;
+			var union1 = Student.Select.InnerJoinRef<People>("b", "a.people_id = b.id").WhereStu_no(StuNo1).ToOneUnion<PeopleModel>();
+			var b = stop.ElapsedMilliseconds;
+			var union2 = Student.Select.InnerJoinRef<People>("b", "a.people_id = b.id").WhereStu_no(StuNo1).ToOneUnion<PeopleModel>();
+			var c = stop.ElapsedMilliseconds;
+			stop.Stop();
+
+			_output.WriteLine(string.Concat(a, ",", b, ",", c));
+		}
+		[Fact, Order(25), Description("")]
+		public void ToUnionCompare()
+		{
+			Stopwatch stop = new Stopwatch();
+			stop.Start();
+			var union0 = Student.Select.InnerJoin<People>("b", "a.people_id = b.id").WhereStu_no(StuNo1).ToOne();
+			var a = stop.ElapsedMilliseconds;
+			var union1 = Student.Select.InnerJoin<People>("b", "a.people_id = b.id").WhereStu_no(StuNo1).ToOne();
+			var b = stop.ElapsedMilliseconds;
+			var union2 = Student.Select.InnerJoin<People>("b", "a.people_id = b.id").WhereStu_no(StuNo1).ToOne();
+			var c = stop.ElapsedMilliseconds;
+			stop.Stop();
+
+			_output.WriteLine(string.Concat(a, ",", b, ",", c));
+		}
 	}
 }

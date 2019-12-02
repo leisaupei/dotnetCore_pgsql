@@ -27,6 +27,7 @@ namespace Meta.xUnitTest.Options
 				MapAction = conn =>
 				{
 					conn.TypeMapper.UseJsonNet();
+					conn.TypeMapper.MapEnum<EDataState>("public.e_data_state", translator);
 				};
 			}
 		}

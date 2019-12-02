@@ -1,13 +1,14 @@
 ﻿using CodeFactory.DAL;
 using CodeFactory.Extension;
-using Meta.Common.DBHelper;
+using Meta.Common.DbHelper;
+using Meta.Common.Model;
 using Meta.Common.SqlBuilder;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-
 namespace CodeFactory
 {
 	/// <summary>
@@ -15,6 +16,7 @@ namespace CodeFactory
 	/// </summary>
 	public static class LetsGo
 	{
+
 		static string ModelPath = string.Empty;
 		static string DalPath = string.Empty;
 		static string ProjectName = string.Empty;
@@ -31,7 +33,7 @@ namespace CodeFactory
 		{
 			Console.OutputEncoding = Encoding.UTF8;
 			GenerateModel model = GetGenerateModel(args);
-			PgSqlHelper.InitDBConnectionOption(new Meta.Common.Model.BaseDbOption("master", model.ConnectionString, null, null));
+			PgSqlHelper.InitDBConnectionOption(new BaseDbOption("master", model.ConnectionString, null, new LoggerFactory().CreateLogger<BaseDbOption>()));
 			Build(model);
 			Console.WriteLine("Done...");
 		}
@@ -127,7 +129,10 @@ namespace CodeFactory
 		/// </summary>
 		static void CreateSln()
 		{
+			if (Directory.GetFiles(OutputDir).Any(f => f.Contains(".sln")))
+				return;
 			string sln_file = Path.Combine(OutputDir, $"{ProjectName}.sln");
+
 			if (!File.Exists(sln_file))
 			{
 				using StreamWriter writer = new StreamWriter(File.Create(sln_file), Encoding.UTF8);

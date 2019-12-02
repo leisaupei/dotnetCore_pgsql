@@ -16,9 +16,28 @@ namespace Meta.xUnitTest.Model
 	{
 		#region Properties
 		[JsonProperty] public Guid Id { get; set; }
+		/// <summary>
+		/// 年龄
+		/// </summary>
 		[JsonProperty] public int Age { get; set; }
+		/// <summary>
+		/// 姓名
+		/// </summary>
 		[JsonProperty] public string Name { get; set; }
-		[JsonProperty] public bool Sex { get; set; }
+		/// <summary>
+		/// 性别
+		/// </summary>
+		[JsonProperty] public bool? Sex { get; set; }
+		[JsonProperty] public DateTime Create_time { get; set; }
+		/// <summary>
+		/// 家庭住址
+		/// </summary>
+		[JsonProperty] public string Address { get; set; }
+		/// <summary>
+		/// 详细住址
+		/// </summary>
+		[JsonProperty] public JToken Address_detail { get; set; }
+		[JsonProperty] public EDataState State { get; set; }
 		#endregion
 
 		#region Foreign Key
