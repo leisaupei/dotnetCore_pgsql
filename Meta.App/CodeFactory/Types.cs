@@ -59,7 +59,7 @@ namespace CodeFactory
 				case "path": return "NpgsqlPath";
 				case "point": return "NpgsqlPoint";
 				case "polygon": return "NpgsqlPolygon";
-				case "hstore": return "IDictionary<string, string>";
+				case "hstore": return "Dictionary<string, string>";
 
 				case "xml":
 				case "char":
@@ -159,7 +159,7 @@ namespace CodeFactory
 				case "tsquery": _type = "NpgsqlDbType.TsQuery"; break;
 				case "tsvector": _type = "NpgsqlDbType.TsVector"; break;
 				case "int2vector": _type = "NpgsqlDbType.Int2Vector"; break;
-
+				case "hstore": _type = "NpgsqlDbType.Hstore"; break;
 				case "macaddr8": _type = "NpgsqlDbType.MacAddr8"; break;
 				case "uuid": _type = "NpgsqlDbType.Uuid"; break;
 				case "oid": _type = "NpgsqlDbType.Oid"; break;

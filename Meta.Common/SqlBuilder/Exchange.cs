@@ -25,7 +25,9 @@ namespace Meta.Common.SqlBuilder
 			if (!hasField)
 				Fields = EntityHelper.GetModelTypeFieldsString<TModel>(MainAlias);
 		}
-		//public TSQL OrderByDescing(Expression<Func<TModel, object>> selector) => base.OrderByDescing(selector);
+		public TSQL OrderByDescing<TResult>(Expression<Func<TModel, TResult>> selector) => base.OrderByDescing(selector);
+		public TSQL OrderBy<TResult>(Expression<Func<TModel, TResult>> selector) => base.OrderBy(selector);
+		public TSQL GroupBy<TResult>(Expression<Func<TModel, TResult>> selector) => base.GroupBy(selector);
 		//public TSQL InnerJoin<TTarget>(Expression<Func<TModel, TTarget, bool>> predicate)
 		//{
 		//	return base.InnerJoin(predicate);
@@ -33,10 +35,16 @@ namespace Meta.Common.SqlBuilder
 
 		public (TModel, T1) ToOneUnion<T1>() => base.ToOne<(TModel, T1)>();
 		public List<(TModel, T1)> ToListUnion<T1>() => base.ToList<(TModel, T1)>();
+		public TSQL ToOneUnionPipe<T1>() => base.ToOnePipe<(TModel, T1)>();
+		public TSQL ToListUnionPipe<T1>() => base.ToListPipe<(TModel, T1)>();
 		public (TModel, T1, T2) ToOneUnion<T1, T2>() => base.ToOne<(TModel, T1, T2)>();
 		public List<(TModel, T1, T2)> ToListUnion<T1, T2>() => base.ToList<(TModel, T1, T2)>();
+		public TSQL ToOneUnionPipe<T1, T2>() => base.ToOnePipe<(TModel, T1, T2)>();
+		public TSQL ToListUnionPipe<T1, T2>() => base.ToListPipe<(TModel, T1, T2)>();
 		public (TModel, T1, T2, T3) ToOneUnion<T1, T2, T3>() => base.ToOne<(TModel, T1, T2, T3)>();
 		public List<(TModel, T1, T2, T3)> ToListUnion<T1, T2, T3>() => base.ToList<(TModel, T1, T2, T3)>();
+		public TSQL ToOneUnionPipe<T1, T2, T3>() => base.ToOnePipe<(TModel, T1, T2, T3)>();
+		public TSQL ToListUnionPipe<T1, T2, T3>() => base.ToListPipe<(TModel, T1, T2, T3)>();
 		public TModel ToOne() => base.ToOne<TModel>();
 		public TSQL ToOnePipe() => ToOnePipe<TModel>();
 		public List<TModel> ToList() => ToList<TModel>();
@@ -57,7 +65,7 @@ namespace Meta.Common.SqlBuilder
 			if (affrows == 0) RedisHelper.Del(key);
 			return affrows;
 		}
-		protected  static T GetRedisCache<T>(string key, int timeout, Func<T> select)
+		protected static T GetRedisCache<T>(string key, int timeout, Func<T> select)
 		{
 			if (select == null)
 				throw new ArgumentNullException(nameof(select));

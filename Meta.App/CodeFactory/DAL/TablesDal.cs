@@ -151,6 +151,10 @@ namespace CodeFactory.DAL
 				f.IsArray = f.Dimensions > 0;
 				f.DbType = f.DbType.StartsWith("_") ? f.DbType.Remove(0, 1) : f.DbType;
 				f.PgDbType = Types.ConvertDbTypeToNpgsqlDbType(f.DataType, f.DbType, f.IsArray);
+				if(f.Field == "options")
+				{
+
+				}
 				f.PgDbTypeString = Types.ConvertDbTypeToNpgsqlDbTypeString(f.DbType, f.IsArray);
 				f.IsEnum = f.DataType == "e";
 				string _type = Types.ConvertPgDbTypeToCSharpType(f.DataType, f.DbType);
@@ -173,7 +177,7 @@ namespace CodeFactory.DAL
 				}
 			}
 		}
-		static readonly string[] NotAddQues = new[] { "string", "JToken", "byte[]", "object", "IPAddress" };
+		static readonly string[] NotAddQues = new[] { "string", "JToken", "byte[]", "object", "IPAddress", "Dictionary<string, string>" };
 		/// <summary>
 		/// 获取约束
 		/// </summary>
@@ -336,7 +340,9 @@ namespace CodeFactory.DAL
 			if (_table.Type == "table")
 			{
 				Hashtable ht = new Hashtable();
-				writer.WriteLine("\t\t#region Foreign Key");
+				var sb = new StringBuilder();
+
+
 				void WriteForeignKey(string nspname, string tableName, string conname, bool? isPk, string refColumn)
 				{
 					var tableNameWithoutSuffix = Types.DeletePublic(nspname, tableName);
@@ -346,13 +352,14 @@ namespace CodeFactory.DAL
 						propertyName = propertyName + "By" + Types.ExceptUnderlineToUpper(conname);
 					string tmp_var = $"_{propertyName.ToLowerPascal()}";
 					if (ht.Keys.Count != 0)
-						writer.WriteLine();
+						sb.AppendLine();
 
-					writer.WriteLine("\t\tprivate {0}{1} {2} = null;", nspTableName, ModelSuffix, tmp_var);
+					sb.AppendFormat("\t\tprivate {0}{1} {2} = null;", nspTableName, ModelSuffix, tmp_var);
+					sb.AppendLine();
 					if (isPk == true)
-						writer.WriteLine("\t\tpublic {0}{1} {2} => {3} ??= {0}.GetItem({4});", nspTableName, ModelSuffix, propertyName, tmp_var, DotValueHelper(conname, _fieldList));
+						sb.AppendFormat("\t\tpublic {0}{1} {2} => {3} ??= {0}.GetItem({4});\n", nspTableName, ModelSuffix, propertyName, tmp_var, DotValueHelper(conname, _fieldList));
 					else
-						writer.WriteLine("\t\tpublic {0}{1} {2} => {3} ??= {0}.Select.Where{5}({4}).ToOne();", nspTableName, ModelSuffix, propertyName, tmp_var, DotValueHelper(conname, _fieldList), refColumn.ToUpperPascal());
+						sb.AppendFormat("\t\tpublic {0}{1} {2} => {3} ??= {0}.Select.Where{5}({4}).ToOne();\n", nspTableName, ModelSuffix, propertyName, tmp_var, DotValueHelper(conname, _fieldList), refColumn.ToUpperPascal());
 
 					if (propertyName.IsNotNullOrEmpty() && !ht.ContainsKey(propertyName))
 						ht.Add(propertyName, "");
@@ -376,15 +383,18 @@ namespace CodeFactory.DAL
 
 					}
 
-
 				}
 				foreach (var item in _consListMoreToMore)
 				{
 
 				}
-
-				writer.WriteLine("\t\t#endregion");
-				writer.WriteLine();
+				if (!string.IsNullOrEmpty(sb.ToString()))
+				{
+					writer.WriteLine("\t\t#region Foreign Key");
+					writer.Write(sb);
+					writer.WriteLine("\t\t#endregion");
+					writer.WriteLine();
+				}
 				writer.WriteLine("\t\t#region Update/Insert");
 				if (_pkList.Count > 0)//[MethodProperty] 
 					writer.WriteLine("\t\tpublic {0}.{0}UpdateBuilder Update => DAL.{0}.Update(this);", DalClassName);

@@ -23,6 +23,13 @@ namespace Meta.Common.Extensions
 		{
 			return info.GetCustomAttribute<JsonPropertyAttribute>() != null;
 		}
+
+		/// <summary>
+		///  将首字母转小写
+		/// </summary>
+		/// <param name="s"></param>
+		/// <returns></returns>
+		public static string ToLowerPascal(this string s) => string.IsNullOrEmpty(s) ? s : $"{s.Substring(0, 1).ToLower()}{s.Substring(1)}";
 		#region IDataReader.To
 		/// <summary>
 		/// 返回实体模型

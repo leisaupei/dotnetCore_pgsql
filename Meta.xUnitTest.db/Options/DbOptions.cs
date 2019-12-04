@@ -2,7 +2,7 @@
 using System;
 using Microsoft.Extensions.Logging;
 using Meta.Common.Model;
-using Meta.Common.DBHelper;
+using Meta.Common.DbHelper;
 using Npgsql;
 
 namespace Meta.xUnitTest.Options

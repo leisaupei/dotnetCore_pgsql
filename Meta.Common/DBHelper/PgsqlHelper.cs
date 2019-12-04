@@ -219,7 +219,7 @@ namespace Meta.Common.DbHelper
 			object[] results = new object[builders.Count()];
 			List<NpgsqlParameter> paras = new List<NpgsqlParameter>();
 			int _paramsCount = 0;
-			string ParamsIndex() => "p" + _paramsCount++.ToString().PadLeft(6, '0');
+			string ParamsIndex() => "ps" + _paramsCount++.ToString().PadLeft(6, '0');
 
 			var cmdText = string.Empty;
 			foreach (var item in builders)
@@ -251,7 +251,7 @@ namespace Meta.Common.DbHelper
 						var t when t == PipeReturnType.Rows => "",
 						_ => null,
 					};
-					
+
 					dr.NextResult();
 				}
 			}, cmdType, cmdText, paras.ToArray());
