@@ -2,21 +2,24 @@
 using Meta.Common.Extensions;
 using Meta.Common.Interface;
 using Meta.Common.Model;
+using Meta.Common.SqlBuilder.AnalysisExpression;
 using Npgsql;
 using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 
 namespace Meta.Common.SqlBuilder
 {
-	public abstract class BuilderBase<TSQL> : ISqlBuilder where TSQL : class, new()
+	public abstract class BuilderBase<TSQL> : ISqlBuilder where TSQL : class
 	{
 		#region Identity
+
 		/// <summary>
-		/// 参数计数器
+		/// 返回类型
 		/// </summary>
-		int _paramsCount = 0;
+		public PipeReturnType ReturnType { get; set; }
 		/// <summary>
 		/// 主表
 		/// </summary>
@@ -46,19 +49,11 @@ namespace Meta.Common.SqlBuilder
 		/// </summary>
 		public Type Type { get; set; }
 		/// <summary>
-		/// 返回类型
-		/// </summary>
-		public PipeReturnType ReturnType { get; set; }
-		/// <summary>
 		/// 参数列表
 		/// </summary>
-		public List<NpgsqlParameter> Params { get; } = new List<NpgsqlParameter>();
+		public List<DbParameter> Params { get; } = new List<DbParameter>();
 		#endregion
 
-		/// <summary>
-		/// 参数后缀
-		/// </summary>
-		protected string ParamsIndex => "p" + _paramsCount++.ToString().PadLeft(6, '0');
 
 		#region Constructor
 		/// <summary>
@@ -128,7 +123,7 @@ namespace Meta.Common.SqlBuilder
 			DataType = type;
 			return This;
 		}
-		public TSQL BySlave() => Data("slave");
+		public TSQL BySlave() => Data("master-slave");
 		public TSQL ByMaster() => Data("master");
 		/// <summary>
 		/// 添加参数
@@ -163,6 +158,18 @@ namespace Meta.Common.SqlBuilder
 			Params.Add(p);
 			return This;
 		}
+		///// <summary>
+		///// 添加参数
+		///// </summary>
+		///// <typeparam name="T"></typeparam>
+		///// <param name="p"></param>
+		///// <param name="value"></param>
+		///// <returns></returns>
+		//public TSQL AddParameter<T>(string p, T value)
+		//{
+		//	Params.Add(new NpgsqlParameter<T>(p, value));
+		//	return This;
+		//}
 		/// <summary>
 		/// 添加参数
 		/// </summary>
@@ -177,20 +184,20 @@ namespace Meta.Common.SqlBuilder
 		/// 返回第一个元素
 		/// </summary>
 		/// <returns></returns>
-		protected object ToScalar() => PgSqlHelper.ExecuteScalar(CommandType.Text, CmdStr, Params.ToArray(), DataType);
+		protected object ToScalar() => PgsqlHelper.ExecuteScalar(CommandText, CommandType.Text, Params.ToArray(), DataType);
 		/// <summary>
 		/// 返回List<Model>
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		protected List<T> ToList<T>() => PgSqlHelper.ExecuteDataReaderList<T>(CmdStr, Params.ToArray(), DataType);
+		protected List<T> ToList<T>() => PgsqlHelper.ExecuteDataReaderList<T>(CommandText, CommandType.Text, Params.ToArray(), DataType);
 
 		/// <summary>
 		/// 返回一个Model
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		protected T ToOne<T>() => PgSqlHelper.ExecuteDataReaderModel<T>(CmdStr, Params.ToArray(), DataType);
+		protected T ToOne<T>() => PgsqlHelper.ExecuteDataReaderModel<T>(CommandText, CommandType.Text, Params.ToArray(), DataType);
 		/// <summary>
 		/// 输出管道元素
 		/// </summary>
@@ -208,7 +215,7 @@ namespace Meta.Common.SqlBuilder
 		/// </summary>
 		/// <param name="cmdText"></param>
 		/// <returns></returns>
-		protected int ToRows() => PgSqlHelper.ExecuteNonQuery(CommandType.Text, CmdStr, Params.ToArray(), DataType);
+		protected int ToRows() => PgsqlHelper.ExecuteNonQuery(CommandText, CommandType.Text, Params.ToArray(), DataType);
 		/// <summary>
 		/// Override ToString()
 		/// </summary>
@@ -218,7 +225,7 @@ namespace Meta.Common.SqlBuilder
 		/// <summary>
 		/// 输出sql语句
 		/// </summary>
-		string CmdStr => GetCommandTextString();
+		string CommandText => GetCommandTextString();
 		/// <summary>
 		/// 类型转换
 		/// </summary>
@@ -232,7 +239,7 @@ namespace Meta.Common.SqlBuilder
 		public string ToString(string field)
 		{
 			if (!string.IsNullOrEmpty(field)) Fields = field;
-			return TypeHelper.SqlToString(CmdStr, Params);
+			return TypeHelper.SqlToString(CommandText, Params);
 		}
 		/// <summary>
 		/// 设置sql语句

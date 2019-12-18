@@ -33,7 +33,7 @@ namespace CodeFactory
 		{
 			Console.OutputEncoding = Encoding.UTF8;
 			GenerateModel model = GetGenerateModel(args);
-			PgSqlHelper.InitDBConnectionOption(new BaseDbOption("master", model.ConnectionString, null, new LoggerFactory().CreateLogger<BaseDbOption>()));
+			PgsqlHelper.InitDBConnectionOption(new BaseDbOption("master", model.ConnectionString, null, new LoggerFactory().CreateLogger<BaseDbOption>()));
 			Build(model);
 			Console.WriteLine("Done...");
 		}
@@ -178,17 +178,23 @@ namespace CodeFactory
 		/// <returns></returns>
 		static List<TableViewModel> GetTables(string schemaName)
 		{
-			string[] notCreateSchemas = { "'pg_catalog'", "'information_schema'" };
-			string[] notCreateTables = { "'spatial_ref_sys'", "'us_gaz'", "'us_lex'", "'us_rules'" };
-			string[] notCreateViews = { "'raster_columns'", "'raster_overviews'", "'geometry_columns'", "'geography_columns'" };
-
-			return SqlInstance.Select("tablename AS name,'table' AS type").From("pg_tables")
-				.WhereNotIn($"schemaname", notCreateSchemas)
-				.WhereNotIn($"tablename", notCreateTables)
-				.Where($"schemaname = '{schemaName}' and tablename not like '%copy%'")
-			.Union(SqlInstance.Select("viewname AS name,'view' AS type ").From("pg_views")
-				.WhereNotIn($"viewname", notCreateViews)
-				.Where($"schemaname = '{schemaName}'")).ToList<TableViewModel>();
+			string[] notCreateSchemas = { "pg_catalog", "information_schema" };
+			string[] notCreateTables = { "spatial_ref_sys", "us_gaz", "us_lex", "us_rules" };
+			string[] notCreateViews = { "raster_columns", "raster_overviews", "geometry_columns", "geography_columns" };
+			var sql = $@"
+SELECT tablename AS name,'table' AS type 
+FROM pg_tables a  
+WHERE schemaname NOT IN ({Types.ConvertArrayToSql(notCreateSchemas)}) 
+AND tablename NOT IN ({Types.ConvertArrayToSql(notCreateTables)})
+AND schemaname = '{schemaName}'
+and tablename not like '%copy%'  
+UNION (
+	SELECT viewname AS name,'view' AS type  FROM pg_views a  
+	WHERE viewname NOT IN ({Types.ConvertArrayToSql(notCreateViews)})
+	AND schemaname = '{schemaName}'
+)  
+";
+			return PgsqlHelper.ExecuteDataReaderList<TableViewModel>(sql);
 		}
 		/// <summary>
 		/// 复制目录

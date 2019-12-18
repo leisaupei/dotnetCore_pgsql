@@ -1,6 +1,7 @@
 ﻿using CodeFactory.Extension;
 using NpgsqlTypes;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace CodeFactory
@@ -11,6 +12,16 @@ namespace CodeFactory
 	public static class Types
 	{
 		/// <summary>
+		/// 
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="value"></param>
+		/// <returns></returns>
+		public static string ConvertArrayToSql<T>(IEnumerable<T> value)
+		{
+			return string.Join(", ", value.Select(f => $"'{f}'"));
+		}
+		/// <summary>
 		/// 数据库类型转化成C#类型String
 		/// </summary>
 		/// <param name="dataType"></param>
@@ -20,7 +31,7 @@ namespace CodeFactory
 		{
 			switch (dbType)
 			{
-				case "bit": return "byte[]";
+				case "bit": return "BitArray";
 				case "varbit": return "BitArray";
 
 				case "bool": return "bool";
@@ -34,7 +45,7 @@ namespace CodeFactory
 				case "money":
 				case "decimal": return "decimal";
 
-				case "cidr": return "ValueTuple<IPAddress, int>";
+				case "cidr": return "(IPAddress, int)";
 				case "inet": return "IPAddress";
 
 				case "serial2":

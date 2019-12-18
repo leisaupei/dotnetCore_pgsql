@@ -1,6 +1,8 @@
 ﻿using CodeFactory.Extension;
 using Meta.Common.DbHelper;
+using Meta.Common.Model;
 using Meta.Common.SqlBuilder;
+using Npgsql;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -48,7 +50,7 @@ namespace CodeFactory.DAL
 			_modelPath = modelPath;
 			_projectName = projectName;
 			var listEnum = GenerateEnum();
-			var listComposite = new List<CompositeTypeInfo>();  // GenerateComposites();
+			var listComposite = GenerateComposites();
 
 			GenerateMapping(listEnum, listComposite);
 			GenerateCsproj();
@@ -92,7 +94,13 @@ namespace CodeFactory.DAL
 
 		private static List<EnumTypeInfo> GenerateEnum()
 		{
-			var list = SqlInstance.Select("a.oid, a.typname, b.nspname").From("pg_type", "a").InnerJoin("pg_namespace", "b", "a.typnamespace = b.oid").Where("a.typtype='e'").OrderBy("oid asc").ToList<EnumTypeInfo>();
+			var sql = $@"
+SELECT a.oid, a.typname, b.nspname FROM pg_type a  
+INNER JOIN pg_namespace b ON a.typnamespace = b.oid 
+WHERE a.typtype='e'  
+ORDER BY oid asc  
+";
+			var list = PgsqlHelper.ExecuteDataReaderList<EnumTypeInfo>(sql);
 			string fileName = Path.Combine(_modelPath, $"_{TypeName}Enums.cs");
 			using (StreamWriter writer = new StreamWriter(File.Create(fileName), Encoding.UTF8))
 			{
@@ -102,7 +110,8 @@ namespace CodeFactory.DAL
 				writer.WriteLine("{");
 				foreach (var item in list)
 				{
-					var enums = SqlInstance.Select("enumlabel").From("pg_enum").Where($"enumtypid={item.Oid}").OrderBy("oid asc").ToList<string>();
+					var sqlEnums = $@"SELECT enumlabel FROM pg_enum a  WHERE enumtypid=@oid ORDER BY oid asc";
+					var enums = PgsqlHelper.ExecuteDataReaderList<string>(sqlEnums, System.Data.CommandType.Text, new[] { new NpgsqlParameter("oid", item.Oid) });
 					if (enums.Count > 0)
 						enums[0] += " = 1";
 					writer.WriteLine($"\tpublic enum {TypeName}{Types.DeletePublic(item.Nspname, item.Typname)}");
@@ -121,18 +130,21 @@ namespace CodeFactory.DAL
 		/// <returns></returns>
 		public static List<CompositeTypeInfo> GenerateComposites()
 		{
-			var notCreateComposites = new[] { "'public.reclassarg'", "'public.geomval'", "'public.addbandarg'", "'public.agg_samealignment'", "'public.geometry_dump'", "'public.summarystats'", "'public.agg_count'", "'public.valid_detail'", "'public.rastbandarg'", "'public.unionarg'", "'topology.getfaceedges_returntype'", "'topology.topogeometry'", "'topology.validatetopology_returntype'", "'public.stdaddr'", "'tiger.norm_addy'" };
-			var compositesSQL = SqlInstance.Select("ns.nspname, a.typname as typename, c.attname, d.typname, c.attndims, d.typtype").From("pg_type")
-				.InnerJoin("pg_class", "b", "b.reltype = a.oid and b.relkind = 'c'")
-				.InnerJoin("pg_attribute", "c", "c.attrelid = b.oid and c.attnum > 0")
-				.InnerJoin("pg_type", "d", "d.oid = c.atttypid")
-				.InnerJoin("pg_namespace", "ns", "ns.oid = a.typnamespace")
-				.LeftJoin("pg_namespace", "ns2", "ns2.oid = d.typnamespace")
-				.WhereNotIn("ns.nspname || '.' || a.typname", notCreateComposites).ToString();
+			var notCreateComposites = new[] { "public.reclassarg", "public.geomval", "public.addbandarg", "public.agg_samealignment", "public.geometry_dump", "public.summarystats", "public.agg_count", "public.valid_detail", "public.rastbandarg", "public.unionarg", "topology.getfaceedges_returntype", "topology.topogeometry", "topology.validatetopology_returntype", "public.stdaddr", "tiger.norm_addy" };
+			var sql = $@"
+SELECT ns.nspname, a.typname as typename, c.attname, d.typname, c.attndims, d.typtype
+FROM pg_type a 
+INNER JOIN pg_class b on b.reltype = a.oid and b.relkind = 'c'
+INNER JOIN pg_attribute c on c.attrelid = b.oid and c.attnum > 0
+INNER JOIN pg_type d on d.oid = c.atttypid
+INNER JOIN pg_namespace ns on ns.oid = a.typnamespace
+LEFT JOIN pg_namespace ns2 on ns2.oid = d.typnamespace
+WHERE ns.nspname || '.' || a.typname not in ({Types.ConvertArrayToSql(notCreateComposites)})
+";
 			Dictionary<string, string> dic = new Dictionary<string, string>();
 			List<CompositeTypeInfo> composites = new List<CompositeTypeInfo>();
 			var isFoot = false;
-			PgSqlHelper.ExecuteDataReader(dr =>
+			PgsqlHelper.ExecuteDataReader(dr =>
 		   {
 			   var composite = new CompositeTypeInfo
 			   {
@@ -165,10 +177,12 @@ namespace CodeFactory.DAL
 			   var relType = $"{_type}{_notnull}{_array}";
 			   dic[temp] += $"\n\t\t[JsonProperty] public {relType} {dr["attname"].ToString().ToUpperPascal()} {{ get; set; }}";
 
-		   }, compositesSQL);
-			string fileName = Path.Combine(_modelPath, $"_{TypeName}Composites.cs");
-			using (StreamWriter writer = new StreamWriter(File.Create(fileName), Encoding.UTF8))
+		   }, sql);
+
+			if (dic.Count > 0)
 			{
+				string fileName = Path.Combine(_modelPath, $"_{TypeName}Composites.cs");
+				using StreamWriter writer = new StreamWriter(File.Create(fileName), Encoding.UTF8);
 				writer.WriteLine("using System;");
 				writer.WriteLine("using Newtonsoft.Json;");
 				writer.WriteLine();
@@ -197,19 +211,18 @@ namespace CodeFactory.DAL
 			_sbConstTypeName.AppendFormat("\t\t/// <summary>\n\t\t/// {0}主库\n\t\t/// </summary>\n", TypeName);
 			_sbConstTypeName.AppendFormat("\t\tpublic const string {0}Master = \"{1}\";\n", TypeName.ToUpperPascal(), _typeName.ToLower());
 			_sbConstTypeName.AppendFormat("\t\t/// <summary>\n\t\t/// {0}从库\n\t\t/// </summary>\n", TypeName);
-			_sbConstTypeName.AppendFormat("\t\tpublic const string {0}Slave = \"{1}\";\n", TypeName.ToUpperPascal(), _typeName.ToLower() + PgSqlHelper.SlaveSuffix);
+			_sbConstTypeName.AppendFormat("\t\tpublic const string {0}Slave = \"{1}\";\n", TypeName.ToUpperPascal(), _typeName.ToLower() + BaseDbOption.SlaveSuffix);
 
 			_sbConstTypeConstrutor.AppendFormat("\t\t#region {0}\n", _typeName);
 			_sbConstTypeConstrutor.AppendFormat("\t\tpublic class {0}DbOption : BaseDbOption\n", _typeName.ToUpperPascal());
 			_sbConstTypeConstrutor.AppendLine("\t\t{");
-			_sbConstTypeConstrutor.AppendFormat("\t\t\tpublic {0}DbOption(string connectionString, string[] slaveConnectionString, ILogger logger) : base({1}Master, connectionString, slaveConnectionString, logger)\n", _typeName.ToUpperPascal(), TypeName);
+			_sbConstTypeConstrutor.AppendFormat("\t\t\tpublic {0}DbOption(string masterConnectionString, string[] slaveConnectionStrings, ILogger logger) : base({1}Master, masterConnectionString, slaveConnectionStrings, logger)\n", _typeName.ToUpperPascal(), TypeName);
 			_sbConstTypeConstrutor.AppendLine("\t\t\t{");
-			_sbConstTypeConstrutor.AppendLine("\t\t\t\tNpgsqlNameTranslator translator = new NpgsqlNameTranslator();");
-			_sbConstTypeConstrutor.AppendLine("\t\t\t\tMapAction = conn =>");
+			_sbConstTypeConstrutor.AppendLine("\t\t\t\tOptions.MapAction = conn =>");
 			_sbConstTypeConstrutor.AppendLine("\t\t\t\t{");
-			_sbConstTypeConstrutor.AppendLine("\t\t\t\t\tconn.TypeMapper.UseJsonNet();");
+			_sbConstTypeConstrutor.AppendLine("\t\t\t\t\tUseJsonNetForJtype(conn.TypeMapper);");
 			foreach (var item in list)
-				_sbConstTypeConstrutor.AppendLine($"\t\t\t\t\tconn.TypeMapper.MapEnum<{TypeName}{Types.DeletePublic(item.Nspname, item.Typname)}>(\"{item.Nspname}.{item.Typname}\", translator);");
+				_sbConstTypeConstrutor.AppendLine($"\t\t\t\t\tconn.TypeMapper.MapEnum<{TypeName}{Types.DeletePublic(item.Nspname, item.Typname)}>(\"{item.Nspname}.{item.Typname}\", _translator);");
 			foreach (var item in listComposite)
 				_sbConstTypeConstrutor.AppendLine($"\t\t\t\t\tconn.TypeMapper.MapComposite<{TypeName}{Types.DeletePublic(item.Nspname, item.Typname)}>(\"{item.Nspname}.{item.Typname}\");");
 			_sbConstTypeConstrutor.AppendLine("\t\t\t\t};");
@@ -228,15 +241,32 @@ namespace CodeFactory.DAL
 				writer.WriteLine("using Microsoft.Extensions.Logging;");
 				writer.WriteLine("using Meta.Common.Model;");
 				writer.WriteLine("using Meta.Common.DbHelper;");
+				writer.WriteLine("using Newtonsoft.Json.Linq;");
+				writer.WriteLine("using Npgsql.TypeMapping;");
 				writer.WriteLine("using Npgsql;");
 				writer.WriteLine();
 				writer.WriteLine($"namespace {_projectName}.Options");
 				writer.WriteLine("{");
 				writer.WriteLine($"\tpublic static class DbOptions");
 				writer.WriteLine("\t{");
+				writer.WriteLine("\t\t#region DbTypeName");
 				writer.Write(_sbConstTypeName);
+				writer.WriteLine("\t\t#endregion");
 				writer.WriteLine();
 				writer.Write(_sbConstTypeConstrutor);
+				writer.WriteLine("\t\t#region Private Method And Field");
+				writer.WriteLine("\t\tprivate static readonly NpgsqlNameTranslator _translator = new NpgsqlNameTranslator();");
+				writer.WriteLine("\t\tprivate static void UseJsonNetForJtype(INpgsqlTypeMapper mapper)");
+				writer.WriteLine("\t\t{");
+				writer.WriteLine("\t\t\tvar jtype = new[] { typeof(JToken), typeof(JObject), typeof(JArray) };");
+				writer.WriteLine("\t\t\tmapper.UseJsonNet(jtype);");
+				writer.WriteLine("\t\t}");
+				writer.WriteLine("\t\tprivate class NpgsqlNameTranslator : INpgsqlNameTranslator");
+				writer.WriteLine("\t\t{");
+				writer.WriteLine("\t\t\tpublic string TranslateMemberName(string clrName) => clrName;");
+				writer.WriteLine("\t\t\tpublic string TranslateTypeName(string clrName) => clrName;");
+				writer.WriteLine("\t\t}");
+				writer.WriteLine("\t\t#endregion");
 				writer.WriteLine("\t}");
 				writer.WriteLine("}"); // namespace end
 			}

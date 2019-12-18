@@ -1,28 +1,34 @@
 ﻿using Meta.Common.Model;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Collections;
+using System.Net.NetworkInformation;
 using NpgsqlTypes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Meta.Common.Interface;
 using System.Net;
 using Meta.xUnitTest.DAL;
 
 namespace Meta.xUnitTest.Model
 {
-	[Mapping("student"), JsonObject(MemberSerialization.OptIn)]
-	public partial class StudentModel
+	[DbTable("student")]
+	public partial class StudentModel : IDbModel
 	{
 		#region Properties
 		/// <summary>
 		/// 学号
 		/// </summary>
-		[JsonProperty] public string Stu_no { get; set; }
-		[JsonProperty] public Guid Grade_id { get; set; }
-		[JsonProperty] public Guid People_id { get; set; }
-		[JsonProperty] public DateTime Create_time { get; set; }
-		[JsonProperty] public Guid Id { get; set; }
+		[JsonProperty, DbField(32, NpgsqlDbType.Varchar)]
+		public string Stu_no { get; set; }
+		[JsonProperty, DbField(16, NpgsqlDbType.Uuid)]
+		public Guid Grade_id { get; set; }
+		[JsonProperty, DbField(16, NpgsqlDbType.Uuid)]
+		public Guid People_id { get; set; }
+		[JsonProperty, DbField(8, NpgsqlDbType.Timestamp)]
+		public DateTime Create_time { get; set; }
+		[JsonProperty, DbField(16, NpgsqlDbType.Uuid)]
+		public Guid Id { get; set; }
 		#endregion
 
 		#region Foreign Key
@@ -40,8 +46,5 @@ namespace Meta.xUnitTest.Model
 		public int Commit() => DAL.Student.Commit(this);
 		public StudentModel Insert() => DAL.Student.Insert(this);
 		#endregion
-
-		public override string ToString() => JsonConvert.SerializeObject(this);
-		public static StudentModel Parse(string json) => string.IsNullOrEmpty(json) ? null : JsonConvert.DeserializeObject<StudentModel>(json);
 	}
 }

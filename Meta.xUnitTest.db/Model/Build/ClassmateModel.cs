@@ -1,24 +1,29 @@
 ﻿using Meta.Common.Model;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Collections;
+using System.Net.NetworkInformation;
 using NpgsqlTypes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Meta.Common.Interface;
 using System.Net;
 using Meta.xUnitTest.DAL;
 
 namespace Meta.xUnitTest.Model
 {
-	[Mapping("classmate"), JsonObject(MemberSerialization.OptIn)]
-	public partial class ClassmateModel
+	[DbTable("classmate")]
+	public partial class ClassmateModel : IDbModel
 	{
 		#region Properties
-		[JsonProperty] public Guid Teacher_id { get; set; }
-		[JsonProperty] public Guid Student_id { get; set; }
-		[JsonProperty] public Guid Grade_id { get; set; }
-		[JsonProperty] public DateTime? Create_time { get; set; }
+		[JsonProperty, DbField(16, NpgsqlDbType.Uuid)]
+		public Guid Teacher_id { get; set; }
+		[JsonProperty, DbField(16, NpgsqlDbType.Uuid)]
+		public Guid Student_id { get; set; }
+		[JsonProperty, DbField(16, NpgsqlDbType.Uuid)]
+		public Guid Grade_id { get; set; }
+		[JsonProperty, DbField(8, NpgsqlDbType.Timestamp)]
+		public DateTime? Create_time { get; set; }
 		#endregion
 
 		#region Foreign Key
@@ -36,8 +41,5 @@ namespace Meta.xUnitTest.Model
 		public int Commit() => DAL.Classmate.Commit(this);
 		public ClassmateModel Insert() => DAL.Classmate.Insert(this);
 		#endregion
-
-		public override string ToString() => JsonConvert.SerializeObject(this);
-		public static ClassmateModel Parse(string json) => string.IsNullOrEmpty(json) ? null : JsonConvert.DeserializeObject<ClassmateModel>(json);
 	}
 }

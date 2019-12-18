@@ -6,31 +6,37 @@ using Npgsql;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Linq;
+using System.Text;
 
 namespace Meta.Common.DbHelper
 {
-	public static class PgSqlHelper
+	public static class PgsqlHelper
 	{
-		/// <summary>
-		/// 从库后缀
-		/// </summary>
-		public const string SlaveSuffix = "-slave";
+
 		/// <summary>
 		/// 实例键值对
 		/// </summary>
-		static readonly Dictionary<string, List<Execute>> _executeDictString = new Dictionary<string, List<Execute>>();
+		static readonly Dictionary<string, List<DbExecute>> _executeDictString = new Dictionary<string, List<DbExecute>>();
+
 		/// <summary>
 		/// 随机从库
 		/// </summary>
 		static readonly Random _ran;
-		internal class Execute : PgExecute
+
+		/// <summary>
+		/// 实现Pgsql
+		/// </summary>
+		internal class PgsqlExecute : DbExecute
 		{
-			public Execute(string connectionString, ILogger logger, Action<NpgsqlConnection> mapAction)
-				: base(connectionString, logger, mapAction) { }
+			public PgsqlExecute(DbConnectionModel conn) : base(conn) { }
 		}
 
-		static PgSqlHelper()
+		/// <summary>
+		/// 静态构造
+		/// </summary>
+		static PgsqlHelper()
 		{
 			_ran = new Random(DateTime.Now.GetHashCode());
 		}
@@ -39,15 +45,16 @@ namespace Meta.Common.DbHelper
 		/// 获取连接实例
 		/// </summary>
 		/// <param name="type">数据库类型</param>
+		/// <exception cref="ArgumentNullException">没有找到对应名称实例</exception>
 		/// <returns>对应实例</returns>
-		static PgExecute GetExecute(string type)
+		static DbExecute GetExecute(string type)
 		{
 			if (_executeDictString.ContainsKey(type))
 			{
 				var execute = _executeDictString[type];
 				if (execute.Count == 0)
-					if (type.EndsWith(SlaveSuffix))
-						return GetExecute(type.Replace(SlaveSuffix, string.Empty));
+					if (type.EndsWith(BaseDbOption.SlaveSuffix))
+						return GetExecute(type.Replace(BaseDbOption.SlaveSuffix, string.Empty));
 
 				if (execute.Count == 1)
 					return execute[0];
@@ -56,8 +63,9 @@ namespace Meta.Common.DbHelper
 					return execute[_ran.Next(0, execute.Count)];
 			}
 			// 从没有从库连接会查主库->如果没有连接会报错
-			throw new ArgumentNullException($"not exist {type} execute");
+			throw new ArgumentNullException("connectionstring", $"not exist {type} execute");
 		}
+
 		/// <summary>
 		/// 初始化一主多从数据库连接
 		/// </summary>
@@ -68,29 +76,27 @@ namespace Meta.Common.DbHelper
 				throw new ArgumentNullException(nameof(options));
 			if (options.Count() == 0)
 				throw new ArgumentOutOfRangeException(nameof(options));
-			foreach (var item in options)
-				InitDB(item.ConnectionString, item.Logger, item.SlaveConnectionString, item.MapAction, item.TypeName);
-		}
-		/// <summary>
-		/// 初始化数据库
-		/// </summary>
-		/// <param name="connectionString"></param>
-		/// <param name="logger"></param>
-		/// <param name="slaveConnectionString"></param>
-		/// <param name="mapAction"></param>
-		/// <param name="type"></param>
-		static void InitDB(string connectionString, ILogger logger, string[] slaveConnectionString, Action<NpgsqlConnection> mapAction, string type)
-		{
-			if (string.IsNullOrEmpty(connectionString))
-				throw new ArgumentNullException(nameof(connectionString), $"{type} Connection String is null");
-			_executeDictString[type] = new List<Execute> { new Execute(connectionString, logger, mapAction) };
-			if (slaveConnectionString?.Length > 0)
+			foreach (var option in options)
 			{
-				_executeDictString[type + SlaveSuffix] = new List<Execute>();
-				foreach (var item in slaveConnectionString)
-					_executeDictString[type + SlaveSuffix].Add(new Execute(item, logger, mapAction));
+				if (string.IsNullOrEmpty(option.MasterConnectionString))
+					throw new ArgumentNullException(nameof(option.MasterConnectionString), $"{option.TypeName} Connection String is null");
+				var dbModel = new DbConnectionModel(option.MasterConnectionString, option.Logger, option.Type);
+				dbModel.Options.MapAction = option.Options.MapAction;
+
+				_executeDictString[option.TypeName] = new List<DbExecute> { new PgsqlExecute(dbModel) };
+
+				if ((option.SlaveConnectionStrings?.Length ?? 0) == 0) continue;
+
+				_executeDictString[option.TypeName + BaseDbOption.SlaveSuffix] = new List<DbExecute>();
+				foreach (var item in option.SlaveConnectionStrings)
+				{
+					var dbModelSlave = new DbConnectionModel(item, option.Logger, option.Type);
+					dbModelSlave.Options.MapAction = option.Options.MapAction;
+					_executeDictString[option.TypeName + BaseDbOption.SlaveSuffix].Add(new PgsqlExecute(dbModelSlave));
+				}
 			}
 		}
+
 		/// <summary>
 		/// 查询单个元素
 		/// </summary>
@@ -99,8 +105,9 @@ namespace Meta.Common.DbHelper
 		/// <param name="cmdParams">sql参数</param>
 		/// <param name="type">数据库类型</param>
 		/// <returns>返回(0,0)值</returns>
-		public static object ExecuteScalar(CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams = null, string type = "master") =>
-			GetExecute(type).ExecuteScalar(cmdType, cmdText, cmdParams);
+		public static object ExecuteScalar(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, string type = "master") =>
+			GetExecute(type).ExecuteScalar(cmdText, cmdType, cmdParams);
+
 		/// <summary>
 		/// 执行NonQuery
 		/// </summary>
@@ -109,8 +116,9 @@ namespace Meta.Common.DbHelper
 		/// <param name="cmdParams">sql参数</param>
 		/// <param name="type">数据库类型</param>
 		/// <returns>修改行数</returns>
-		public static int ExecuteNonQuery(CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams = null, string type = "master") =>
-			GetExecute(type).ExecuteNonQuery(cmdType, cmdText, cmdParams);
+		public static int ExecuteNonQuery(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, string type = "master") =>
+			GetExecute(type).ExecuteNonQuery(cmdText, cmdType, cmdParams);
+
 		/// <summary>
 		/// DataReader
 		/// </summary>
@@ -119,8 +127,9 @@ namespace Meta.Common.DbHelper
 		/// <param name="cmdText">sql语句</param>
 		/// <param name="cmdParams">sql参数</param>
 		/// <param name="type">数据库类型</param>
-		public static void ExecuteDataReader(Action<NpgsqlDataReader> action, CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams = null, string type = "master") =>
-			GetExecute(type).ExecuteDataReader(action, cmdType, cmdText, cmdParams);
+		public static void ExecuteDataReader(Action<DbDataReader> action, string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, string type = "master") =>
+			GetExecute(type).ExecuteDataReader(action, cmdText, cmdType, cmdParams);
+
 		/// <summary>
 		/// 查询多行
 		/// </summary>
@@ -129,15 +138,16 @@ namespace Meta.Common.DbHelper
 		/// <param name="cmdParams">sql参数</param>
 		/// <param name="type">数据库类型</param>
 		/// <returns>列表</returns>
-		public static List<T> ExecuteDataReaderList<T>(CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams = null, string type = "master")
+		public static List<T> ExecuteDataReaderList<T>(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, string type = "master")
 		{
 			var list = new List<T>();
 			ExecuteDataReader(dr =>
 			{
 				list.Add(dr.ReaderToModel<T>());
-			}, cmdType, cmdText, cmdParams, type);
+			}, cmdText, cmdType, cmdParams, type);
 			return list;
 		}
+
 		/// <summary>
 		/// 查询一行
 		/// </summary>
@@ -146,94 +156,32 @@ namespace Meta.Common.DbHelper
 		/// <param name="cmdParams">sql参数</param>
 		/// <param name="type">数据库类型</param>
 		/// <returns>实体</returns>
-		public static T ExecuteDataReaderModel<T>(CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams = null, string type = "master")
+		public static T ExecuteDataReaderModel<T>(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, string type = "master")
 		{
-			var list = ExecuteDataReaderList<T>(cmdType, cmdText, cmdParams, type);
+			var list = ExecuteDataReaderList<T>(cmdText, cmdType, cmdParams, type);
 			return list.Count > 0 ? list[0] : default;
 		}
 
-		#region overload
-		/// <summary>
-		/// DataReader
-		/// </summary>
-		/// <param name="action">逐行Reader委托</param>
-		/// <param name="cmdText">sql语句</param>
-		/// <param name="cmdParams">sql参数</param>
-		/// <param name="type">数据库类型</param>
-		public static void ExecuteDataReader(Action<NpgsqlDataReader> action, string cmdText, NpgsqlParameter[] cmdParams = null, string type = "master") =>
-			ExecuteDataReader(action, CommandType.Text, cmdText, cmdParams, type);
-		/// <summary>
-		/// 重构Type为Text
-		/// </summary>
-		/// <param name="cmdText">sql语句</param>
-		/// <param name="cmdParams">sql参数</param>
-		/// <param name="type">数据库类型</param>
-		/// <returns>修改行数</returns>
-		public static int ExecuteNonQuery(string cmdText, NpgsqlParameter[] cmdParams = null, string type = "master") =>
-			ExecuteNonQuery(CommandType.Text, cmdText, cmdParams, type);
-		/// <summary>
-		/// 重构Type为Text
-		/// </summary>
-		/// <param name="cmdText">sql语句</param>
-		/// <param name="cmdParams">sql参数</param>
-		/// <param name="type">数据库类型</param>
-		/// <returns></returns>
-		public static object ExecuteScalar(string cmdText, NpgsqlParameter[] cmdParams = null, string type = "master") =>
-			ExecuteScalar(CommandType.Text, cmdText, cmdParams, type);
-
-
-		/// <summary>
-		/// 查询多行
-		/// </summary>
-		/// <typeparam name="T">列表类型</typeparam>
-		/// <param name="cmdText">sql语句</param>
-		/// <param name="cmdParams">sql参数</param>
-		/// <param name="type">数据库类型</param>
-		/// <returns>列表</returns>
-		public static List<T> ExecuteDataReaderList<T>(string cmdText, NpgsqlParameter[] cmdParams = null, string type = "master") =>
-			ExecuteDataReaderList<T>(CommandType.Text, cmdText, cmdParams, type);
-
-		/// <summary>
-		/// 查询一行
-		/// </summary>
-		/// <typeparam name="T">实体类型</typeparam>
-		/// <param name="cmdText">sql语句</param>
-		/// <param name="cmdParams">sql参数</param>
-		/// <param name="type">数据库类型</param>
-		/// <returns>实体</returns>
-		public static T ExecuteDataReaderModel<T>(string cmdText, NpgsqlParameter[] cmdParams = null, string type = "master") =>
-			ExecuteDataReaderModel<T>(CommandType.Text, cmdText, cmdParams, type);
-
-		#endregion
 		/// <summary>
 		/// DataReader pipe
 		/// </summary>
-		/// <param name="cmdText">sql语句</param>
-		/// <param name="cmdParams">sql参数</param>
-		/// <param name="type">数据库类型</param>
+		/// <param name="builders">sql builder</param>
+		/// <param name="cmdType">命令类型</param>
+		/// <param name="type">数据库名称</param>
+		/// <exception cref="ArgumentNullException">builders is null or empty</exception>
 		/// <returns>实体</returns>
-		public static object[] ExecuteDataReaderPipe(CommandType cmdType, IEnumerable<ISqlBuilder> builders, string type = "master")
+		public static object[] ExecuteDataReaderPipe(IEnumerable<ISqlBuilder> builders, CommandType cmdType = CommandType.Text, string type = "master")
 		{
 			if (builders?.Any() != true)
 				throw new ArgumentNullException(nameof(builders));
-			object[] results = new object[builders.Count()];
-			List<NpgsqlParameter> paras = new List<NpgsqlParameter>();
-			int _paramsCount = 0;
-			string ParamsIndex() => "ps" + _paramsCount++.ToString().PadLeft(6, '0');
 
-			var cmdText = string.Empty;
+			object[] results = new object[builders.Count()];
+			var paras = new List<DbParameter>();
+			var cmdText = new StringBuilder();
 			foreach (var item in builders)
 			{
-				var itemCmdText = item.GetCommandTextString();
-
-				foreach (var p in item.Params)
-				{
-					var newParaName = $"@{ParamsIndex()}";
-					itemCmdText = itemCmdText.Replace($"@{p.ParameterName}", newParaName);
-					p.ParameterName = newParaName;
-				}
 				paras.AddRange(item.Params);
-				cmdText += itemCmdText + ";";
+				cmdText.Append(item.GetCommandTextString()).AppendLine(";");
 			}
 			GetExecute(type).ExecuteDataReaderBase(dr =>
 			{
@@ -246,15 +194,18 @@ namespace Meta.Common.DbHelper
 
 					results[i] = item.ReturnType switch
 					{
-						var t when t == PipeReturnType.List => list.ToArray(),
-						var t when t == PipeReturnType.One => list.Count > 0 ? list[0] : null,
-						var t when t == PipeReturnType.Rows => "",
-						_ => null,
+						var t when t == PipeReturnType.List =>
+							list.ToArray(),
+						var t when t == PipeReturnType.One =>
+							list.Count > 0 ? list[0] : item.Type.IsTuple() ? Activator.CreateInstance(item.Type) : default, // 返回默认值
+						var t when t == PipeReturnType.Rows =>
+							dr.RecordsAffected,
+						_ => throw new ArgumentException("ReturnType is wrong", nameof(item.ReturnType)),
 					};
 
 					dr.NextResult();
 				}
-			}, cmdType, cmdText, paras.ToArray());
+			}, cmdText.ToString(), cmdType, paras.ToArray());
 			return results;
 		}
 
@@ -262,9 +213,12 @@ namespace Meta.Common.DbHelper
 		/// 事务 (暂不支持分布式事务)
 		/// </summary>
 		/// <param name="action">Action委托</param>
-		/// <param name="type">数据库类型</param>
+		/// <param name="type">数据库名称</param>
+		/// <exception cref="ArgumentNullException">委托是null</exception>
 		public static void Transaction(Action action, string type = "master")
 		{
+			if (action == null)
+				throw new ArgumentNullException(nameof(action));
 			try
 			{
 				GetExecute(type).BeginTransaction();
@@ -277,12 +231,14 @@ namespace Meta.Common.DbHelper
 				throw e;
 			}
 		}
+
 		/// <summary>
 		/// 事务 (暂不支持分布式事务)
 		/// </summary>
 		/// <remarks>func返回false, 则回滚事务</remarks>
-		/// <param name="action">Func委托</param>
-		/// <param name="type">数据库类型</param>
+		/// <param name="func">Func委托</param>
+		/// <param name="type">数据库名称</param>
+		/// <exception cref="ArgumentNullException">委托是null</exception>
 		public static void Transaction(Func<bool> func, string type = "master")
 		{
 			if (func == null)

@@ -1,5 +1,6 @@
 ﻿using Meta.Common.DbHelper;
 using Meta.Common.Extensions;
+using Meta.Common.Interface;
 using Meta.Common.Model;
 using Npgsql;
 using NpgsqlTypes;
@@ -7,21 +8,26 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Meta.Common.SqlBuilder
 {
-	public abstract class WhereBase<TSQL> : BuilderBase<TSQL> where TSQL : class, new()
+	public abstract class WhereBase<TSQL> : BuilderBase<TSQL> where TSQL : class
 	{
 		TSQL This => this as TSQL;
 		#region Constructor
 		protected WhereBase(string table, string alias) : base(table, alias) { }
 		protected WhereBase(string table) : base(table) { }
-		protected WhereBase() { }
+		protected WhereBase() : base() { }
 		#endregion
 
+		public TSQL Where<TSource>(Expression<Func<TSource, bool>> selector) where TSource : IDbModel, new()
+		{
+			return This;
+		}
 		/// <summary>
 		/// 字符串where语句
 		/// </summary>
@@ -32,19 +38,21 @@ namespace Meta.Common.SqlBuilder
 			base.WhereList.Add($"({where})");
 			return This;
 		}
-		/// <summary>
-		/// not in
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="field"></param>
-		/// <param name="selectBuilder"></param>
-		/// <example>WhereNotIn("a.id",xxx.SelectDiy("id").Where())</example>
-		/// <returns></returns>
-		public TSQL WhereNotIn<T>(string field, SelectBuilder<T> selectBuilder) where T : class, new()
-		{
-			ThrowNullFieldException(selectBuilder);
-			return WhereNotIn(field, selectBuilder.ToString());
-		}
+
+		///// <summary>
+		///// not in
+		///// </summary>
+		///// <typeparam name="T"></typeparam>
+		///// <param name="field"></param>
+		///// <param name="selectBuilder"></param>
+		///// <example>WhereNotIn("a.id",xxx.SelectDiy("id").Where())</example>
+		///// <returns></returns>
+		//public TSQL WhereNotIn<T>(string field, SelectBuilder<T> selectBuilder) where T : class, new()
+		//{
+		//	ThrowNullFieldException(selectBuilder);
+		//	return WhereNotIn(field, selectBuilder.ToString());
+		//}
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -60,6 +68,7 @@ namespace Meta.Common.SqlBuilder
 				throw new ArgumentNullException(nameof(values));
 			return WhereNotIn(field, string.Join(", ", values));
 		}
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -73,18 +82,20 @@ namespace Meta.Common.SqlBuilder
 				throw new ArgumentNullException(nameof(sql));
 			return Where($"{field} NOT IN ({sql})");
 		}
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="field"></param>
-		/// <param name="selectBuilder"></param>
-		/// <returns></returns>
-		public TSQL WhereIn<T>(string field, SelectBuilder<T> selectBuilder) where T : class, new()
-		{
-			ThrowNullFieldException(selectBuilder);
-			return WhereIn(field, selectBuilder.ToString());
-		}
+
+		///// <summary>
+		///// 
+		///// </summary>
+		///// <typeparam name="T"></typeparam>
+		///// <param name="field"></param>
+		///// <param name="selectBuilder"></param>
+		///// <returns></returns>
+		//public TSQL WhereIn<T>(string field, SelectBuilder<T> selectBuilder) where T : class, new()
+		//{
+		//	ThrowNullFieldException(selectBuilder);
+		//	return WhereIn(field, selectBuilder.ToString());
+		//}
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -98,6 +109,7 @@ namespace Meta.Common.SqlBuilder
 				throw new ArgumentNullException(nameof(values));
 			return WhereIn(field, string.Join(", ", values.Select(f => $"'{f}'")));
 		}
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -111,6 +123,7 @@ namespace Meta.Common.SqlBuilder
 			else WhereIn(field, string.Join(", ", values.Select(f => $"'{f}'")));
 			return This;
 		}
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -124,6 +137,7 @@ namespace Meta.Common.SqlBuilder
 			else Where(field + " = any({0})", new object[] { values.ToArray() });
 			return This;
 		}
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -137,17 +151,18 @@ namespace Meta.Common.SqlBuilder
 				throw new ArgumentNullException(nameof(sql));
 			return Where($"{field} IN ({sql})");
 		}
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="selectBuilder"></param>
-		/// <returns></returns>
-		public TSQL WhereExists<T>(SelectBuilder<T> selectBuilder) where T : class, new()
-		{
-			SetExistsField(selectBuilder);
-			return WhereExists(selectBuilder.ToString());
-		}
+
+		///// <summary>
+		///// 
+		///// </summary>
+		///// <typeparam name="T"></typeparam>
+		///// <param name="selectBuilder"></param>
+		///// <returns></returns>
+		//public TSQL WhereExists<T>(SelectBuilder<T> selectBuilder) where T : class, new()
+		//{
+		//	SetExistsField(selectBuilder);
+		//	return WhereExists(selectBuilder.ToString());
+		//}
 		/// <summary>
 		/// 
 		/// </summary>
@@ -161,17 +176,18 @@ namespace Meta.Common.SqlBuilder
 			return Where($"EXISTS ({sql})");
 
 		}
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="selectBuilder"></param>
-		/// <returns></returns>
-		public TSQL WhereNotExsit<T>(SelectBuilder<T> selectBuilder) where T : class, new()
-		{
-			SetExistsField(selectBuilder);
-			return WhereNotExists(selectBuilder.ToString());
-		}
+
+		///// <summary>
+		///// 
+		///// </summary>
+		///// <typeparam name="T"></typeparam>
+		///// <param name="selectBuilder"></param>
+		///// <returns></returns>
+		//public TSQL WhereNotExsit<T>(SelectBuilder<T> selectBuilder) where T : class, new()
+		//{
+		//	SetExistsField(selectBuilder);
+		//	return WhereNotExists(selectBuilder.ToString());
+		//}
 		/// <summary>
 		/// 
 		/// </summary>
@@ -184,6 +200,7 @@ namespace Meta.Common.SqlBuilder
 				throw new ArgumentNullException(nameof(sql));
 			return Where($"NOT EXISTS ({sql})");
 		}
+
 		/// <summary>
 		/// where or 如果val 是空或长度为0 直接返回空数据
 		/// </summary>
@@ -198,6 +215,7 @@ namespace Meta.Common.SqlBuilder
 			else WhereOr(filter, val, dbType);
 			return This;
 		}
+
 		/// <summary>
 		/// where or条件
 		/// </summary>
@@ -235,6 +253,7 @@ namespace Meta.Common.SqlBuilder
 			}
 			return Where(filters, _val);
 		}
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -243,6 +262,7 @@ namespace Meta.Common.SqlBuilder
 		/// <param name="val"></param>
 		/// <returns></returns>
 		public TSQL Where(bool isAdd, string filter, params object[] val) => isAdd ? Where(filter, val) : This;
+
 		/// <summary>
 		/// 是否添加func返回的where语句
 		/// </summary>
@@ -256,6 +276,7 @@ namespace Meta.Common.SqlBuilder
 				Where(filter.Invoke());
 			return This;
 		}
+
 		/// <summary>
 		/// 是否添加func返回的where语句, format格式
 		/// </summary>
@@ -272,6 +293,7 @@ namespace Meta.Common.SqlBuilder
 			}
 			return This;
 		}
+
 		/// <summary>
 		/// 双主键
 		/// </summary>
@@ -295,6 +317,7 @@ namespace Meta.Common.SqlBuilder
 				f.Item1.Add(new DbTypeValue(item.Item2, dbTypes[1]));
 			}
 		}, keys, val.Count());
+
 		/// <summary>
 		/// 三主键
 		/// </summary>
@@ -321,6 +344,7 @@ namespace Meta.Common.SqlBuilder
 				f.Item1.Add(new DbTypeValue(item.Item3, dbTypes[2]));
 			}
 		}, keys, val.Count());
+
 		/// <summary>
 		/// 四主键
 		/// </summary>
@@ -348,6 +372,7 @@ namespace Meta.Common.SqlBuilder
 				f.Item1.Add(new DbTypeValue(item.Item4, dbTypes[3]));
 			}
 		}, keys, val.Count());
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -363,6 +388,7 @@ namespace Meta.Common.SqlBuilder
 				throw new ArgumentNullException(nameof(value));
 			return dbType.HasValue ? Where(filter, new[] { new DbTypeValue(value, dbType) }) : Where(filter, new object[] { value });
 		}
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -389,7 +415,7 @@ namespace Meta.Common.SqlBuilder
 							filter = filter.Replace(index, $"({val[i].ToString()})");
 						else
 						{
-							var paramsName = ParamsIndex;
+							var paramsName = EntityHelper.ParamsIndex;
 							if (val[i] is DbTypeValue _val)
 								AddParameter(paramsName, _val);
 							else
@@ -402,6 +428,7 @@ namespace Meta.Common.SqlBuilder
 			Where($"{filter}");
 			return This;
 		}
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -428,34 +455,35 @@ namespace Meta.Common.SqlBuilder
 			}
 			return Where(sb.ToString(), parms.ToArray());
 		}
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="selectBuilder"></param>
-		static void ThrowNullFieldException<T>(SelectBuilder<T> selectBuilder) where T : class, new()
-		{
-			Type type = typeof(T);
-			var fields = type.GetProperty("Fields", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(selectBuilder).ToString();
-			if (string.IsNullOrEmpty(fields))
-				throw new ArgumentNullException(nameof(fields));
-		}
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="selectBuilder"></param>
-		static void SetExistsField<T>(SelectBuilder<T> selectBuilder) where T : class, new()
-		{
-			Type type = selectBuilder.GetType();
-			var property = type.GetProperty("MainAlias", BindingFlags.NonPublic | BindingFlags.Instance);
-			var refValue = property.GetValue(selectBuilder).ToString();
-			if (refValue == "a")
-				property.SetValue(selectBuilder, "a1");
-			var fields = type.GetProperty("Fields", BindingFlags.NonPublic | BindingFlags.Instance);
-			var fieldStr = fields.GetValue(selectBuilder).ToString();
-			if (!string.IsNullOrEmpty(fieldStr) && fieldStr.Contains(','))
-				fields.SetValue(selectBuilder, fieldStr.Split(',')[0]);
-		}
+
+		///// <summary>
+		///// 
+		///// </summary>
+		///// <typeparam name="T"></typeparam>
+		///// <param name="selectBuilder"></param>
+		//static void ThrowNullFieldException<T>(SelectBuilder<T> selectBuilder) where T : class, new()
+		//{
+		//	Type type = typeof(T);
+		//	var fields = type.GetProperty("Fields", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(selectBuilder).ToString();
+		//	if (string.IsNullOrEmpty(fields))
+		//		throw new ArgumentNullException(nameof(fields));
+		//}
+		///// <summary>
+		///// 
+		///// </summary>
+		///// <typeparam name="T"></typeparam>
+		///// <param name="selectBuilder"></param>
+		//static void SetExistsField<T>(SelectBuilder<T> selectBuilder) where T : class, new()
+		//{
+		//	Type type = selectBuilder.GetType();
+		//	var property = type.GetProperty("MainAlias", BindingFlags.NonPublic | BindingFlags.Instance);
+		//	var refValue = property.GetValue(selectBuilder).ToString();
+		//	if (refValue == "a")
+		//		property.SetValue(selectBuilder, "a1");
+		//	var fields = type.GetProperty("Fields", BindingFlags.NonPublic | BindingFlags.Instance);
+		//	var fieldStr = fields.GetValue(selectBuilder).ToString();
+		//	if (!string.IsNullOrEmpty(fieldStr) && fieldStr.Contains(','))
+		//		fields.SetValue(selectBuilder, fieldStr.Split(',')[0]);
+		//}
 	}
 }

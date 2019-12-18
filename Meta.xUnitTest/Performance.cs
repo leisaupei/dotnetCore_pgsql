@@ -22,7 +22,7 @@ namespace Meta.xUnitTest
 		{
 			for (int i = 0; i < 10000; i++)
 			{
-				PgSqlHelper.Transaction(() =>
+				PgsqlHelper.Transaction(() =>
 				{
 					new PeopleModel
 					{

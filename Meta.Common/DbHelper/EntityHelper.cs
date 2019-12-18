@@ -1,4 +1,5 @@
 ﻿using Meta.Common.Extensions;
+using Meta.Common.Interface;
 using Meta.Common.Model;
 using Newtonsoft.Json;
 using System;
@@ -14,20 +15,37 @@ namespace Meta.Common.DbHelper
 	/// </summary>
 	internal static class EntityHelper
 	{
-		static Dictionary<string, string[]> _typeFieldsDict;
+		/// <summary>
+		/// 参数计数器
+		/// </summary>
+		static int _paramsCount = 0;
+
+		/// <summary>
+		/// 参数后缀
+		/// </summary>
+		public static string ParamsIndex
+		{
+			get
+			{
+				if (_paramsCount == int.MaxValue)
+					_paramsCount = 0;
+				return "p" + _paramsCount++.ToString().PadLeft(6, '0');
+			}
+		}
+		static Dictionary<string, SortedList<string, DbFieldModel>> _typeFieldsDict;
 		const string _sysytemLoadSuffix = ".SystemLoad";
 
-		static string[] GetFieldsFromStaticType(Type type)
+		public static string[] GetFieldsFromStaticType(Type type)
 		{
 			InitStaticTypesFields(type);
-			return _typeFieldsDict[string.Concat(type.Name, "Model", _sysytemLoadSuffix)];
+			return _typeFieldsDict[string.Concat(type.Name, _sysytemLoadSuffix)].Keys.ToArray();
 		}
 		/// <summary>
 		/// 匹配生成模型
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		static string[] GetFieldsFromStaticType<T>()
+		static string[] GetFieldsFromStaticType<T>() where T : IDbModel
 		{
 			return GetFieldsFromStaticType(typeof(T));
 		}
@@ -35,16 +53,23 @@ namespace Meta.Common.DbHelper
 		static void InitStaticTypesFields(Type t)
 		{
 			if (_typeFieldsDict != null) return;
-			_typeFieldsDict = new Dictionary<string, string[]>();
-			var types = t.Assembly.GetTypes().Where(f => !string.IsNullOrEmpty(f.Namespace) && f.Namespace.EndsWith(".Model"));
+			if (!t.GetInterfaces().Any(f => f == typeof(IDbModel))) return;
+			_typeFieldsDict = new Dictionary<string, SortedList<string, DbFieldModel>>();
+			var types = t.Assembly.GetTypes().Where(f => !string.IsNullOrEmpty(f.Namespace) && f.Namespace.EndsWith(".Model") && f.GetCustomAttribute<DbTableAttribute>() != null);
 			foreach (var type in types)
 			{
 				var key = string.Concat(type.Name, _sysytemLoadSuffix);
 				if (!_typeFieldsDict.ContainsKey(key))
-					_typeFieldsDict[key] = GetAllFields("", type).ToArray();
+				{
+					_typeFieldsDict[key] = new SortedList<string, DbFieldModel>();
+					GetAllFields((p, dbFieldAttr) =>
+					{
+						_typeFieldsDict[key][p.Name.ToLower()] = dbFieldAttr.DbField;
+					}, type);
+				}
 			}
 		}
-		static void InitStaticTypesFields<T>()
+		static void InitStaticTypesFields<T>() where T : IDbModel
 		{
 			InitStaticTypesFields(typeof(T));
 		}
@@ -59,7 +84,7 @@ namespace Meta.Common.DbHelper
 		{
 			List<string> list = new List<string>();
 			alias = !string.IsNullOrEmpty(alias) ? alias + "." : "";
-			GetAllFields(p => list.Add(alias + p.Name.ToLower()), type);
+			GetAllFields((p, dbFieldAttr) => list.Add(alias + p.Name.ToLower()), type);
 			return list;
 		}
 		/// <summary>
@@ -67,14 +92,22 @@ namespace Meta.Common.DbHelper
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <param name="action"></param>
-		public static string GetTableName<T>()
+		public static string GetTableName<T>() where T : IDbModel
 		{
-			var mapping = typeof(T).GetCustomAttribute<MappingAttribute>();
+			return GetTableName(typeof(T));
+		}
+		/// <summary>
+		/// 获取Mapping特性
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="action"></param>
+		public static string GetTableName(Type type)
+		{
+			var mapping = type.GetCustomAttribute<DbTableAttribute>();
 			if (mapping == null)
-				throw new ArgumentNullException(nameof(MappingAttribute));
+				throw new ArgumentNullException(nameof(DbTableAttribute));
 			return mapping.TableName;
 		}
-
 		/// <summary>
 		/// 获取当前类字段的字符串
 		/// </summary>
@@ -84,7 +117,7 @@ namespace Meta.Common.DbHelper
 		public static string GetModelTypeFieldsString(string alias, Type type)
 		{
 			InitStaticTypesFields(type);
-			return string.Join(", ", _typeFieldsDict[string.Concat(type.Name, _sysytemLoadSuffix)].Select(f => $"{alias}.{f}"));
+			return string.Join(", ", _typeFieldsDict[string.Concat(type.Name, _sysytemLoadSuffix)].Keys.Select(f => $"{alias}.{f}"));
 		}
 		/// <summary>
 		/// 获取当前类字段的字符串
@@ -92,41 +125,32 @@ namespace Meta.Common.DbHelper
 		/// <param name="type"></param>
 		/// <param name="alias"></param>
 		/// <returns></returns>
-		public static string GetModelTypeFieldsString<T>(string alias)
+		public static string GetModelTypeFieldsString<T>(string alias) where T : IDbModel
 		{
 			return GetModelTypeFieldsString(alias, typeof(T));
 		}
-
-		public static string GetDALTypeFieldsString(string alias, Type type)
-		{
-			return string.Join(", ", GetFieldsFromStaticType(type).Select(f => $"{alias}.{f}"));
-		}
-		public static string GetDALTypeFieldsString<T>(string alias)
-		{
-			return GetDALTypeFieldsString(alias, typeof(T));
-		}
-
 		/// <summary>
 		/// 遍历所有字段
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <param name="action"></param>
-		static void GetAllFields<T>(Action<PropertyInfo> action)
+		static void GetAllFields<T>(Action<PropertyInfo, DbFieldAttribute> action) where T : IDbModel
 		{
 			GetAllFields(action, typeof(T));
 		}
+
 		/// <summary>
 		/// 遍历所有字段
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <param name="action"></param>
-		static void GetAllFields(Action<PropertyInfo> action, Type type)
+		static void GetAllFields(Action<PropertyInfo, DbFieldAttribute> action, Type type)
 		{
 			PropertyInfo[] pi = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
 			foreach (var p in pi)
 			{
-				if (p.ExistsJsonPropertyAttribute())
-					action?.Invoke(p);
+				if (p.GetCustomAttribute<DbFieldAttribute>() is DbFieldAttribute dbFieldAttr)
+					action?.Invoke(p, dbFieldAttr);
 			}
 		}
 	}

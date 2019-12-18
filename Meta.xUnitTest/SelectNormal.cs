@@ -1,3 +1,4 @@
+using Meta.Common.DbHelper;
 using Meta.Common.Interface;
 using Meta.Common.SqlBuilder;
 using Meta.xUnitTest.DAL;
@@ -141,14 +142,15 @@ namespace Meta.xUnitTest
 		[Fact, Order(12)]
 		public void ToPipe()
 		{
-			object[] obj = SqlInstance.SelectPipe(new ISqlBuilder[] {
+			object[] obj = PgsqlHelper.ExecuteDataReaderPipe(new ISqlBuilder[] {
 				People.Select.WhereId(StuPeopleId1, StuPeopleId2).ToListPipe(),
 				People.Select.WhereId(StuPeopleId1).ToOnePipe<(Guid, string)>("id,name"),
 				People.Select.WhereId(StuPeopleId1).ToListPipe<(Guid, string)>("id,name"),
 				People.Select.WhereId(StuPeopleId1, StuPeopleId2).ToListPipe<Dictionary<string, object>>("name,id"),
 				People.Select.WhereId(StuPeopleId1).ToOnePipe<ToOneTTestModel>("name,id"),
 				Student.Select.WherePeople_id(StuPeopleId1).ToOnePipe<Guid>("people_id"),
-				Student.Select.WherePeople_id(Guid.Empty).ToOnePipe() // if not found
+				Student.Select.LeftJoinRet<PeopleModel>((a,b)=>a.People_id == b.Id).WherePeople_id(Guid.Empty).ToOneUnionPipe<PeopleModel>(), // if not found
+				People.Update(StuPeopleId1).Set(a => a.Age, 40).ToRowsPipe()
 				 });
 			var info = obj[0].ToObjectArray().OfType<PeopleModel>();
 			var info1 = ((Guid, string))obj[1];
@@ -156,40 +158,53 @@ namespace Meta.xUnitTest
 			var info3 = obj[3].ToObjectArray().OfType<Dictionary<string, object>>();
 			var info4 = (ToOneTTestModel)obj[4];
 			var info5 = (Guid)obj[5];
-			var info6 = (StudentModel)obj[6];
-
+			var info6 = ((StudentModel, PeopleModel))obj[6];
+			var info7 = obj[7];
 			Assert.Contains(info, f => f.Id == StuPeopleId1);
 			Assert.Equal(StuPeopleId1, info1.Item1);
 			Assert.Contains(info2, f => f.Item1 == StuPeopleId1);
 			Assert.Contains(info3, f => f["id"].ToString() == StuPeopleId1.ToString());
 			Assert.Equal(StuPeopleId1, info4.Id);
 			Assert.Equal(StuPeopleId1, info5);
-			Assert.Null(info6);
+			//Assert.Null(info6);
+			Assert.True(info7 is int);
 		}
 		[Fact, Order(13)]
 		public void Count()
 		{
+			Stopwatch stop = new Stopwatch();
+			stop.Start();
 			var count = People.Select.Count();
+			for (int i = 0; i < 1000; i++)
+			{
+
+				count = People.Select.Count();
+			}
+			stop.Stop();
+			_output.WriteLine(stop.ElapsedMilliseconds.ToString());
 			Assert.True(count >= 0);
 		}
 		[Fact, Order(14)]
 		public void Max()
 		{
-			var maxAge = People.Select.Max<int>("age");
+			var maxAge = People.Select.Max(a => a.Age);
+
+			maxAge = Student.Select.InnerJoin<PeopleModel>((a, b) => a.People_id == b.Id).Max<PeopleModel, int>(b => b.Age);
 			Assert.True(maxAge >= 0);
 		}
 		[Fact, Order(15)]
 		public void Min()
 		{
-			var minAge = People.Select.Min<int>("age");
+			var minAge = People.Select.Min(a => a.Age);
 			Assert.True(minAge >= 0);
 		}
 		[Fact, Order(16), Description("the type of T must be same as the column's type")]
 		public void Avg()
 		{
-			var avgAge = People.Select.Avg<decimal>("age");
+			var avgAge = People.Select.Avg<decimal>(a => a.Age);
 			Assert.True(avgAge >= 0);
 		}
+
 		[Fact, Order(17), Description("same usage as ToOne<T>(), but T is ValueType")]
 		public void ToScalar()
 		{
@@ -232,11 +247,12 @@ namespace Meta.xUnitTest
 		{
 			Stopwatch stop = new Stopwatch();
 			stop.Start();
-			var union0 = Student.Select.InnerJoinRef<People>("b", "a.people_id = b.id").WhereStu_no(StuNo1).ToOneUnion<PeopleModel>();
+			var union0 = Student.Select.InnerJoinRet<PeopleModel>((a, b) => a.People_id == b.Id).WhereStu_no(StuNo1).ToOneUnion<PeopleModel>();
+
 			var a = stop.ElapsedMilliseconds;
-			var union1 = Student.Select.InnerJoinRef<People>("b", "a.people_id = b.id").WhereStu_no(StuNo1).ToOneUnion<PeopleModel>();
+			var union1 = Student.Select.InnerJoinRet<PeopleModel>((a, b) => a.People_id == b.Id).WhereStu_no(StuNo1).ToOneUnion<PeopleModel>();
 			var b = stop.ElapsedMilliseconds;
-			var union2 = Student.Select.InnerJoinRef<People>("b", "a.people_id = b.id").WhereStu_no(StuNo1).ToOneUnion<PeopleModel>();
+			var union2 = Student.Select.InnerJoinRet<PeopleModel>((a, b) => a.People_id == b.Id).WhereStu_no(StuNo1).ToOneUnion<PeopleModel>();
 			var c = stop.ElapsedMilliseconds;
 			stop.Stop();
 
@@ -247,15 +263,21 @@ namespace Meta.xUnitTest
 		{
 			Stopwatch stop = new Stopwatch();
 			stop.Start();
-			var union0 = Student.Select.InnerJoin<People>("b", "a.people_id = b.id").WhereStu_no(StuNo1).ToOne();
+			var union0 = Student.Select.InnerJoin<PeopleModel>((a, b) => a.People_id == b.Id).WhereStu_no(StuNo1).ToOne();
 			var a = stop.ElapsedMilliseconds;
-			var union1 = Student.Select.InnerJoin<People>("b", "a.people_id = b.id").WhereStu_no(StuNo1).ToOne();
+			var union1 = Student.Select.InnerJoin<PeopleModel>((a, b) => a.People_id == b.Id).WhereStu_no(StuNo1).ToOne();
 			var b = stop.ElapsedMilliseconds;
-			var union2 = Student.Select.InnerJoin<People>("b", "a.people_id = b.id").WhereStu_no(StuNo1).ToOne();
+			var union2 = Student.Select.InnerJoin<PeopleModel>((a, b) => a.People_id == b.Id).WhereStu_no(StuNo1).ToOne();
 			var c = stop.ElapsedMilliseconds;
 			stop.Stop();
 
 			_output.WriteLine(string.Concat(a, ",", b, ",", c));
+		}
+		[Fact, Order(16), Description("the type of T must be same as the column's type")]
+		public void Sum()
+		{
+			var avgAge = People.Select.Sum<long>(a => a.Age);
+			Assert.True(avgAge >= 0);
 		}
 	}
 }

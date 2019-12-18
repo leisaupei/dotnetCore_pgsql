@@ -2,22 +2,23 @@
 using Meta.Common.Model;
 using Meta.xUnitTest.Model;
 using Meta.xUnitTest.Options;
+using System.Collections;
+using System.Net.NetworkInformation;
 using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using System.Net;
 
 namespace Meta.xUnitTest.DAL
 {
-	[Mapping("student")]
-	public partial class Student : SelectExchange<Student, StudentModel>
+	[DbTable("student")]
+	public sealed partial class Student : SelectBuilder<Student, StudentModel>
 	{
 		#region Properties
 		public const string CacheKey = "meta_xunittest_model_studentmodel_{0}";
+		private Student() { }
 		public static Student Select => new Student();
 		public static Student SelectDiy(string fields) => new Student { Fields = fields };
 		public static Student SelectDiy(string fields, string alias) => new Student { Fields = fields, MainAlias = alias };
@@ -88,12 +89,6 @@ namespace Meta.xUnitTest.DAL
 		}
 		public class StudentUpdateBuilder : UpdateBuilder<StudentUpdateBuilder, StudentModel>
 		{
-			public StudentUpdateBuilder SetStu_no(string stu_no) => Set("stu_no", stu_no, 32, NpgsqlDbType.Varchar);
-			public StudentUpdateBuilder SetGrade_id(Guid grade_id) => Set("grade_id", grade_id, 16, NpgsqlDbType.Uuid);
-			public StudentUpdateBuilder SetPeople_id(Guid people_id) => Set("people_id", people_id, 16, NpgsqlDbType.Uuid);
-			public StudentUpdateBuilder SetCreate_time(DateTime create_time) => Set("create_time", create_time, 8, NpgsqlDbType.Timestamp);
-			public StudentUpdateBuilder SetCreate_timeIncrement(TimeSpan timeSpan) => SetIncrement("create_time", timeSpan, 8, NpgsqlDbType.Timestamp);
-			public StudentUpdateBuilder SetId(Guid id) => Set("id", id, 16, NpgsqlDbType.Uuid);
 		}
 		#endregion
 

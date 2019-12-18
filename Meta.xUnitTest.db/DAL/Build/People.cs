@@ -2,22 +2,23 @@
 using Meta.Common.Model;
 using Meta.xUnitTest.Model;
 using Meta.xUnitTest.Options;
+using System.Collections;
+using System.Net.NetworkInformation;
 using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using System.Net;
 
 namespace Meta.xUnitTest.DAL
 {
-	[Mapping("people")]
-	public partial class People : SelectExchange<People, PeopleModel>
+	[DbTable("people")]
+	public sealed partial class People : SelectBuilder<People, PeopleModel>
 	{
 		#region Properties
 		public const string CacheKey = "meta_xunittest_model_peoplemodel_{0}";
+		private People() { }
 		public static People Select => new People();
 		public static People SelectDiy(string fields) => new People { Fields = fields };
 		public static People SelectDiy(string fields, string alias) => new People { Fields = fields, MainAlias = alias };
@@ -92,16 +93,6 @@ namespace Meta.xUnitTest.DAL
 		}
 		public class PeopleUpdateBuilder : UpdateBuilder<PeopleUpdateBuilder, PeopleModel>
 		{
-			public PeopleUpdateBuilder SetId(Guid id) => Set("id", id, 16, NpgsqlDbType.Uuid);
-			public PeopleUpdateBuilder SetAge(int age) => Set("age", age, 4, NpgsqlDbType.Integer);
-			public PeopleUpdateBuilder SetAgeIncrement(int age) => SetIncrement("age", age, 4, NpgsqlDbType.Integer);
-			public PeopleUpdateBuilder SetName(string name) => Set("name", name, 255, NpgsqlDbType.Varchar);
-			public PeopleUpdateBuilder SetSex(bool? sex) => Set("sex", sex, 1, NpgsqlDbType.Boolean);
-			public PeopleUpdateBuilder SetCreate_time(DateTime create_time) => Set("create_time", create_time, 8, NpgsqlDbType.Timestamp);
-			public PeopleUpdateBuilder SetCreate_timeIncrement(TimeSpan timeSpan) => SetIncrement("create_time", timeSpan, 8, NpgsqlDbType.Timestamp);
-			public PeopleUpdateBuilder SetAddress(string address) => Set("address", address, 255, NpgsqlDbType.Varchar);
-			public PeopleUpdateBuilder SetAddress_detail(JToken address_detail) => Set("address_detail", address_detail, -1, NpgsqlDbType.Jsonb);
-			public PeopleUpdateBuilder SetState(EDataState state) => Set("state", state, 4);
 		}
 		#endregion
 

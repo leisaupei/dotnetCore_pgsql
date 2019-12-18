@@ -1,5 +1,9 @@
 ﻿using Meta.Common.DbHelper;
+using Meta.Common.Extensions;
+using Meta.xUnitTest.Model;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -28,9 +32,28 @@ namespace Meta.xUnitTest
 			if (!IsInit)
 			{
 				var logger = new LoggerFactory();
-				PgSqlHelper.InitDBConnectionOption(new MasterDbOption(TestConnectionString, null, logger.CreateLogger<BaseTest>()));
+				PgsqlHelper.InitDBConnectionOption(new MasterDbOption(TestConnectionString, null, logger.CreateLogger<BaseTest>()));
 				RedisHelper.Initialization(new CSRedis.CSRedisClient("172.16.1.250:6379,defaultDatabase=13,name=weibo,password=Gworld2017,prefix=weibo,abortConnect=false"));
 				IsInit = true;
+				JsonConvert.DefaultSettings = () =>
+				{
+					var st = new JsonSerializerSettings
+					{
+						Formatting = Formatting.Indented,
+					};
+					st.Converters.Add(new StringEnumConverter());
+					st.Converters.Add(new IPConverter());
+					st.Converters.Add(new PhysicalAddressConverter());
+					st.Converters.Add(new NpgsqlTsQueryConverter());
+					st.Converters.Add(new NpgsqlTsVectorConverter());
+					st.Converters.Add(new BitArrayConverter());
+					st.Converters.Add(new NpgsqlPointListConverter());
+					st.Converters.Add(new BooleanConverter());
+					st.Converters.Add(new DateTimeConverter());
+
+					st.ContractResolver = new LowercaseContractResolver();
+					return st;
+				};
 			}
 		}
 

@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Meta.Common.Model;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using System;
 using System.Collections.Generic;
@@ -9,41 +10,31 @@ using System.Threading;
 
 namespace Meta.Common.DbHelper
 {
-	internal abstract class PgExecute
+	internal abstract class DbExecute
 	{
-		/// <summary>
-		/// 连接字符串
-		/// </summary>
-		readonly string _connectionString;
-		/// <summary>
-		/// logging日志
-		/// </summary>
-		readonly ILogger _logger;
-		/// <summary>
-		/// npgsql CLR 映射
-		/// </summary>
-		readonly Action<NpgsqlConnection> _mapAction;
+		readonly DbConnectionModel _conn;
 		/// <summary>
 		/// 事务池
 		/// </summary>
-		readonly Dictionary<int, NpgsqlTransaction> _transPool = new Dictionary<int, NpgsqlTransaction>();
+		readonly Dictionary<int, DbTransaction> _transPool = new Dictionary<int, DbTransaction>();
 		/// <summary>
 		/// constructer
 		/// </summary>
 		/// <param name="poolSize"></param>
 		/// <param name="connectionString"></param>
 		/// <param name="logger"></param>
-		protected PgExecute(string connectionString, ILogger logger, Action<NpgsqlConnection> mapAction = null)
+		protected DbExecute(DbConnectionModel conn)
 		{
-			_connectionString = connectionString;
-			_logger = logger;
-			_mapAction = mapAction;
+			if (string.IsNullOrEmpty(conn.ConnectionString))
+				throw new ArgumentNullException(nameof(conn.ConnectionString));
+			_conn = conn;
 		}
+
 
 		/// <summary>
 		/// 当前线程事务
 		/// </summary>
-		NpgsqlTransaction CurrentTransaction
+		DbTransaction CurrentTransaction
 		{
 			get
 			{
@@ -56,14 +47,14 @@ namespace Meta.Common.DbHelper
 		/// <summary>
 		/// 执行命令前准备
 		/// </summary>
-		protected NpgsqlCommand PrepareCommand(CommandType cmdType, string cmdText, DbParameter[] cmdParams)
+		protected DbCommand PrepareCommand(string cmdText, CommandType cmdType, DbParameter[] cmdParams)
 		{
 			if (string.IsNullOrEmpty(cmdText))
 				throw new ArgumentNullException(nameof(cmdText));
-			NpgsqlCommand cmd;
+			DbCommand cmd;
 			if (CurrentTransaction == null)
 			{
-				cmd = CreateConnection.CreateCommand();
+				cmd = _conn.GetConnection.CreateCommand();
 			}
 			else
 			{
@@ -86,13 +77,13 @@ namespace Meta.Common.DbHelper
 		/// <summary>
 		/// 返回一行数据
 		/// </summary>
-		public object ExecuteScalar(CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
+		public object ExecuteScalar(string cmdText, CommandType cmdType, DbParameter[] cmdParams)
 		{
-			NpgsqlCommand cmd = null;
+			DbCommand cmd = null;
 			object ret = null;
 			try
 			{
-				cmd = PrepareCommand(cmdType, cmdText, cmdParams);
+				cmd = PrepareCommand(cmdText, cmdType, cmdParams);
 				ret = cmd.ExecuteScalar();
 			}
 			catch (Exception ex)
@@ -109,14 +100,14 @@ namespace Meta.Common.DbHelper
 		/// <summary>
 		/// 执行sql语句
 		/// </summary>
-		public int ExecuteNonQuery(CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
+		public int ExecuteNonQuery(string cmdText, CommandType cmdType, DbParameter[] cmdParams)
 		{
-			int ret = 0;
-			NpgsqlCommand cmd = null;
+			int affrows = 0;
+			DbCommand cmd = null;
 			try
 			{
-				cmd = PrepareCommand(cmdType, cmdText, cmdParams);
-				ret = cmd.ExecuteNonQuery();
+				cmd = PrepareCommand(cmdText, cmdType, cmdParams);
+				affrows = cmd.ExecuteNonQuery();
 			}
 			catch (Exception ex)
 			{
@@ -127,31 +118,31 @@ namespace Meta.Common.DbHelper
 			{
 				CloseCommand(cmd);
 			}
-			return ret;
+			return affrows;
 		}
 		/// <summary>
 		/// 读取数据库reader
 		/// </summary>
-		public void ExecuteDataReader(Action<NpgsqlDataReader> action, CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
+		public void ExecuteDataReader(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams)
 		{
 			ExecuteDataReaderBase(dr =>
 			{
 				while (dr.Read())
 					action?.Invoke(dr);
 
-			}, cmdType, cmdText, cmdParams);
+			}, cmdText, cmdType, cmdParams);
 		}
 		/// <summary>
 		/// 读取数据库reader
 		/// </summary>
-		public void ExecuteDataReaderBase(Action<NpgsqlDataReader> action, CommandType cmdType, string cmdText, NpgsqlParameter[] cmdParams)
+		public void ExecuteDataReaderBase(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams)
 		{
 
-			NpgsqlDataReader dr = null;
-			NpgsqlCommand cmd = null;
+			DbDataReader dr = null;
+			DbCommand cmd = null;
 			try
 			{
-				cmd = PrepareCommand(cmdType, cmdText, cmdParams);
+				cmd = PrepareCommand(cmdText, cmdType, cmdParams);
 				using (dr = cmd.ExecuteReader())
 					action?.Invoke(dr);
 			}
@@ -170,72 +161,54 @@ namespace Meta.Common.DbHelper
 		/// <summary>
 		/// 抛出异常
 		/// </summary>
-		public void ThrowException(NpgsqlCommand cmd, Exception ex)
+		public void ThrowException(DbCommand cmd, Exception ex)
 		{
 			ex.Data["ConnectionString"] = cmd?.Connection.ConnectionString;
 			string str = string.Empty;
 			if (cmd?.Parameters != null)
-				foreach (NpgsqlParameter item in cmd.Parameters)
+				foreach (DbParameter item in cmd.Parameters)
 					str += $"{item.ParameterName}:{item.Value}\n";
 
-			_logger.LogError(new EventId(111111), ex, "数据库执行出错：===== \n{0}\n{1}\nConnectionString:{2}", cmd?.CommandText, str, cmd?.Connection.ConnectionString);//输出日志
+			_conn.Logger.LogError(new EventId(111111), ex, "数据库执行出错：===== \n{0}\n{1}\nConnectionString:{2}", cmd?.CommandText, str, cmd?.Connection.ConnectionString);//输出日志
 
 		}
-		/// <summary>
-		/// 创建连接
-		/// </summary>
-		/// <returns></returns>
-		NpgsqlConnection CreateConnection
-		{
-			get
-			{
-				if (string.IsNullOrEmpty(_connectionString))
-					throw new ArgumentNullException(nameof(_connectionString));
-				var conn = new NpgsqlConnection(_connectionString);
-				OpenConnection(conn);
-				return conn;
-			}
-		}
-		/// <summary>
-		/// 打开连接
-		/// </summary>
-		/// <param name="connection"></param>
-		void OpenConnection(NpgsqlConnection connection)
-		{
-			ConnectionNullCheck(connection);
 
-			if (connection.State == ConnectionState.Broken)
-				connection.Close();
-			if (connection.State != ConnectionState.Open)
-			{
-				connection.Open();
-				_mapAction?.Invoke(connection);
-
-			}
-		}
-		/// <summary>
-		/// 检查连接是否为空
-		/// </summary>
-		/// <param name="connection"></param>
-		void ConnectionNullCheck(NpgsqlConnection connection)
-		{
-			if (connection == null)
-				throw new ArgumentNullException(nameof(connection));
-		}
 		/// <summary>
 		/// 关闭连接
 		/// </summary>
 		/// <param name="connection"></param>
-		void CloseConnection(NpgsqlConnection connection)
+		void CloseConnection(DbConnection connection)
 		{
 			if (connection == null) return;
 			if (connection.State != ConnectionState.Closed)
 				connection.Dispose();
 		}
 		/// <summary>
+		/// 检查连接是否为空
+		/// </summary>
+		/// <param name="connection"></param>
+		void ConnectionNullCheck(DbConnection connection)
+		{
+			if (connection == null)
+				throw new ArgumentNullException(nameof(connection));
+		}
+		/// <summary>
+		/// 打开连接
+		/// </summary>
+		/// <param name="connection"></param>
+		void OpenConnection(DbConnection connection)
+		{
+			ConnectionNullCheck(connection);
+
+			if (connection.State == ConnectionState.Broken)
+				connection.Close();
+			if (connection.State != ConnectionState.Open)
+				connection.Open();
+		}
+		/// <summary>
 		/// 关闭命令及连接
 		/// </summary>
-		void CloseCommand(NpgsqlCommand cmd)
+		void CloseCommand(DbCommand cmd)
 		{
 			if (cmd == null) return;
 			if (cmd.Parameters != null)
@@ -254,7 +227,7 @@ namespace Meta.Common.DbHelper
 			var tid = Thread.CurrentThread.ManagedThreadId;
 			if (CurrentTransaction != null || _transPool.ContainsKey(tid))
 				throw new Exception("this thread exists a transaction already");
-			var tran = CreateConnection.BeginTransaction();
+			var tran = _conn.GetConnection.BeginTransaction();
 			_transPool[tid] = tran;
 		}
 		/// <summary>
@@ -270,7 +243,7 @@ namespace Meta.Common.DbHelper
 		/// <summary>
 		/// 释放事务
 		/// </summary>
-		void ReleaseTransaction(Action<NpgsqlTransaction> action)
+		void ReleaseTransaction(Action<DbTransaction> action)
 		{
 			var tran = CurrentTransaction;
 			if (tran == null) return;

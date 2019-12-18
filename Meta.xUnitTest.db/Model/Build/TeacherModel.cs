@@ -1,27 +1,32 @@
 ﻿using Meta.Common.Model;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Collections;
+using System.Net.NetworkInformation;
 using NpgsqlTypes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Meta.Common.Interface;
 using System.Net;
 using Meta.xUnitTest.DAL;
 
 namespace Meta.xUnitTest.Model
 {
-	[Mapping("teacher"), JsonObject(MemberSerialization.OptIn)]
-	public partial class TeacherModel
+	[DbTable("teacher")]
+	public partial class TeacherModel : IDbModel
 	{
 		#region Properties
 		/// <summary>
 		/// 学号
 		/// </summary>
-		[JsonProperty] public string Teacher_no { get; set; }
-		[JsonProperty] public Guid People_id { get; set; }
-		[JsonProperty] public DateTime Create_time { get; set; }
-		[JsonProperty] public Guid Id { get; set; }
+		[JsonProperty, DbField(32, NpgsqlDbType.Varchar)]
+		public string Teacher_no { get; set; }
+		[JsonProperty, DbField(16, NpgsqlDbType.Uuid)]
+		public Guid People_id { get; set; }
+		[JsonProperty, DbField(8, NpgsqlDbType.Timestamp)]
+		public DateTime Create_time { get; set; }
+		[JsonProperty, DbField(16, NpgsqlDbType.Uuid)]
+		public Guid Id { get; set; }
 		#endregion
 
 		#region Foreign Key
@@ -36,8 +41,5 @@ namespace Meta.xUnitTest.Model
 		public int Commit() => DAL.Teacher.Commit(this);
 		public TeacherModel Insert() => DAL.Teacher.Insert(this);
 		#endregion
-
-		public override string ToString() => JsonConvert.SerializeObject(this);
-		public static TeacherModel Parse(string json) => string.IsNullOrEmpty(json) ? null : JsonConvert.DeserializeObject<TeacherModel>(json);
 	}
 }

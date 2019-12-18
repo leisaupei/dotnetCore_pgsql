@@ -62,10 +62,10 @@ namespace CodeFactory.DAL
 		/// 一对多外键(包含一对一)
 		/// </summary>
 		List<ConstraintOneToMore> _consListOneToMore = new List<ConstraintOneToMore>();
-		/// <summary>
-		/// 多对多外键
-		/// </summary>
-		List<ConstraintMoreToMore> _consListMoreToMore = new List<ConstraintMoreToMore>();
+		///// <summary>
+		///// 多对多外键
+		///// </summary>
+		//List<ConstraintMoreToMore> _consListMoreToMore = new List<ConstraintMoreToMore>();
 		/// <summary>
 		/// Model后缀
 		/// </summary>
@@ -98,6 +98,8 @@ namespace CodeFactory.DAL
 		/// 表名
 		/// </summary>
 		string TableName => Types.DeletePublic(_schemaName, _table.Name, true, _isView).ToLowerPascal();
+
+		static readonly string[] NotAddQues = new[] { "string", "JToken", "byte[]", "object", "IPAddress", "Dictionary<string, string>", "NpgsqlTsQuery", "NpgsqlTsVector", "BitArray", "PhysicalAddress" };
 		/// <summary>
 		/// 构建函数
 		/// </summary>
@@ -132,32 +134,42 @@ namespace CodeFactory.DAL
 		/// </summary>
 		void GetFieldList()
 		{
-			_fieldList = SqlInstance.Select(@"a.oid, c.attnum as num, c.attname AS field, c.attnotnull AS isnotnull, d.description AS comment, e.typcategory,
-				(f.is_identity = 'YES') as isidentity, format_type(c.atttypid,c.atttypmod) AS type_comment, c.attndims as dimensions,
-				(CASE WHEN f.character_maximum_length IS NULL THEN c.attlen ELSE f.character_maximum_length END) AS length,
-				(CASE WHEN e.typelem = 0 THEN e.typname WHEN e.typcategory = 'G' THEN format_type (c.atttypid, c.atttypmod) ELSE e2.typname END ) AS dbtype,
-				(CASE WHEN e.typelem = 0 THEN e.typtype ELSE e2.typtype END) AS datatype, ns.nspname, COALESCE(pc.contype = 'u',false) as isunique").From("pg_class")
-			   .InnerJoin("pg_namespace", "b", "a.relnamespace = b.oid")
-			   .InnerJoin("pg_attribute", "c", "attrelid = a.oid")
-			   .Join(UnionEnum.LEFT_OUTER_JOIN, "pg_description", "d", "c.attrelid = d.objoid AND c.attnum = d.objsubid AND c.attnum > 0")
-			   .InnerJoin("pg_type", "e", "e.oid = c.atttypid")
-			   .LeftJoin("pg_type", "e2", "e2.oid = e.typelem")
-			   .InnerJoin("information_schema.COLUMNS", "f", "f.table_schema = b.nspname AND f.TABLE_NAME = a.relname AND COLUMN_NAME = c.attname")
-			   .LeftJoin("pg_namespace", "ns", "ns.oid = e.typnamespace and ns.nspname <> 'pg_catalog'")
-			   .LeftJoin("pg_constraint", "pc", "pc.conrelid = a.oid and pc.conkey[1] = c.attnum and pc.contype = 'u'")
-			   .Where($"b.nspname='{_schemaName}' and a.relname='{_table.Name}'").ToList<FieldInfo>();
+			var sql = $@"
+SELECT a.oid, 
+	c.attnum as num, 
+	c.attname AS field,
+	c.attnotnull AS isnotnull, 
+	d.description AS comment, 
+	e.typcategory, 
+	(f.is_identity = 'YES') as isidentity, 
+	format_type(c.atttypid,c.atttypmod) AS type_comment, 
+	c.attndims as dimensions,  
+	(CASE WHEN f.character_maximum_length IS NULL THEN c.attlen ELSE f.character_maximum_length END) AS length,  
+	(CASE WHEN e.typelem = 0 THEN e.typname WHEN e.typcategory = 'G' THEN format_type (c.atttypid, c.atttypmod) ELSE e2.typname END ) AS dbtype,  
+	(CASE WHEN e.typelem = 0 THEN e.typtype ELSE e2.typtype END) AS datatype, ns.nspname, COALESCE(pc.contype = 'u',false) as isunique 
+FROM pg_class a  
+INNER JOIN pg_namespace b ON a.relnamespace = b.oid  
+INNER JOIN pg_attribute c ON attrelid = a.oid  
+LEFT OUTER JOIN pg_description d ON c.attrelid = d.objoid AND c.attnum = d.objsubid AND c.attnum > 0  
+INNER JOIN pg_type e ON e.oid = c.atttypid  
+LEFT JOIN pg_type e2 ON e2.oid = e.typelem  
+INNER JOIN information_schema.COLUMNS f ON f.table_schema = b.nspname AND f.TABLE_NAME = a.relname AND COLUMN_NAME = c.attname  
+LEFT JOIN pg_namespace ns ON ns.oid = e.typnamespace and ns.nspname <> 'pg_catalog'  
+LEFT JOIN pg_constraint pc ON pc.conrelid = a.oid and pc.conkey[1] = c.attnum and pc.contype = 'u'  
+WHERE (b.nspname='{_schemaName}' and a.relname='{_table.Name}')  
+";
+			_fieldList = PgsqlHelper.ExecuteDataReaderList<FieldInfo>(sql);
+
 			foreach (var f in _fieldList)
 			{
 				f.IsArray = f.Dimensions > 0;
 				f.DbType = f.DbType.StartsWith("_") ? f.DbType.Remove(0, 1) : f.DbType;
 				f.PgDbType = Types.ConvertDbTypeToNpgsqlDbType(f.DataType, f.DbType, f.IsArray);
-				if(f.Field == "options")
-				{
-
-				}
 				f.PgDbTypeString = Types.ConvertDbTypeToNpgsqlDbTypeString(f.DbType, f.IsArray);
 				f.IsEnum = f.DataType == "e";
 				string _type = Types.ConvertPgDbTypeToCSharpType(f.DataType, f.DbType);
+				if (f.DbType == "bit" && f.Length == 1)
+					_type = "bool";
 
 				if (f.IsEnum)
 					_type = ModelDalSuffix + Types.DeletePublic(f.Nspname, _type);
@@ -177,90 +189,106 @@ namespace CodeFactory.DAL
 				}
 			}
 		}
-		static readonly string[] NotAddQues = new[] { "string", "JToken", "byte[]", "object", "IPAddress", "Dictionary<string, string>" };
 		/// <summary>
 		/// 获取约束
 		/// </summary>
 		void GetConstraint()
 		{
-			_consListMoreToOne = SqlInstance.Select($@"f.attname conname, b.relname tablename, c.nspname, d.attname refcolumn, e.typname contype, g.indisprimary ispk").From("pg_constraint")
-				.LeftJoin("pg_class", "b", "b.oid = a.confrelid")
-				.InnerJoin("pg_namespace", "c", "b.relnamespace = c.oid")
-				.InnerJoin("pg_attribute", "d", "d.attrelid = a.confrelid and d.attnum = any(a.confkey)")
-				.InnerJoin("pg_type", "e", "e.oid = d.atttypid")
-				.InnerJoin("pg_attribute", "f", "f.attrelid = a.conrelid and f.attnum = any(a.conkey)")
-				.LeftJoin("pg_index", "g", "d.attrelid = g.indrelid and d.attnum = any(g.indkey) and g.indisprimary")
-				.WhereIn($"conrelid", SqlInstance.Select("a.oid").From("pg_class")
-					.InnerJoin("pg_namespace", "b", "a.relnamespace = b.oid")
-					.Where($"b.nspname = '{_schemaName}' AND A .relname = '{_table.Name}'"))
-				.ToList<ConstraintMoreToOne>();
+			var sqlMoreToOne = $@"
+SELECT f.attname conname, b.relname tablename, c.nspname, d.attname refcolumn, e.typname contype, g.indisprimary ispk 
+FROM pg_constraint a  
+LEFT JOIN pg_class b ON b.oid = a.confrelid  
+INNER JOIN pg_namespace c ON b.relnamespace = c.oid  
+INNER JOIN pg_attribute d ON d.attrelid = a.confrelid and d.attnum = any(a.confkey)  
+INNER JOIN pg_type e ON e.oid = d.atttypid  
+INNER JOIN pg_attribute f ON f.attrelid = a.conrelid and f.attnum = any(a.conkey)  
+LEFT JOIN pg_index g ON d.attrelid = g.indrelid and d.attnum = any(g.indkey) and g.indisprimary  
+WHERE conrelid IN (SELECT a.oid FROM pg_class a  INNER JOIN pg_namespace b ON a.relnamespace = b.oid  WHERE b.nspname = '{_schemaName}' AND A .relname = '{_table.Name}') 
+";
+			_consListMoreToOne = PgsqlHelper.ExecuteDataReaderList<ConstraintMoreToOne>(sqlMoreToOne);
 
-			_consListOneToMore = SqlInstance.Select($@"DISTINCT x.TABLE_NAME as tablename, x.COLUMN_NAME as refcolumn, x.CONSTRAINT_SCHEMA as nspname, tp.typname as contype, tp.attname as conname,
-				({SqlInstance.Select("COUNT(1)=1").From("pg_index")
-					.InnerJoin("pg_attribute", "b", "b.attrelid = a.indrelid AND b.attnum = ANY (a.indkey)")
-					.Where("A .indrelid = (x. CONSTRAINT_SCHEMA || '.' || x. TABLE_NAME)::regclass")
-					.Where("a.indisprimary AND b.attname = x.COLUMN_NAME AND int2vectorout(A.indkey) :: TEXT = '1'")}) as isonetoone")
-				.From("information_schema.key_column_usage", "x")
-				.InnerJoin(
-					SqlInstance.Select("t.relname,a.conname,f.typname,d.attname").From("pg_constraint")
-					.InnerJoin("pg_class", "t", "t.oid = a.conrelid")
-					.InnerJoin("pg_attribute", "d", "d.attrelid = a.confrelid AND d.attnum = ANY (a.confkey)")
-					.InnerJoin("pg_type", "f", "f.oid = d.atttypid").Where("a.contype = 'f'")
-					.Where($@"a.confrelid = ({SqlInstance.Select("e.oid").From("pg_class", "e")
-						.InnerJoin("pg_namespace", "b", "e.relnamespace = b.oid")
-						.Where($"b.nspname = '{_schemaName}' AND e.relname = '{_table.Name}'")})"),
-				"tp", "x. TABLE_NAME = tp.relname AND x. CONSTRAINT_NAME = tp.conname")
-				.ToList<ConstraintOneToMore>();
+			var sqlOneToMore = $@"
+SELECT DISTINCT 
+	x.TABLE_NAME tablename, 
+	x.COLUMN_NAME refcolumn, 
+	x.CONSTRAINT_SCHEMA nspname, 
+	tp.typname contype, 
+	tp.attname conname,  
+	(SELECT COUNT(1)=1 FROM pg_index a  
+		INNER JOIN pg_attribute b ON b.attrelid = a.indrelid AND b.attnum = ANY (a.indkey)  
+		WHERE A .indrelid = (x.CONSTRAINT_SCHEMA||'.'||x. TABLE_NAME)::regclass
+		AND a.indisprimary 
+		AND b.attname = x.COLUMN_NAME 
+		AND int2vectorout(A.indkey)::TEXT = '1'
+	) as isonetoone 
+FROM information_schema.key_column_usage x  
+INNER JOIN (
+	SELECT t.relname,a.conname,f.typname,d.attname 
+	FROM pg_constraint a  
+	INNER JOIN pg_class t ON t.oid = a.conrelid  
+	INNER JOIN pg_attribute d ON d.attrelid = a.confrelid AND d.attnum = ANY (a.confkey)  
+	INNER JOIN pg_type f ON f.oid = d.atttypid  
+	WHERE a.contype = 'f' 
+	AND a.confrelid = (
+		SELECT e.oid FROM pg_class e  
+		INNER JOIN pg_namespace b ON e.relnamespace = b.oid  
+		WHERE b.nspname = '{_schemaName}' AND e.relname = '{_table.Name}'
+	) 
+) tp ON x. TABLE_NAME = tp.relname AND x. CONSTRAINT_NAME = tp.conname
+";
+			_consListOneToMore = PgsqlHelper.ExecuteDataReaderList<ConstraintOneToMore>(sqlOneToMore);
 
+			#region	MoreToMore	
+			//			if (_consListOneToMore.Count == 0) return;
 
-			//多对多关系
-			if (_consListOneToMore.Count > 0)
-			{
-				foreach (var item in _consListOneToMore)
-				{
-					var pk = SqlInstance.Select(" b.attname AS field,format_type (b.atttypid, b.atttypmod) AS typename").From("pg_index")
-						.InnerJoin("pg_attribute", "b", "b.attrelid = a.indrelid AND b.attnum = ANY (a.indkey)")
-						.Where($"a.indrelid = '{item.Nspname}.{item.TableName}' :: regclass AND a.indisprimary and b.attname::text <> '{item.RefColumn}'")
-						.ToList<PrimarykeyInfo>();
-					if (pk.Count > 0)
-					{
-						foreach (var p in pk)
-						{
+			//			foreach (var item in _consListOneToMore)
+			//			{
+			//				var pkSql = $@"
+			//SELECT  b.attname AS field,format_type (b.atttypid, b.atttypmod) AS typename 
+			//FROM pg_index a 
+			//INNER JOIN pg_attribute b ON b.attrelid = a.indrelid AND b.attnum = ANY (a.indkey)  
+			//WHERE a.indrelid = '{item.Nspname}.{item.TableName}' :: regclass AND a.indisprimary and b.attname::text <> '{item.RefColumn}' 
+			//";
+			//				var pk = PgSqlHelper.ExecuteDataReaderList<PrimarykeyInfo>(pkSql);
 
-							var moretoone = SqlInstance.Select($@"f.attname conname, b.relname tablename, c.nspname, d.attname refcolumn, e.typname contype, g.indisprimary ispk").From("pg_constraint")
-								.LeftJoin("pg_class", "b", "b.oid = a.confrelid")
-								.InnerJoin("pg_namespace", "c", "b.relnamespace = c.oid")
-								.InnerJoin("pg_attribute", "d", "d.attrelid = a.confrelid and d.attnum = any(a.confkey)")
-								.InnerJoin("pg_type", "e", "e.oid = d.atttypid")
-								.InnerJoin("pg_attribute", "f", "f.attrelid = a.conrelid and f.attnum = any(a.conkey)")
-								.LeftJoin("pg_index", "g", "d.attrelid = g.indrelid and d.attnum = any(g.indkey) and g.indisprimary")
-								.WhereIn($"conrelid", SqlInstance.Select("a.oid").From("pg_class").InnerJoin("pg_namespace", "b", "a.relnamespace = b.oid")
-									.Where($"b.nspname = '{item.Nspname}' and a.relname = '{item.TableName}'"))
-								.Where($"f.attname::text = '{p.Field}'")
-								.ToList<ConstraintMoreToOne>();
-							foreach (var item2 in moretoone)
-							{
-								_consListMoreToMore.Add(new ConstraintMoreToMore
-								{
-									MainNspname = _schemaName,
-									MainTable = _table.Name,
-									CenterMainField = item.RefColumn,
-									CenterMainType = item.Contype,
-									CenterMinorField = item2.Conname,
-									CenterMinorType = item2.Contype,
-									CenterNspname = item.Nspname,
-									CenterTable = item.TableName,
-									MainField = item.Conname,
-									MinorField = item2.RefColumn,
-									MinorNspname = item2.Nspname,
-									MinorTable = item2.TableName
+			//				if (pk.Count == 0) continue;
 
-								});
-							}
-						}
-					}
-				}
-			}
+			//				foreach (var p in pk)
+			//				{
+			//					var sqlMoreToMore = $@"
+			//SELECT f.attname conname, b.relname tablename, c.nspname, d.attname refcolumn, e.typname contype, g.indisprimary ispk 
+			//FROM pg_constraint a  
+			//LEFT JOIN pg_class b ON b.oid = a.confrelid  
+			//INNER JOIN pg_namespace c ON b.relnamespace = c.oid  
+			//INNER JOIN pg_attribute d ON d.attrelid = a.confrelid and d.attnum = any(a.confkey)  
+			//INNER JOIN pg_type e ON e.oid = d.atttypid  INNER JOIN pg_attribute f ON f.attrelid = a.conrelid and f.attnum = any(a.conkey)  
+			//LEFT JOIN pg_index g ON d.attrelid = g.indrelid and d.attnum = any(g.indkey) and g.indisprimary  
+			//WHERE conrelid IN (SELECT a.oid FROM pg_class a  INNER JOIN pg_namespace b ON a.relnamespace = b.oid WHERE b.nspname = '{item.Nspname}' and a.relname = '{item.TableName}') AND f.attname::text = '{p.Field}'
+			//";
+			//					var moretoone = PgSqlHelper.ExecuteDataReaderList<ConstraintMoreToOne>(sqlMoreToMore);
+			//					foreach (var item2 in moretoone)
+			//					{
+			//						_consListMoreToMore.Add(new ConstraintMoreToMore
+			//						{
+			//							MainNspname = _schemaName,
+			//							MainTable = _table.Name,
+			//							CenterMainField = item.RefColumn,
+			//							CenterMainType = item.Contype,
+			//							CenterMinorField = item2.Conname,
+			//							CenterMinorType = item2.Contype,
+			//							CenterNspname = item.Nspname,
+			//							CenterTable = item.TableName,
+			//							MainField = item.Conname,
+			//							MinorField = item2.RefColumn,
+			//							MinorNspname = item2.Nspname,
+			//							MinorTable = item2.TableName
+
+			//						});
+			//					}
+			//				}
+			//			}
+			#endregion
+
 		}
 
 		/// <summary>
@@ -268,9 +296,13 @@ namespace CodeFactory.DAL
 		/// </summary>
 		void GetPrimaryKey()
 		{
-			_pkList = SqlInstance.Select("b.attname AS field,format_type (b.atttypid, b.atttypmod) AS typename").From("pg_index")
-				.InnerJoin("pg_attribute", "b", "b.attrelid = a.indrelid AND b.attnum = ANY (a.indkey)")
-				.Where($"a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary").ToList<PrimarykeyInfo>();
+			var sqlPk = $@"
+SELECT b.attname AS field,format_type (b.atttypid, b.atttypmod) AS typename 
+FROM pg_index a  
+INNER JOIN pg_attribute b ON b.attrelid = a.indrelid AND b.attnum = ANY (a.indkey)  
+WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
+";
+			_pkList = PgsqlHelper.ExecuteDataReaderList<PrimarykeyInfo>(sqlPk);
 
 			List<string> d_key = new List<string>();
 			for (var i = 0; i < _pkList.Count; i++)
@@ -294,18 +326,19 @@ namespace CodeFactory.DAL
 			writer.WriteLine("using Meta.Common.Model;");
 			writer.WriteLine("using System;");
 			writer.WriteLine("using System.Collections.Generic;");
-			writer.WriteLine("using System.Linq;");
-			writer.WriteLine("using System.Threading.Tasks;");
+			writer.WriteLine("using System.Collections;");
+			writer.WriteLine("using System.Net.NetworkInformation;");
 			writer.WriteLine("using NpgsqlTypes;");
 			writer.WriteLine("using Newtonsoft.Json;");
 			writer.WriteLine("using Newtonsoft.Json.Linq;");
+			writer.WriteLine("using Meta.Common.Interface;");
 			writer.WriteLine("using System.Net;");
 			writer.WriteLine($"using {_projectName}.DAL;");
 			writer.WriteLine();
 			writer.WriteLine($"namespace {_projectName}.Model");
 			writer.WriteLine("{");
-			writer.WriteLine($"\t[Mapping(\"{TableName}\"), JsonObject(MemberSerialization.OptIn)]");
-			writer.WriteLine($"\tpublic partial class {ModelClassName}");
+			writer.WriteLine($"\t[DbTable(\"{TableName}\")]");
+			writer.WriteLine($"\tpublic partial class {ModelClassName} : IDbModel");
 			writer.WriteLine("\t{");
 
 			writer.WriteLine("\t\t#region Properties");
@@ -313,9 +346,23 @@ namespace CodeFactory.DAL
 			{
 				if (Types.NotCreateModelFieldDbType(item.DbType, item.Typcategory))
 				{
+					//if (item.DbType == "bit" && item.Length != 1)
+					//{
+					//	WriteComment(writer, item.Comment);
+					//	writer.WriteLine($"\t\t[JsonProperty, DbField({item.Length}{item.PgDbTypeString})]");
+					//	writer.WriteLine($"\t\tpublic {item.RelType} {item.Field.ToUpperPascal()}");
+					//	writer.WriteLine("\t\t{");
+					//	writer.WriteLine($"\t\t\tget => _{item.Field.ToUpperPascal()};");
+					//	writer.WriteLine($"\t\t\tset => _{item.Field.ToUpperPascal()} = value.Length == {item.Length} ? value : throw new ArgumentOutOfRangeException(nameof({item.Field.ToUpperPascal()}), \"length must equal {item.Length}.\");");
+					//	writer.WriteLine("\t\t}");
+					//	writer.WriteLine($"\t\tprivate {item.RelType} _{item.Field.ToUpperPascal()};");
+					//	continue;
+					//}
 					WriteComment(writer, item.Comment);
-					writer.WriteLine($"\t\t[JsonProperty] public {item.RelType} {item.Field.ToUpperPascal()} {{ get; set; }}");
+					writer.WriteLine($"\t\t[JsonProperty, DbField({item.Length}{item.PgDbTypeString})]");
+					writer.WriteLine($"\t\tpublic {item.RelType} {item.Field.ToUpperPascal()} {{ get; set; }}");
 				}
+
 				if (item.DbType == "geometry")
 				{
 					_isGeometryTable = true;
@@ -331,7 +378,7 @@ namespace CodeFactory.DAL
 						if (field.Field == item.Field + "_srid")
 							writer.WriteLine($"\t\tpublic {field.RelType} {field.Field.ToUpperPascal()} {{ get; set;}} = 4326;");
 						else
-							writer.WriteLine($"\t\t[JsonProperty] public {field.RelType} {field.Field.ToUpperPascal()} {{ get; set;}}");
+							writer.WriteLine($"\t\t[JsonProperty, DbField]\n\t\tpublic {field.RelType} {field.Field.ToUpperPascal()} {{ get; set;}}");
 					}
 				}
 			}
@@ -372,22 +419,9 @@ namespace CodeFactory.DAL
 				foreach (var item in _consListMoreToOne)
 					WriteForeignKey(item.Nspname, item.TableName, item.Conname, item.IsPk, item.RefColumn);
 
-				foreach (var item in _consListOneToMore)
-				{
-					if (item.IsOneToOne)
-					{
-						WriteForeignKey(item.Nspname, item.TableName, item.Conname, true, item.RefColumn);
-					}
-					else
-					{
+				foreach (var item in _consListOneToMore.Where(f => f.IsOneToOne))
+					WriteForeignKey(item.Nspname, item.TableName, item.Conname, true, item.RefColumn);
 
-					}
-
-				}
-				foreach (var item in _consListMoreToMore)
-				{
-
-				}
 				if (!string.IsNullOrEmpty(sb.ToString()))
 				{
 					writer.WriteLine("\t\t#region Foreign Key");
@@ -396,7 +430,7 @@ namespace CodeFactory.DAL
 					writer.WriteLine();
 				}
 				writer.WriteLine("\t\t#region Update/Insert");
-				if (_pkList.Count > 0)//[MethodProperty] 
+				if (_pkList.Count > 0)
 					writer.WriteLine("\t\tpublic {0}.{0}UpdateBuilder Update => DAL.{0}.Update(this);", DalClassName);
 				writer.WriteLine();
 				if (_pkList.Count > 0)
@@ -405,9 +439,6 @@ namespace CodeFactory.DAL
 				writer.WriteLine("\t\tpublic {0} Insert() => DAL.{1}.Insert(this);", ModelClassName, DalClassName);
 				writer.WriteLine("\t\t#endregion");
 			}
-			writer.WriteLine("");
-			writer.WriteLine("\t\tpublic override string ToString() => JsonConvert.SerializeObject(this);");
-			writer.WriteLine("\t\tpublic static {0} Parse(string json) => string.IsNullOrEmpty(json) ? null : JsonConvert.DeserializeObject<{0}>(json);", ModelClassName);
 			writer.WriteLine("\t}");
 			writer.WriteLine("}");
 
@@ -428,12 +459,12 @@ namespace CodeFactory.DAL
 			writer.WriteLine("using Meta.Common.Model;");
 			writer.WriteLine($"using {_projectName}.{ModelSuffix};");
 			writer.WriteLine($"using {_projectName}.Options;");
+			writer.WriteLine("using System.Collections;");
+			writer.WriteLine("using System.Net.NetworkInformation;");
 			writer.WriteLine("using NpgsqlTypes;");
 			writer.WriteLine("using System;");
 			writer.WriteLine("using System.Collections.Generic;");
 			writer.WriteLine("using System.Linq;");
-			writer.WriteLine("using System.Linq.Expressions;");
-			writer.WriteLine("using System.Threading.Tasks;");
 			writer.WriteLine("using Newtonsoft.Json.Linq;");
 			writer.WriteLine("using System.Net;");
 			if (_isGeometryTable)
@@ -441,8 +472,8 @@ namespace CodeFactory.DAL
 			writer.WriteLine();
 			writer.WriteLine($"namespace {_projectName}.DAL");
 			writer.WriteLine("{");
-			writer.WriteLine($"\t[Mapping(\"{TableName}\")]");
-			writer.WriteLine($"\tpublic partial class {DalClassName} : SelectExchange<{DalClassName}, {ModelClassName}>");
+			writer.WriteLine($"\t[DbTable(\"{TableName}\")]");
+			writer.WriteLine($"\tpublic sealed partial class {DalClassName} : SelectBuilder<{DalClassName}, {ModelClassName}>");
 			writer.WriteLine("\t{");
 
 			writer.WriteLine("\t\t#region Properties");
@@ -521,6 +552,7 @@ namespace CodeFactory.DAL
 				parameterCount += string.Concat("_{", i, "}");
 			}
 			writer.WriteLine("\t\tpublic const string CacheKey = \"{0}\";", string.Concat(_projectName.Replace('.', '_').ToLower(), "_model_", ModelClassName.ToLower(), parameterCount));
+			writer.WriteLine("\t\tprivate {0}() {{ }}", DalClassName);
 			writer.WriteLine("\t\tpublic static {0} Select => new {0}(){1};", DalClassName, DataSelectString);
 			writer.WriteLine("\t\tpublic static {0} SelectDiy(string fields) => new {0} {{ Fields = fields }}{1};", DalClassName, DataSelectString);
 			writer.WriteLine("\t\tpublic static {0} SelectDiy(string fields, string alias) => new {0} {{ Fields = fields, MainAlias = alias }}{1};", DalClassName, DataSelectString);
@@ -798,10 +830,13 @@ namespace CodeFactory.DAL
 			if (_isGeometryTable)
 				writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder() => Fields = _field;");
 			// set
+			/*
 			foreach (var item in _fieldList)
 			{
-				if (Types.NotCreateModelFieldDbType(item.DbType, item.Typcategory))
-					writer.WriteLine("\t\t\tpublic {0}UpdateBuilder Set{1}({2} {3}) => Set(\"{3}\", {3}, {4}{5});", DalClassName, item.Field.ToUpperPascal(), item.RelType, item.Field, item.Length, item.PgDbTypeString);
+				//if (Types.NotCreateModelFieldDbType(item.DbType, item.Typcategory))
+				//	writer.WriteLine("\t\t\tpublic {0}UpdateBuilder Set{1}({2} {3}) => Set(\"{3}\", {3}, {4}{5});", DalClassName, item.Field.ToUpperPascal(), item.RelType, item.Field, item.Length, item.PgDbTypeString);
+
+				writer.WriteLine("\t\t\tpublic {0}UpdateBuilder Set{1}({2} {3}) => Set(\"{3}\", {3});", DalClassName, item.Field.ToUpperPascal(), item.RelType, item.Field);
 				if (item.Dimensions == 0)
 				{
 
@@ -813,12 +848,16 @@ namespace CodeFactory.DAL
 						case "float":
 						case "double":
 						case "long":
-							writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Increment({item.CSharpType} {item.Field}) => SetIncrement(\"{item.Field}\", {item.Field}, {item.Length}{item.PgDbTypeString});");
+							//	writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Increment({item.CSharpType} {item.Field}) => SetIncrement(\"{item.Field}\", {item.Field}, {item.Length}{item.PgDbTypeString});");
+
+							writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Increment({item.CSharpType} {item.Field}) => SetIncrement(\"{item.Field}\", {item.Field});");
 							break;
 						case "datetime":
 						case "timespan":
-							writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Increment(TimeSpan timeSpan) => SetIncrement(\"{item.Field}\", timeSpan, {item.Length}{item.PgDbTypeString});");
-							//writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Minus(TimeSpan timeSpan) => SetDateTime(\"{item.Field}\", timeSpan, false, {item.Length});");
+							//writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Increment(TimeSpan timeSpan) => SetIncrement(\"{item.Field}\", timeSpan, {item.Length}{item.PgDbTypeString});");
+
+							writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Increment(TimeSpan timeSpan) => SetIncrement(\"{item.Field}\", timeSpan);");
+
 							break;
 						case "geometry":
 							writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}(float x, float y, int SRID = 4326) => SetGeometry(\"{item.Field}\", x, y, SRID);");
@@ -835,16 +874,18 @@ namespace CodeFactory.DAL
 				else if (item.Dimensions == 1)
 				{
 					//join
-					writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Join(params {item.RelType} {item.Field}) => SetJoin(\"{item.Field}\", {item.Field}, {item.Length}{item.PgDbTypeString});");
-
+					//writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Join(params {item.RelType} {item.Field}) => SetJoin(\"{item.Field}\", {item.Field}, {item.Length}{item.PgDbTypeString});");
+					writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Join(params {item.RelType} {item.Field}) => SetJoin(\"{item.Field}\", {item.Field});");
 					//remove
-					writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Remove({item.RelType.Replace("[]", "")} {item.Field}) => SetRemove(\"{item.Field}\", {item.Field}, {item.Length}{item.PgDbTypeString.Replace("NpgsqlDbType.Array", "").Replace("|", "").TrimEnd(',', ' ')});");
+					//writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Remove({item.RelType.Replace("[]", "")} {item.Field}) => SetRemove(\"{item.Field}\", {item.Field}, {item.Length}{item.PgDbTypeString.Replace("NpgsqlDbType.Array", "").Replace("|", "").TrimEnd(',', ' ')});");
+					writer.WriteLine($"\t\t\tpublic {DalClassName}UpdateBuilder Set{item.Field.ToUpperPascal()}Remove({item.RelType.Replace("[]", "")} {item.Field}) => SetRemove(\"{item.Field}\", {item.Field});");
 				}
 				else if (item.Dimensions > 1)
 				{
 
 				}
 			}
+			*/
 			writer.WriteLine("\t\t}");
 
 		}

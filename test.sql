@@ -1,6 +1,18 @@
 
 create SCHEMA "class";
 ALTER SCHEMA "class" OWNER TO "postgres";
+
+create extension hstore;
+
+CREATE TYPE "public"."e_data_state" AS ENUM ('正常','已删除');
+ALTER TYPE "public"."e_data_state" OWNER TO "postgres";
+
+CREATE TYPE "public"."info" AS (
+  "id" uuid,
+  "name" varchar COLLATE "pg_catalog"."default"
+);
+ALTER TYPE "public"."info" OWNER TO "postgres";
+
 CREATE TABLE "classmate" (
 "teacher_id" uuid NOT NULL,
 "student_id" uuid NOT NULL,
@@ -57,6 +69,56 @@ CONSTRAINT "people_id_key" UNIQUE ("people_id")
 WITHOUT OIDS;
 COMMENT ON COLUMN "teacher"."teacher_no" IS '学号';
 ALTER TABLE "teacher" OWNER TO "postgres";
+
+CREATE TABLE "type_test" (
+"id" uuid NOT NULL,
+"bit_type" bit(1),
+"bool_type" bool,
+"box_type" box,
+"bytea_type" bytea,
+"char_type" char(1) COLLATE "default",
+"cidr_type" cidr,
+"circle_type" circle,
+"date_type" date,
+"decimal_type" numeric,
+"float4_type" float4,
+"float8_type" float8,
+"inet_type" inet,
+"int2_type" int2,
+"int4_type" int4,
+"int8_type" int8,
+"interval_type" interval(6),
+"json_type" json,
+"jsonb_type" jsonb,
+"line_type" line,
+"lseg_type" lseg,
+"macaddr_type" macaddr,
+"money_type" money,
+"path_type" path,
+"point_type" point,
+"polygon_type" polygon,
+"serial2_type" int2 NOT NULL DEFAULT nextval('type_test_serial2_type_seq'::regclass),
+"serial4_type" int4 NOT NULL DEFAULT nextval('type_test_serial4_type_seq'::regclass),
+"serial8_type" int8 NOT NULL DEFAULT nextval('type_test_serial8_type_seq'::regclass),
+"text_type" text COLLATE "default",
+"time_type" time(6),
+"timestamp_type" timestamp(6),
+"timestamptz_type" timestamptz(6),
+"timetz_type" timetz(6),
+"tsquery_type" tsquery,
+"tsvector_type" tsvector,
+"varbit_type" varbit,
+"varchar_type" varchar COLLATE "default",
+"xml_type" xml,
+"hstore_type" "public"."hstore",
+"enum_type" "public"."e_data_state",
+"composite_type" "public"."info",
+"bit_length_type" bit(8),
+"array_type" int4[],
+CONSTRAINT "type_test_pkey" PRIMARY KEY ("id") 
+)
+WITHOUT OIDS;
+ALTER TABLE "type_test" OWNER TO "postgres";
 
 CREATE TABLE "grade" (
 "id" uuid NOT NULL,

@@ -3,6 +3,7 @@ using Meta.Common.Model;
 using Npgsql;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Text;
 
 namespace Meta.Common.Interface
@@ -12,7 +13,7 @@ namespace Meta.Common.Interface
 		/// <summary>
 		/// sql参数列表
 		/// </summary>
-		List<NpgsqlParameter> Params { get; }
+		List<DbParameter> Params { get; }
 		/// <summary>
 		/// 
 		/// </summary>
@@ -21,14 +22,15 @@ namespace Meta.Common.Interface
 		/// <summary>
 		/// 返回实例类型
 		/// </summary>
-		Type Type { get; set; }
+		Type Type { get; }
 		/// <summary>
 		/// 是否列表
 		/// </summary>
-		PipeReturnType ReturnType { get; set; }
+		PipeReturnType ReturnType { get; }
 		/// <summary>
 		/// 是否直接返回默认值
 		/// </summary>
-		bool IsReturnDefault { get; set; }
+		bool IsReturnDefault { get; }
+
 	}
 }

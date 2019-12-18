@@ -2,22 +2,23 @@
 using Meta.Common.Model;
 using Meta.xUnitTest.Model;
 using Meta.xUnitTest.Options;
+using System.Collections;
+using System.Net.NetworkInformation;
 using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using System.Net;
 
 namespace Meta.xUnitTest.DAL
 {
-	[Mapping("class.grade")]
-	public partial class ClassGrade : SelectExchange<ClassGrade, ClassGradeModel>
+	[DbTable("class.grade")]
+	public sealed partial class ClassGrade : SelectBuilder<ClassGrade, ClassGradeModel>
 	{
 		#region Properties
 		public const string CacheKey = "meta_xunittest_model_classgrademodel_{0}";
+		private ClassGrade() { }
 		public static ClassGrade Select => new ClassGrade();
 		public static ClassGrade SelectDiy(string fields) => new ClassGrade { Fields = fields };
 		public static ClassGrade SelectDiy(string fields, string alias) => new ClassGrade { Fields = fields, MainAlias = alias };
@@ -80,10 +81,6 @@ namespace Meta.xUnitTest.DAL
 		}
 		public class ClassGradeUpdateBuilder : UpdateBuilder<ClassGradeUpdateBuilder, ClassGradeModel>
 		{
-			public ClassGradeUpdateBuilder SetId(Guid id) => Set("id", id, 16, NpgsqlDbType.Uuid);
-			public ClassGradeUpdateBuilder SetName(string name) => Set("name", name, 255, NpgsqlDbType.Varchar);
-			public ClassGradeUpdateBuilder SetCreate_time(DateTime create_time) => Set("create_time", create_time, 8, NpgsqlDbType.Timestamp);
-			public ClassGradeUpdateBuilder SetCreate_timeIncrement(TimeSpan timeSpan) => SetIncrement("create_time", timeSpan, 8, NpgsqlDbType.Timestamp);
 		}
 		#endregion
 

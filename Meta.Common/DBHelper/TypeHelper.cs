@@ -2,6 +2,7 @@
 using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -9,10 +10,10 @@ namespace Meta.Common.DbHelper
 {
 	internal class TypeHelper
 	{
-		public static string SqlToString(string sql, List<NpgsqlParameter> nps)
+		public static string SqlToString(string sql, List<DbParameter> nps)
 		{
 			NpgsqlDbType[] isString = { NpgsqlDbType.Char, NpgsqlDbType.Varchar, NpgsqlDbType.Text };
-			foreach (var p in nps)
+			foreach (NpgsqlParameter p in nps)
 			{
 				var value = GetParamValue(p.Value);
 				var key = string.Concat("@", p.ParameterName);

@@ -1,5 +1,9 @@
-﻿using Newtonsoft.Json;
+﻿using Meta.Common.DbHelper;
+using Meta.Common.Interface;
+using Meta.Common.Model;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NpgsqlTypes;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -42,7 +46,7 @@ namespace Meta.Common.Extensions
 			bool isValueOrString = modelType == typeof(string) || modelType.IsValueType;
 			bool isEnum = modelType.IsEnum;
 			object model;
-			if (IsTuple(modelType))
+			if (modelType.IsTuple())
 			{
 				int columnIndex = -1;
 				model = GetValueTuple(modelType, objReader, ref columnIndex);
@@ -65,8 +69,8 @@ namespace Meta.Common.Extensions
 					{
 						if (!objReader[i].IsNullOrDBNull())
 						{
-							PropertyInfo pi = modelType.GetProperty(objReader.GetName(i), BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-							if (pi != null) pi.SetValue(model, CheckType(objReader[i], pi.PropertyType));
+							var p = modelType.GetProperty(objReader.GetName(i), BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+							if (p != null) p.SetValue(model, CheckType(objReader[i], p.PropertyType));
 						}
 					}
 				}
@@ -83,12 +87,26 @@ namespace Meta.Common.Extensions
 		{
 			return (TResult)objReader.ReaderToModel(typeof(TResult));
 		}
-		static bool IsTuple(Type tupleType) => tupleType.Namespace == "System" && tupleType.Name.StartsWith("ValueTuple`", StringComparison.Ordinal);//判断是否元组类型
+		/// <summary>
+		/// 类型是否元组
+		/// </summary>
+		/// <param name="tupleType"></param>
+		/// <returns></returns>
+		public static bool IsTuple(this Type tupleType) => tupleType.Namespace == "System" && tupleType.Name.StartsWith("ValueTuple`", StringComparison.Ordinal);
+		/// <summary>
+		/// json的类型需要转化
+		/// </summary>
 		static readonly Type[] _jTypes = new[] { typeof(JToken), typeof(JObject), typeof(JArray) };
-		//遍历元组类型 为兼容8个以上元组
+		/// <summary>
+		/// 遍历元组类型
+		/// </summary>
+		/// <param name="objType"></param>
+		/// <param name="dr"></param>
+		/// <param name="columnIndex"></param>
+		/// <returns></returns>
 		static object GetValueTuple(Type objType, IDataReader dr, ref int columnIndex)
 		{
-			if (IsTuple(objType))
+			if (objType.IsTuple())
 			{
 				FieldInfo[] fs = objType.GetFields();
 				Type[] types = new Type[fs.Length];
@@ -101,19 +119,24 @@ namespace Meta.Common.Extensions
 				ConstructorInfo info = objType.GetConstructor(types);
 				return info.Invoke(parameters);
 			}
-
+			// 当元组里面含有实体类
 			if (objType.IsClass && !objType.IsSealed && !objType.IsAbstract)
 			{
+				if (!objType.GetInterfaces().Any(f => f == typeof(IDbModel)))
+					throw new NotSupportedException("only the generate models.");
+
 				var model = Activator.CreateInstance(objType);
-				var isSet = false;
-				var fs = objType.GetProperties().Where(f => f.ExistsJsonPropertyAttribute()).ToArray();
+				var isSet = false; // 这个实体类是否有赋值 没赋值直接返回 default
+
+				var fs = EntityHelper.GetFieldsFromStaticType(objType);
 				for (int i = 0; i < fs.Length; i++)
 				{
 					++columnIndex;
 					if (!dr[columnIndex].IsNullOrDBNull())
 					{
 						isSet = true;
-						fs[i].SetValue(model, CheckType(dr[columnIndex], fs[i].PropertyType));
+						var p = objType.GetProperty(fs[i], BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+						p.SetValue(model, CheckType(dr[columnIndex], p.PropertyType));
 					}
 				}
 				return isSet ? model : default;
@@ -125,7 +148,12 @@ namespace Meta.Common.Extensions
 			}
 		}
 		static bool IsNullOrDBNull(this object obj) => obj is DBNull || obj == null;
-		// 对可空类型进行判断转换(*要不然会报错)
+		/// <summary>
+		/// 对可空类型转化
+		/// </summary>
+		/// <param name="value"></param>
+		/// <param name="valueType"></param>
+		/// <returns></returns>
 		static object CheckType(object value, Type valueType)
 		{
 			if (value.IsNullOrDBNull()) return null;
@@ -133,8 +161,24 @@ namespace Meta.Common.Extensions
 				valueType = new NullableConverter(valueType).UnderlyingType;
 			if (_jTypes.Contains(valueType))
 				return JToken.Parse(value?.ToString() ?? "{}");
-			return Convert.ChangeType(value, valueType);
+			try
+			{
+				if (valueType.Namespace == "NpgsqlTypes")
+					return ConvertPgsqlType(value, valueType);
+				return Convert.ChangeType(value, valueType);
+			}
+			catch (Exception ex)
+			{
+				throw ex;
+			}
 
+		}
+		static object ConvertPgsqlType(object value, Type valueType)
+		{
+			if (valueType == typeof(NpgsqlTsQuery))
+				return NpgsqlTsQuery.Parse(value.ToString());
+			return Convert.ChangeType(value, valueType);
+			//throw new NotSupportedException("valueType is not supported.");
 		}
 		#endregion
 	}

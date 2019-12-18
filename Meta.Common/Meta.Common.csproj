@@ -2,6 +2,10 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
+    <Authors>leisaupei</Authors>
+    <PackageProjectUrl>https://github.com/leisaupei/meta</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/leisaupei/meta</RepositoryUrl>
+    <Company>leisaupei</Company>
   </PropertyGroup>
 
   <ItemGroup>
