@@ -32,6 +32,9 @@ namespace Meta.xUnitTest.Model
 
 		private ClassGradeModel _getClassGrade = null;
 		public ClassGradeModel GetClassGrade => _getClassGrade ??= ClassGrade.GetItem(Grade_id);
+
+		private StudentModel _getStudent = null;
+		public StudentModel GetStudent => _getStudent ??= Student.GetItem(Student_id);
 		#endregion
 
 		#region Update/Insert

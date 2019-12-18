@@ -15,11 +15,6 @@ namespace Meta.Common.SqlBuilder
 	public abstract class BuilderBase<TSQL> : ISqlBuilder where TSQL : class
 	{
 		#region Identity
-
-		/// <summary>
-		/// 返回类型
-		/// </summary>
-		public PipeReturnType ReturnType { get; set; }
 		/// <summary>
 		/// 主表
 		/// </summary>
@@ -52,16 +47,20 @@ namespace Meta.Common.SqlBuilder
 		/// 参数列表
 		/// </summary>
 		public List<DbParameter> Params { get; } = new List<DbParameter>();
-		#endregion
+        /// <summary>
+        /// 返回类型
+        /// </summary>
+        public PipeReturnType ReturnType { get; set; }
+        #endregion
 
 
-		#region Constructor
-		/// <summary>
-		/// 初始化主表与别名
-		/// </summary>
-		/// <param name="table"></param>
-		/// <param name="alias"></param>
-		protected BuilderBase(string table, string alias) : this(table)
+        #region Constructor
+        /// <summary>
+        /// 初始化主表与别名
+        /// </summary>
+        /// <param name="table"></param>
+        /// <param name="alias"></param>
+        protected BuilderBase(string table, string alias) : this(table)
 		{
 			MainAlias = alias;
 		}
@@ -93,6 +92,7 @@ namespace Meta.Common.SqlBuilder
 			MainAlias = alias;
 			return This;
 		}
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -103,6 +103,7 @@ namespace Meta.Common.SqlBuilder
 			MainTable = table;
 			return This;
 		}
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -113,6 +114,7 @@ namespace Meta.Common.SqlBuilder
 			MainAlias = alias;
 			return This;
 		}
+
 		/// <summary>
 		/// 选择表的类型
 		/// </summary>
@@ -125,6 +127,7 @@ namespace Meta.Common.SqlBuilder
 		}
 		public TSQL BySlave() => Data("master-slave");
 		public TSQL ByMaster() => Data("master");
+
 		/// <summary>
 		/// 添加参数
 		/// </summary>
@@ -133,6 +136,7 @@ namespace Meta.Common.SqlBuilder
 		/// <param name="size"></param>
 		/// <returns></returns>
 		public TSQL AddParameter(string field, DbTypeValue val, int? size = null) => AddParameter(field, val.Value, size, val.DbType);
+
 		/// <summary>
 		/// 添加参数
 		/// </summary>
@@ -148,6 +152,7 @@ namespace Meta.Common.SqlBuilder
 			Params.Add(p);
 			return This;
 		}
+
 		/// <summary>
 		/// 添加参数
 		/// </summary>
@@ -158,33 +163,38 @@ namespace Meta.Common.SqlBuilder
 			Params.Add(p);
 			return This;
 		}
-		///// <summary>
-		///// 添加参数
-		///// </summary>
-		///// <typeparam name="T"></typeparam>
-		///// <param name="p"></param>
-		///// <param name="value"></param>
-		///// <returns></returns>
-		//public TSQL AddParameter<T>(string p, T value)
-		//{
-		//	Params.Add(new NpgsqlParameter<T>(p, value));
-		//	return This;
-		//}
-		/// <summary>
-		/// 添加参数
-		/// </summary>
-		/// <param name="ps"></param>
-		/// <returns></returns>
-		public TSQL AddParameter(IEnumerable<NpgsqlParameter> ps)
+
+        public TSQL AddParameter(DbParameter p)
+        {
+            Params.Add(p);
+            return This;
+        }
+        
+        /// <summary>
+        /// 添加参数
+        /// </summary>
+        /// <param name="ps"></param>
+        /// <returns></returns>
+        public TSQL AddParameter(IEnumerable<NpgsqlParameter> ps)
 		{
 			Params.AddRange(ps);
 			return This;
 		}
-		/// <summary>
-		/// 返回第一个元素
-		/// </summary>
-		/// <returns></returns>
-		protected object ToScalar() => PgsqlHelper.ExecuteScalar(CommandText, CommandType.Text, Params.ToArray(), DataType);
+        /// <summary>
+        /// 添加参数
+        /// </summary>
+        /// <param name="ps"></param>
+        /// <returns></returns>
+        public TSQL AddParameter(IEnumerable<DbParameter> ps)
+        {
+            Params.AddRange(ps);
+            return This;
+        }
+        /// <summary>
+        /// 返回第一个元素
+        /// </summary>
+        /// <returns></returns>
+        protected object ToScalar() => PgsqlHelper.ExecuteScalar(CommandText, CommandType.Text, Params.ToArray(), DataType);
 		/// <summary>
 		/// 返回List<Model>
 		/// </summary>
@@ -211,11 +221,11 @@ namespace Meta.Common.SqlBuilder
 		}
 
 		/// <summary>
-		/// 返回修改行数
-		/// </summary>
-		/// <param name="cmdText"></param>
-		/// <returns></returns>
+        /// 返回行数
+        /// </summary>
+        /// <returns></returns>
 		protected int ToRows() => PgsqlHelper.ExecuteNonQuery(CommandText, CommandType.Text, Params.ToArray(), DataType);
+
 		/// <summary>
 		/// Override ToString()
 		/// </summary>
@@ -226,6 +236,7 @@ namespace Meta.Common.SqlBuilder
 		/// 输出sql语句
 		/// </summary>
 		string CommandText => GetCommandTextString();
+
 		/// <summary>
 		/// 类型转换
 		/// </summary>
@@ -241,6 +252,7 @@ namespace Meta.Common.SqlBuilder
 			if (!string.IsNullOrEmpty(field)) Fields = field;
 			return TypeHelper.SqlToString(CommandText, Params);
 		}
+
 		/// <summary>
 		/// 设置sql语句
 		/// </summary>

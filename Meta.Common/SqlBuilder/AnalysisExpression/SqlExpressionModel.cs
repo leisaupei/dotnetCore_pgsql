@@ -1,6 +1,7 @@
 ﻿using Npgsql;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Text;
 
 namespace Meta.Common.SqlBuilder.AnalysisExpression
@@ -14,11 +15,11 @@ namespace Meta.Common.SqlBuilder.AnalysisExpression
 		/// <summary>
 		/// 参数化列表 union/where
 		/// </summary>
-		public List<NpgsqlParameter> Paras { get; } = new List<NpgsqlParameter>();
+		public List<DbParameter> Paras { get; } = new List<DbParameter>();
 		/// <summary>
-		/// 关联查询的表别名 union
+		/// 关联查询的表别名 union/子表别名
 		/// </summary>
-		public string UnionAlias { get; set; }
+		public string Alias { get; set; }
 		/// <summary>
 		/// 获取单个键名 single
 		/// </summary>

@@ -120,7 +120,7 @@ CONSTRAINT "type_test_pkey" PRIMARY KEY ("id")
 WITHOUT OIDS;
 ALTER TABLE "type_test" OWNER TO "postgres";
 
-CREATE TABLE "grade" (
+CREATE TABLE "class"."grade" (
 "id" uuid NOT NULL,
 "name" varchar(255) COLLATE "default" NOT NULL,
 "create_time" timestamp(6) NOT NULL,

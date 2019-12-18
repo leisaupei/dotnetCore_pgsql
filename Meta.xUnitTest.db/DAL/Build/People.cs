@@ -23,8 +23,8 @@ namespace Meta.xUnitTest.DAL
 		public static People SelectDiy(string fields) => new People { Fields = fields };
 		public static People SelectDiy(string fields, string alias) => new People { Fields = fields, MainAlias = alias };
 		public static PeopleUpdateBuilder UpdateDiy => new PeopleUpdateBuilder();
-		public static DeleteBuilder DeleteDiy => new DeleteBuilder("people");
-		public static InsertBuilder InsertDiy => new InsertBuilder("people");
+		public static DeleteBuilder<PeopleModel> DeleteDiy => new DeleteBuilder<PeopleModel>();
+		public static InsertBuilder<PeopleModel> InsertDiy => new InsertBuilder<PeopleModel>();
 		#endregion
 
 		#region Delete
@@ -47,36 +47,25 @@ namespace Meta.xUnitTest.DAL
 			SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));
 			return model;
 		}
-		private static InsertBuilder GetInsertBuilder(PeopleModel model)
+		private static InsertBuilder<PeopleModel> GetInsertBuilder(PeopleModel model)
 		{
 			if (model == null)
 				throw new ArgumentNullException(nameof(model));
 			return InsertDiy
-				.Set("id", model.Id = model.Id == Guid.Empty ? Guid.NewGuid() : model.Id, 16, NpgsqlDbType.Uuid)
-				.Set("age", model.Age, 4, NpgsqlDbType.Integer)
-				.Set("name", model.Name, 255, NpgsqlDbType.Varchar)
-				.Set("sex", model.Sex, 1, NpgsqlDbType.Boolean)
-				.Set("create_time", model.Create_time = model.Create_time.Ticks == 0 ? DateTime.Now : model.Create_time, 8, NpgsqlDbType.Timestamp)
-				.Set("address", model.Address, 255, NpgsqlDbType.Varchar)
-				.Set("address_detail", model.Address_detail ??= JToken.Parse("{}"), -1, NpgsqlDbType.Jsonb)
-				.Set("state", model.State, 4);
+				.Set(a => a.Id, model.Id = model.Id == Guid.Empty ? Guid.NewGuid() : model.Id)
+				.Set(a => a.Age, model.Age)
+				.Set(a => a.Name, model.Name)
+				.Set(a => a.Sex, model.Sex)
+				.Set(a => a.Create_time, model.Create_time = model.Create_time.Ticks == 0 ? DateTime.Now : model.Create_time)
+				.Set(a => a.Address, model.Address)
+				.Set(a => a.Address_detail, model.Address_detail ??= JToken.Parse("{}"))
+				.Set(a => a.State, model.State);
 		}
 		#endregion
 
 		#region Select
-		public static PeopleModel GetItem(Guid id) => GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.WhereId(id).ToOne());
-		public static List<PeopleModel> GetItems(IEnumerable<Guid> id) => Select.WhereId(id.ToArray()).ToList();
-		public People WhereId(params Guid[] id) => WhereOr($"{MainAlias}.id = {{0}}", id, NpgsqlDbType.Uuid);
-		public People WhereAge(params int[] age) => WhereOr($"{MainAlias}.age = {{0}}", age, NpgsqlDbType.Integer);
-		public People WhereAgeThan(int val, string sqlOperator = ">") => Where($"{MainAlias}.age {sqlOperator} {{0}}", new DbTypeValue(val, NpgsqlDbType.Integer));
-		public People WhereName(params string[] name) => WhereOr($"{MainAlias}.name = {{0}}", name, NpgsqlDbType.Varchar);
-		public People WhereNameLike(params string[] name) => WhereOr($"{MainAlias}.name LIKE {{0}}", name.Select(a => $"%{a}%"), NpgsqlDbType.Varchar);
-		public People WhereSex(params bool?[] sex) => WhereOr($"{MainAlias}.sex = {{0}}", sex, NpgsqlDbType.Boolean);
-		public People WhereSex(params bool[] sex) => WhereOr($"{MainAlias}.sex = {{0}}", sex, NpgsqlDbType.Boolean);
-		public People WhereCreate_timeRange(DateTime? begin = null, DateTime? end = null) => Where($"{MainAlias}.create_time BETWEEN {{0}} AND {{1}}", begin ?? DateTime.Parse("1970-1-1"), end ?? DateTime.Now);
-		public People WhereAddress(params string[] address) => WhereOr($"{MainAlias}.address = {{0}}", address, NpgsqlDbType.Varchar);
-		public People WhereAddressLike(params string[] address) => WhereOr($"{MainAlias}.address LIKE {{0}}", address.Select(a => $"%{a}%"), NpgsqlDbType.Varchar);
-		public People WhereState(params EDataState[] state) => WhereOr($"{MainAlias}.state = {{0}}", state);
+		public static PeopleModel GetItem(Guid id) => GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOne());
+		public static List<PeopleModel> GetItems(IEnumerable<Guid> ids) => Select.WhereAny(a => a.Id, ids).ToList();
 
 		#endregion
 

@@ -23,8 +23,8 @@ namespace Meta.xUnitTest.DAL
 		public static Teacher SelectDiy(string fields) => new Teacher { Fields = fields };
 		public static Teacher SelectDiy(string fields, string alias) => new Teacher { Fields = fields, MainAlias = alias };
 		public static TeacherUpdateBuilder UpdateDiy => new TeacherUpdateBuilder();
-		public static DeleteBuilder DeleteDiy => new DeleteBuilder("teacher");
-		public static InsertBuilder InsertDiy => new InsertBuilder("teacher");
+		public static DeleteBuilder<TeacherModel> DeleteDiy => new DeleteBuilder<TeacherModel>();
+		public static InsertBuilder<TeacherModel> InsertDiy => new InsertBuilder<TeacherModel>();
 		#endregion
 
 		#region Delete
@@ -47,30 +47,25 @@ namespace Meta.xUnitTest.DAL
 			SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));
 			return model;
 		}
-		private static InsertBuilder GetInsertBuilder(TeacherModel model)
+		private static InsertBuilder<TeacherModel> GetInsertBuilder(TeacherModel model)
 		{
 			if (model == null)
 				throw new ArgumentNullException(nameof(model));
 			return InsertDiy
-				.Set("teacher_no", model.Teacher_no, 32, NpgsqlDbType.Varchar)
-				.Set("people_id", model.People_id, 16, NpgsqlDbType.Uuid)
-				.Set("create_time", model.Create_time = model.Create_time.Ticks == 0 ? DateTime.Now : model.Create_time, 8, NpgsqlDbType.Timestamp)
-				.Set("id", model.Id = model.Id == Guid.Empty ? Guid.NewGuid() : model.Id, 16, NpgsqlDbType.Uuid);
+				.Set(a => a.Teacher_no, model.Teacher_no)
+				.Set(a => a.People_id, model.People_id)
+				.Set(a => a.Create_time, model.Create_time = model.Create_time.Ticks == 0 ? DateTime.Now : model.Create_time)
+				.Set(a => a.Id, model.Id = model.Id == Guid.Empty ? Guid.NewGuid() : model.Id);
 		}
 		#endregion
 
 		#region Select
-		public static TeacherModel GetItem(Guid id) => GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.WhereId(id).ToOne());
-		public static List<TeacherModel> GetItems(IEnumerable<Guid> id) => Select.WhereId(id.ToArray()).ToList();
-		public static TeacherModel GetItemByTeacher_no(string teacher_no) => Select.WhereTeacher_no(teacher_no).ToOne();
-		public static List<TeacherModel> GetItemsByTeacher_no(IEnumerable<string> teacher_nos) => Select.WhereTeacher_no(teacher_nos.ToArray()).ToList();
-		public static TeacherModel GetItemByPeople_id(Guid people_id) => Select.WherePeople_id(people_id).ToOne();
-		public static List<TeacherModel> GetItemsByPeople_id(IEnumerable<Guid> people_ids) => Select.WherePeople_id(people_ids.ToArray()).ToList();
-		public Teacher WhereTeacher_no(params string[] teacher_no) => WhereOr($"{MainAlias}.teacher_no = {{0}}", teacher_no, NpgsqlDbType.Varchar);
-		public Teacher WhereTeacher_noLike(params string[] teacher_no) => WhereOr($"{MainAlias}.teacher_no LIKE {{0}}", teacher_no.Select(a => $"%{a}%"), NpgsqlDbType.Varchar);
-		public Teacher WherePeople_id(params Guid[] people_id) => WhereOr($"{MainAlias}.people_id = {{0}}", people_id, NpgsqlDbType.Uuid);
-		public Teacher WhereCreate_timeRange(DateTime? begin = null, DateTime? end = null) => Where($"{MainAlias}.create_time BETWEEN {{0}} AND {{1}}", begin ?? DateTime.Parse("1970-1-1"), end ?? DateTime.Now);
-		public Teacher WhereId(params Guid[] id) => WhereOr($"{MainAlias}.id = {{0}}", id, NpgsqlDbType.Uuid);
+		public static TeacherModel GetItem(Guid id) => GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOne());
+		public static List<TeacherModel> GetItems(IEnumerable<Guid> ids) => Select.WhereAny(a => a.Id, ids).ToList();
+		public static TeacherModel GetItemByTeacher_no(string teacher_no) => Select.Where(a => a.Teacher_no == teacher_no).ToOne();
+		public static List<TeacherModel> GetItemsByTeacher_no(IEnumerable<string> teacher_nos) => Select.WhereAny(a => a.Teacher_no, teacher_nos).ToList();
+		public static TeacherModel GetItemByPeople_id(Guid people_id) => Select.Where(a => a.People_id == people_id).ToOne();
+		public static List<TeacherModel> GetItemsByPeople_id(IEnumerable<Guid> people_ids) => Select.WhereAny(a => a.People_id, people_ids).ToList();
 
 		#endregion
 

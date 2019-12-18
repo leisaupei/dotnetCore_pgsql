@@ -31,6 +31,5 @@ namespace Meta.Common.Interface
 		/// 是否直接返回默认值
 		/// </summary>
 		bool IsReturnDefault { get; }
-
 	}
 }

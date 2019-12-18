@@ -23,8 +23,8 @@ namespace Meta.xUnitTest.DAL
 		public static Classmate SelectDiy(string fields) => new Classmate { Fields = fields };
 		public static Classmate SelectDiy(string fields, string alias) => new Classmate { Fields = fields, MainAlias = alias };
 		public static ClassmateUpdateBuilder UpdateDiy => new ClassmateUpdateBuilder();
-		public static DeleteBuilder DeleteDiy => new DeleteBuilder("classmate");
-		public static InsertBuilder InsertDiy => new InsertBuilder("classmate");
+		public static DeleteBuilder<ClassmateModel> DeleteDiy => new DeleteBuilder<ClassmateModel>();
+		public static InsertBuilder<ClassmateModel> InsertDiy => new InsertBuilder<ClassmateModel>();
 		#endregion
 
 		#region Delete
@@ -50,28 +50,24 @@ namespace Meta.xUnitTest.DAL
 			SetRedisCache(string.Format(CacheKey, model.Teacher_id, model.Student_id, model.Grade_id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));
 			return model;
 		}
-		private static InsertBuilder GetInsertBuilder(ClassmateModel model)
+		private static InsertBuilder<ClassmateModel> GetInsertBuilder(ClassmateModel model)
 		{
 			if (model == null)
 				throw new ArgumentNullException(nameof(model));
 			return InsertDiy
-				.Set("teacher_id", model.Teacher_id, 16, NpgsqlDbType.Uuid)
-				.Set("student_id", model.Student_id, 16, NpgsqlDbType.Uuid)
-				.Set("grade_id", model.Grade_id, 16, NpgsqlDbType.Uuid)
-				.Set("create_time", model.Create_time ??= DateTime.Now, 8, NpgsqlDbType.Timestamp);
+				.Set(a => a.Teacher_id, model.Teacher_id)
+				.Set(a => a.Student_id, model.Student_id)
+				.Set(a => a.Grade_id, model.Grade_id)
+				.Set(a => a.Create_time, model.Create_time ??= DateTime.Now);
 		}
 		#endregion
 
 		#region Select
-		public static ClassmateModel GetItem(Guid teacher_id, Guid student_id, Guid grade_id) => GetRedisCache(string.Format(CacheKey, teacher_id, student_id, grade_id), DbConfig.DbCacheTimeOut, () => Select.WhereTeacher_id(teacher_id).WhereStudent_id(student_id).WhereGrade_id(grade_id).ToOne());
+		public static ClassmateModel GetItem(Guid teacher_id, Guid student_id, Guid grade_id) => GetRedisCache(string.Format(CacheKey, teacher_id, student_id, grade_id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Teacher_id == teacher_id && a.Student_id == student_id && a.Grade_id == grade_id).ToOne());
 		/// <summary>
 		/// (teacher_id, student_id, grade_id)
 		/// </summary>
 		public static List<ClassmateModel> GetItems(IEnumerable<(Guid, Guid, Guid)> val) => Select.Where(new[] { "teacher_id", "student_id", "grade_id" }, val, new NpgsqlDbType?[]{ NpgsqlDbType.Uuid, NpgsqlDbType.Uuid, NpgsqlDbType.Uuid }).ToList();
-		public Classmate WhereTeacher_id(params Guid[] teacher_id) => WhereOr($"{MainAlias}.teacher_id = {{0}}", teacher_id, NpgsqlDbType.Uuid);
-		public Classmate WhereStudent_id(params Guid[] student_id) => WhereOr($"{MainAlias}.student_id = {{0}}", student_id, NpgsqlDbType.Uuid);
-		public Classmate WhereGrade_id(params Guid[] grade_id) => WhereOr($"{MainAlias}.grade_id = {{0}}", grade_id, NpgsqlDbType.Uuid);
-		public Classmate WhereCreate_timeRange(DateTime? begin = null, DateTime? end = null) => Where($"{MainAlias}.create_time BETWEEN {{0}} AND {{1}}", begin ?? DateTime.Parse("1970-1-1"), end ?? DateTime.Now);
 
 		#endregion
 

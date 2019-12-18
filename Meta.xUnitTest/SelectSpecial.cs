@@ -15,19 +15,19 @@ using Newtonsoft.Json.Linq;
 
 namespace Meta.xUnitTest
 {
-	public class SelectSpecial : BaseTest
-	{
-		[Fact]
-		public void ReturnJTokenInTuple()
-		{
-			var info = People.Select.WhereId(StuPeopleId1).ToOne<(Guid id, string name, JToken address_detail, EDataState state)>("id,name,address_detail,state");
-		}
-		[Fact]
-		public void ReturnStringOrValueType()
-		{
-			//var info = People.Select.WhereId(StuPeopleId1).ToOne<string>("name");
+    public class SelectSpecial : BaseTest
+    {
+        [Fact]
+        public void ReturnJTokenInTuple()
+        {
+            var info = People.Select.Where(a => a.Id == StuPeopleId1).ToOne<(Guid id, string name, JToken address_detail, EDataState state)>("id,name,address_detail,state");
+        }
+        [Fact]
+        public void ReturnStringOrValueType()
+        {
+            //var info = People.Select.WhereId(StuPeopleId1).ToOne<string>("name");
 
-			var info1 = People.Select.WhereId(StuPeopleId1).ToOne<Guid>("id");
-		}
-	}
+            var info1 = People.Select.Where(a => a.Id == StuPeopleId1).ToOne<Guid>("id");
+        }
+    }
 }

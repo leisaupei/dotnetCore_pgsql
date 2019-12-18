@@ -23,8 +23,8 @@ namespace Meta.xUnitTest.DAL
 		public static ClassGrade SelectDiy(string fields) => new ClassGrade { Fields = fields };
 		public static ClassGrade SelectDiy(string fields, string alias) => new ClassGrade { Fields = fields, MainAlias = alias };
 		public static ClassGradeUpdateBuilder UpdateDiy => new ClassGradeUpdateBuilder();
-		public static DeleteBuilder DeleteDiy => new DeleteBuilder("class.grade");
-		public static InsertBuilder InsertDiy => new InsertBuilder("class.grade");
+		public static DeleteBuilder<ClassGradeModel> DeleteDiy => new DeleteBuilder<ClassGradeModel>();
+		public static InsertBuilder<ClassGradeModel> InsertDiy => new InsertBuilder<ClassGradeModel>();
 		#endregion
 
 		#region Delete
@@ -47,24 +47,20 @@ namespace Meta.xUnitTest.DAL
 			SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));
 			return model;
 		}
-		private static InsertBuilder GetInsertBuilder(ClassGradeModel model)
+		private static InsertBuilder<ClassGradeModel> GetInsertBuilder(ClassGradeModel model)
 		{
 			if (model == null)
 				throw new ArgumentNullException(nameof(model));
 			return InsertDiy
-				.Set("id", model.Id = model.Id == Guid.Empty ? Guid.NewGuid() : model.Id, 16, NpgsqlDbType.Uuid)
-				.Set("name", model.Name, 255, NpgsqlDbType.Varchar)
-				.Set("create_time", model.Create_time = model.Create_time.Ticks == 0 ? DateTime.Now : model.Create_time, 8, NpgsqlDbType.Timestamp);
+				.Set(a => a.Id, model.Id = model.Id == Guid.Empty ? Guid.NewGuid() : model.Id)
+				.Set(a => a.Name, model.Name)
+				.Set(a => a.Create_time, model.Create_time = model.Create_time.Ticks == 0 ? DateTime.Now : model.Create_time);
 		}
 		#endregion
 
 		#region Select
-		public static ClassGradeModel GetItem(Guid id) => GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.WhereId(id).ToOne());
-		public static List<ClassGradeModel> GetItems(IEnumerable<Guid> id) => Select.WhereId(id.ToArray()).ToList();
-		public ClassGrade WhereId(params Guid[] id) => WhereOr($"{MainAlias}.id = {{0}}", id, NpgsqlDbType.Uuid);
-		public ClassGrade WhereName(params string[] name) => WhereOr($"{MainAlias}.name = {{0}}", name, NpgsqlDbType.Varchar);
-		public ClassGrade WhereNameLike(params string[] name) => WhereOr($"{MainAlias}.name LIKE {{0}}", name.Select(a => $"%{a}%"), NpgsqlDbType.Varchar);
-		public ClassGrade WhereCreate_timeRange(DateTime? begin = null, DateTime? end = null) => Where($"{MainAlias}.create_time BETWEEN {{0}} AND {{1}}", begin ?? DateTime.Parse("1970-1-1"), end ?? DateTime.Now);
+		public static ClassGradeModel GetItem(Guid id) => GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOne());
+		public static List<ClassGradeModel> GetItems(IEnumerable<Guid> ids) => Select.WhereAny(a => a.Id, ids).ToList();
 
 		#endregion
 

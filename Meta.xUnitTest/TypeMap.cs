@@ -39,10 +39,10 @@ namespace Meta.xUnitTest
 				Circle_type = new NpgsqlCircle(0D, 0D, 1D),
 				Composite_type = new Info { Id = Guid.Empty, Name = _name },
 				Date_type = DateTime.Now.Date,
-				Id = Guid.NewGuid(),
+				Id = Guid.Empty,
 				Decimal_type = 1.1M,
-				Enum_type = EDataState.Õý³£,
-				Float4_type = 1.1f,
+                Enum_type = EDataState.æ­£å¸¸,
+                Float4_type = 1.1f,
 				Float8_type = 1.1,
 				Hstore_type = new Dictionary<string, string> { { "name", _name } },
 				Inet_type = IPAddress.Parse("127.0.0.1"),
@@ -160,7 +160,7 @@ namespace Meta.xUnitTest
 		[Fact]
 		public void Enum()
 		{
-			var affrows = TypeTest.Update(Guid.Empty).Set(a => a.Enum_type, EDataState.ÒÑÉ¾³ý).ToRows();
+			var affrows = TypeTest.Update(Guid.Empty).Set(a => a.Enum_type, EDataState.å·²åˆ é™¤).ToRows();
 			Assert.True(affrows > 0);
 		}
 
