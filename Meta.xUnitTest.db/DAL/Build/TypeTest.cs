@@ -35,7 +35,8 @@ namespace Meta.xUnitTest.DAL
 		{
 			if (ids == null)
 				throw new ArgumentNullException(nameof(ids));
-			RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
+			if (DbConfig.DbCacheTimeOut != 0)
+				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
 			return DeleteDiy.WhereOr("id = {0}", ids, NpgsqlDbType.Uuid).ToRows();
 		}
 		#endregion
@@ -53,7 +54,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(model));
 			return InsertDiy
 				.Set(a => a.Id, model.Id = model.Id == Guid.Empty ? Guid.NewGuid() : model.Id)
-				.Set(a => a.Bit_type, model.Bit_type)
+				.Set("bit_type", model.Bit_type, 1, NpgsqlDbType.Bit)
 				.Set(a => a.Bool_type, model.Bool_type)
 				.Set(a => a.Box_type, model.Box_type)
 				.Set(a => a.Bytea_type, model.Bytea_type)
@@ -90,12 +91,12 @@ namespace Meta.xUnitTest.DAL
 				.Set(a => a.Tsvector_type, model.Tsvector_type)
 				.Set(a => a.Varbit_type, model.Varbit_type)
 				.Set(a => a.Varchar_type, model.Varchar_type)
-				.Set(a => a.Xml_type, model.Xml_type)
+				.Set("xml_type", model.Xml_type, -1, NpgsqlDbType.Xml)
 				.Set(a => a.Hstore_type, model.Hstore_type)
 				.Set(a => a.Enum_type, model.Enum_type)
 				.Set(a => a.Composite_type, model.Composite_type)
 				.Set(a => a.Bit_length_type, model.Bit_length_type)
-				.Set(a => a.Array_type, model.Array_type);
+				.Set("array_type", model.Array_type, -1, NpgsqlDbType.Integer | NpgsqlDbType.Array);
 		}
 		#endregion
 
@@ -116,7 +117,8 @@ namespace Meta.xUnitTest.DAL
 		{
 			if (ids == null)
 				throw new ArgumentNullException(nameof(ids));
-			RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
+			if (DbConfig.DbCacheTimeOut != 0)
+				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
 			return UpdateDiy.WhereOr("id = {0}", ids, NpgsqlDbType.Uuid);
 		}
 		public class TypeTestUpdateBuilder : UpdateBuilder<TypeTestUpdateBuilder, TypeTestModel>

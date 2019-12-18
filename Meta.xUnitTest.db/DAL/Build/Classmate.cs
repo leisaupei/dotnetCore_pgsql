@@ -38,7 +38,8 @@ namespace Meta.xUnitTest.DAL
 		{
 			if (val == null)
 				throw new ArgumentNullException(nameof(val));
-			RedisHelper.Del(val.Select(f => string.Format(CacheKey, f.Item1, f.Item2, f.Item3)).ToArray());
+			if (DbConfig.DbCacheTimeOut != 0)
+				RedisHelper.Del(val.Select(f => string.Format(CacheKey, f.Item1, f.Item2, f.Item3)).ToArray());
 			return DeleteDiy.Where(new[] { "teacher_id", "student_id", "grade_id" }, val, new NpgsqlDbType?[]{ NpgsqlDbType.Uuid, NpgsqlDbType.Uuid, NpgsqlDbType.Uuid }).ToRows();
 		}
 		#endregion
@@ -82,7 +83,8 @@ namespace Meta.xUnitTest.DAL
 		{
 			if (val == null)
 				throw new ArgumentNullException(nameof(val));
-			RedisHelper.Del(val.Select(f => string.Format(CacheKey, f.Item1, f.Item2, f.Item3)).ToArray());
+			if (DbConfig.DbCacheTimeOut != 0)
+				RedisHelper.Del(val.Select(f => string.Format(CacheKey, f.Item1, f.Item2, f.Item3)).ToArray());
 			return UpdateDiy.Where(new[] { "teacher_id", "student_id", "grade_id" }, val, new NpgsqlDbType?[]{ NpgsqlDbType.Uuid, NpgsqlDbType.Uuid, NpgsqlDbType.Uuid });
 		}
 		public class ClassmateUpdateBuilder : UpdateBuilder<ClassmateUpdateBuilder, ClassmateModel>

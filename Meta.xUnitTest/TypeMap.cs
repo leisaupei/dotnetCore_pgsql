@@ -34,15 +34,15 @@ namespace Meta.xUnitTest
 				Bool_type = false,
 				Box_type = new NpgsqlTypes.NpgsqlBox(1D, 1D, 0D, 0D),
 				Bytea_type = Encoding.UTF8.GetBytes(_name),
-				Char_type = _name,
+				Char_type = "1",
 				Cidr_type = (IPAddress.Parse("127.0.0.1"), 32),
 				Circle_type = new NpgsqlCircle(0D, 0D, 1D),
 				Composite_type = new Info { Id = Guid.Empty, Name = _name },
 				Date_type = DateTime.Now.Date,
 				Id = Guid.Empty,
 				Decimal_type = 1.1M,
-                Enum_type = EDataState.正常,
-                Float4_type = 1.1f,
+				Enum_type = EDataState.正常,
+				Float4_type = 1.1f,
 				Float8_type = 1.1,
 				Hstore_type = new Dictionary<string, string> { { "name", _name } },
 				Inet_type = IPAddress.Parse("127.0.0.1"),
@@ -71,7 +71,8 @@ namespace Meta.xUnitTest
 				Tsvector_type = NpgsqlTsVector.Parse(_name),
 				Varbit_type = new System.Collections.BitArray(Encoding.UTF8.GetBytes(_name)),
 				Varchar_type = _name,
-				Xml_type = $"<summary>{_name}</summary>"
+				Xml_type = $"<summary>{_name}</summary>",
+				Bit_length_type = new BitArray(new byte[] { 0 })
 			}.Commit();
 		}
 		[Fact]
@@ -265,7 +266,7 @@ namespace Meta.xUnitTest
 		[Fact]
 		public void Money()
 		{
-			var affrows = TypeTest.Update(Guid.Empty).SetIncrement(a => a.Money_type, 12.3M).ToRows();
+			var affrows = TypeTest.Update(Guid.Empty).SetIncrement(a => a.Money_type, 12.3M, 0M).ToRows();
 			affrows = TypeTest.Update(Guid.Empty).Set(a => a.Money_type, 12.3M).ToRows();
 			Assert.True(affrows > 0);
 		}
@@ -392,8 +393,9 @@ namespace Meta.xUnitTest
 		[Fact]
 		public void Array()
 		{
-			var affrows = TypeTest.Update(Guid.Empty).SetAppend(a => a.Array_type, 1, 1, 2, 3).ToRows();
-			affrows = TypeTest.Update(Guid.Empty).SetRemove(a => a.Array_type, 1).ToRows();
+			//var affrows = TypeTest.Update(Guid.Empty).SetAppend(a => a.Array_type, 1, 1, 2, 3).ToRows();
+			//affrows = TypeTest.Update(Guid.Empty).SetRemove(a => a.Array_type, 1).ToRows();
+			var affrows = TypeTest.Update(Guid.Empty).Set(a => a.Array_type, null).ToRows();
 			Assert.True(affrows > 0);
 
 		}

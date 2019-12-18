@@ -55,8 +55,8 @@ namespace Meta.xUnitTest
             var peopleId = Student.Select.Where(a => a.People_id == StuPeopleId1).ToOne<Guid>("people_id");
             var info = People.Select.Where(a => a.Id == StuPeopleId1).ToOne<ToOneTTestModel>("name,id");
 
-            var emptyNullablePeopleId = Student.Select.Where(f => f.People_id == Guid.Empty).ToOne<Guid?>("people_id");
-            var emptyPeopleId = Student.Select.Where(f => f.People_id == Guid.Empty).ToOne<Guid>("people_id");
+            var emptyNullablePeopleId = Student.Select.Where(a => a.People_id == Guid.Empty).ToOne<Guid?>("people_id");
+            var emptyPeopleId = Student.Select.Where(a => a.People_id == Guid.Empty).ToOne<Guid>("people_id");
 
             Assert.IsType<ToOneTTestModel>(info);
             Assert.Equal(StuPeopleId1, info.Id);

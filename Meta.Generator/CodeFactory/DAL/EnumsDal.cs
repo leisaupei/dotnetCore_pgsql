@@ -76,7 +76,7 @@ namespace CodeFactory.DAL
 			writer.WriteLine("\tpublic class DbConfig");
 			writer.WriteLine("\t{");
 			writer.WriteLine("\t\t/// <summary>");
-			writer.WriteLine("\t\t/// 数据库缓存超时时间 单位: 秒");
+			writer.WriteLine("\t\t/// 数据库缓存超时时间, 单位: 秒, 0为不用redis缓存 -1为不过期");
 			writer.WriteLine("\t\t/// </summary>");
 			writer.WriteLine("\t\tpublic const int DbCacheTimeOut = 60;");
 			writer.WriteLine("\t\t/// <summary>");

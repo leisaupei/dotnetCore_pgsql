@@ -35,7 +35,8 @@ namespace Meta.xUnitTest.DAL
 		{
 			if (ids == null)
 				throw new ArgumentNullException(nameof(ids));
-			RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
+			if (DbConfig.DbCacheTimeOut != 0)
+				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
 			return DeleteDiy.WhereOr("id = {0}", ids, NpgsqlDbType.Uuid).ToRows();
 		}
 		#endregion
@@ -72,7 +73,8 @@ namespace Meta.xUnitTest.DAL
 		{
 			if (ids == null)
 				throw new ArgumentNullException(nameof(ids));
-			RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
+			if (DbConfig.DbCacheTimeOut != 0)
+				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
 			return UpdateDiy.WhereOr("id = {0}", ids, NpgsqlDbType.Uuid);
 		}
 		public class ClassGradeUpdateBuilder : UpdateBuilder<ClassGradeUpdateBuilder, ClassGradeModel>
