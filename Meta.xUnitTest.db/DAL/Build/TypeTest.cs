@@ -78,6 +78,9 @@ namespace Meta.xUnitTest.DAL
 				.Set(a => a.Path_type, model.Path_type)
 				.Set(a => a.Point_type, model.Point_type)
 				.Set(a => a.Polygon_type, model.Polygon_type)
+				.Set(a => a.Serial2_type, model.Serial2_type)
+				.Set(a => a.Serial4_type, model.Serial4_type)
+				.Set(a => a.Serial8_type, model.Serial8_type)
 				.Set(a => a.Text_type, model.Text_type)
 				.Set(a => a.Time_type, model.Time_type)
 				.Set(a => a.Timestamp_type, model.Timestamp_type)
@@ -92,10 +95,7 @@ namespace Meta.xUnitTest.DAL
 				.Set(a => a.Enum_type, model.Enum_type)
 				.Set(a => a.Composite_type, model.Composite_type)
 				.Set(a => a.Bit_length_type, model.Bit_length_type)
-				.Set(a => a.Array_type, model.Array_type)
-				.Set(a => a.Serial2_type, model.Serial2_type)
-				.Set(a => a.Serial4_type, model.Serial4_type)
-				.Set(a => a.Serial8_type, model.Serial8_type);
+				.Set(a => a.Array_type, model.Array_type);
 		}
 		#endregion
 
