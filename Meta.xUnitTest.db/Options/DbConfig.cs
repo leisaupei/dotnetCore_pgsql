@@ -4,7 +4,7 @@ namespace Meta.xUnitTest.Options
 {
     public class DbConfig
     {
-        public const int DbCacheTimeOut = 0;
+        public static int DbCacheTimeOut = 0;
         /// <summary>
         /// 全局配置
         /// </summary>
