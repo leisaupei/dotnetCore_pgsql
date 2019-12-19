@@ -7,6 +7,7 @@ using NpgsqlTypes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Meta.Common.Interface;
+using System.Xml;
 using System.Net;
 using Meta.xUnitTest.DAL;
 
@@ -19,7 +20,7 @@ namespace Meta.xUnitTest.Model
 		[JsonProperty, DbField(16, NpgsqlDbType.Uuid)]
 		public Guid Id { get; set; }
 		[JsonProperty, DbField(1, NpgsqlDbType.Bit)]
-		public bool? Bit_type { get; set; }
+		public BitArray Bit_type { get; set; }
 		[JsonProperty, DbField(1, NpgsqlDbType.Boolean)]
 		public bool? Bool_type { get; set; }
 		[JsonProperty, DbField(32, NpgsqlDbType.Box)]
@@ -68,12 +69,6 @@ namespace Meta.xUnitTest.Model
 		public NpgsqlPoint? Point_type { get; set; }
 		[JsonProperty, DbField(-1, NpgsqlDbType.Polygon)]
 		public NpgsqlPolygon? Polygon_type { get; set; }
-		[JsonProperty, DbField(2, NpgsqlDbType.Smallint)]
-		public short Serial2_type { get; set; }
-		[JsonProperty, DbField(4, NpgsqlDbType.Integer)]
-		public int Serial4_type { get; set; }
-		[JsonProperty, DbField(8, NpgsqlDbType.Bigint)]
-		public long Serial8_type { get; set; }
 		[JsonProperty, DbField(-1, NpgsqlDbType.Text)]
 		public string Text_type { get; set; }
 		[JsonProperty, DbField(8, NpgsqlDbType.Time)]
@@ -93,7 +88,7 @@ namespace Meta.xUnitTest.Model
 		[JsonProperty, DbField(-1, NpgsqlDbType.Varchar)]
 		public string Varchar_type { get; set; }
 		[JsonProperty, DbField(-1, NpgsqlDbType.Xml)]
-		public string Xml_type { get; set; }
+		public XmlDocument Xml_type { get; set; }
 		[JsonProperty, DbField(-1, NpgsqlDbType.Hstore)]
 		public Dictionary<string, string> Hstore_type { get; set; }
 		[JsonProperty, DbField(4)]
@@ -104,6 +99,12 @@ namespace Meta.xUnitTest.Model
 		public BitArray Bit_length_type { get; set; }
 		[JsonProperty, DbField(-1, NpgsqlDbType.Integer | NpgsqlDbType.Array)]
 		public int[] Array_type { get; set; }
+		[JsonProperty, DbField(2, NpgsqlDbType.Smallint)]
+		public short Serial2_type { get; set; }
+		[JsonProperty, DbField(4, NpgsqlDbType.Integer)]
+		public int Serial4_type { get; set; }
+		[JsonProperty, DbField(8, NpgsqlDbType.Bigint)]
+		public long Serial8_type { get; set; }
 		#endregion
 
 		#region Update/Insert

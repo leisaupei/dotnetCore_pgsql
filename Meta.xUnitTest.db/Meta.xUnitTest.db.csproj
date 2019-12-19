@@ -5,8 +5,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Folder Include= "DAL\Build\" />
-		<Folder Include= "Model\Build\" />
+		<Folder Include="DAL\Build\" />
+		<Folder Include="Model\Build\" />
 	</ItemGroup>
 
 	<ItemGroup>

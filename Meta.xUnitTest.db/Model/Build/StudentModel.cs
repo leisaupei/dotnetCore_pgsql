@@ -7,6 +7,7 @@ using NpgsqlTypes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Meta.Common.Interface;
+using System.Xml;
 using System.Net;
 using Meta.xUnitTest.DAL;
 
@@ -32,9 +33,6 @@ namespace Meta.xUnitTest.Model
 		#endregion
 
 		#region Foreign Key
-		private ClassGradeModel _getClassGrade = null;
-		public ClassGradeModel GetClassGrade => _getClassGrade ??= ClassGrade.GetItem(Grade_id);
-
 		private PeopleModel _getPeople = null;
 		public PeopleModel GetPeople => _getPeople ??= People.GetItem(People_id);
 		#endregion

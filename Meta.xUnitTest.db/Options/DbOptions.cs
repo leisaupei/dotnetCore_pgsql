@@ -7,6 +7,10 @@ using Newtonsoft.Json.Linq;
 using Npgsql.TypeMapping;
 using Npgsql;
 using NpgsqlTypes;
+using Npgsql.TypeHandling;
+using System.Xml;
+using Npgsql.PostgresTypes;
+using Meta.Common.Extensions;
 
 namespace Meta.xUnitTest.Options
 {
@@ -30,15 +34,8 @@ namespace Meta.xUnitTest.Options
             {
                 Options.MapAction = conn =>
                 {
-                    UseJsonNetForJtype(conn.TypeMapper);
-
-                    conn.TypeMapper.AddMapping(new NpgsqlTypeMappingBuilder
-                    {
-                        PgTypeName = "xml",
-                        NpgsqlDbType = NpgsqlDbType.Xml,
-                        ClrTypes = new[] { typeof(string) },
-                        TypeHandlerFactory = new Npgsql.TypeHandlers.TextHandlerFactory()
-                    }.Build());
+                    conn.TypeMapper.UseJsonNetForJtype();
+                    conn.TypeMapper.UseCustomXml();
                     conn.TypeMapper.MapEnum<EDataState>("public.e_data_state", _translator);
                     conn.TypeMapper.MapComposite<Info>("public.info");
                 };
@@ -48,7 +45,7 @@ namespace Meta.xUnitTest.Options
 
         #region Private Method And Field
         private static readonly NpgsqlNameTranslator _translator = new NpgsqlNameTranslator();
-        private static void UseJsonNetForJtype(INpgsqlTypeMapper mapper)
+        private static void UseJsonNetForJtype(this INpgsqlTypeMapper mapper)
         {
             var jtype = new[] { typeof(JToken), typeof(JObject), typeof(JArray) };
             mapper.UseJsonNet(jtype);

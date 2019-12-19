@@ -7,6 +7,7 @@ using NpgsqlTypes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Meta.Common.Interface;
+using System.Xml;
 using System.Net;
 using Meta.xUnitTest.DAL;
 

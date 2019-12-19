@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using System.Xml;
 using System.Net;
 
 namespace Meta.xUnitTest.DAL
@@ -54,7 +55,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(model));
 			return InsertDiy
 				.Set(a => a.Id, model.Id = model.Id == Guid.Empty ? Guid.NewGuid() : model.Id)
-				.Set("bit_type", model.Bit_type, 1, NpgsqlDbType.Bit)
+				.Set(a => a.Bit_type, model.Bit_type)
 				.Set(a => a.Bool_type, model.Bool_type)
 				.Set(a => a.Box_type, model.Box_type)
 				.Set(a => a.Bytea_type, model.Bytea_type)
@@ -79,9 +80,6 @@ namespace Meta.xUnitTest.DAL
 				.Set(a => a.Path_type, model.Path_type)
 				.Set(a => a.Point_type, model.Point_type)
 				.Set(a => a.Polygon_type, model.Polygon_type)
-				.Set(a => a.Serial2_type, model.Serial2_type)
-				.Set(a => a.Serial4_type, model.Serial4_type)
-				.Set(a => a.Serial8_type, model.Serial8_type)
 				.Set(a => a.Text_type, model.Text_type)
 				.Set(a => a.Time_type, model.Time_type)
 				.Set(a => a.Timestamp_type, model.Timestamp_type)
@@ -91,21 +89,21 @@ namespace Meta.xUnitTest.DAL
 				.Set(a => a.Tsvector_type, model.Tsvector_type)
 				.Set(a => a.Varbit_type, model.Varbit_type)
 				.Set(a => a.Varchar_type, model.Varchar_type)
-				.Set("xml_type", model.Xml_type, -1, NpgsqlDbType.Xml)
+				.Set(a => a.Xml_type, model.Xml_type)
 				.Set(a => a.Hstore_type, model.Hstore_type)
 				.Set(a => a.Enum_type, model.Enum_type)
 				.Set(a => a.Composite_type, model.Composite_type)
 				.Set(a => a.Bit_length_type, model.Bit_length_type)
-				.Set("array_type", model.Array_type, -1, NpgsqlDbType.Integer | NpgsqlDbType.Array);
+				.Set(a => a.Array_type, model.Array_type)
+				.Set(a => a.Serial2_type, model.Serial2_type)
+				.Set(a => a.Serial4_type, model.Serial4_type)
+				.Set(a => a.Serial8_type, model.Serial8_type);
 		}
 		#endregion
 
 		#region Select
 		public static TypeTestModel GetItem(Guid id) => GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOne());
 		public static List<TypeTestModel> GetItems(IEnumerable<Guid> ids) => Select.WhereAny(a => a.Id, ids).ToList();
-		public TypeTest WhereArray_type(int[] array_type) => WhereArray($"{MainAlias}.array_type = {{0}}", array_type, NpgsqlDbType.Integer | NpgsqlDbType.Array);
-		public TypeTest WhereArray_typeAny(params int[] array_type) => WhereOr($"array_position({MainAlias}.array_type, {{0}}) > 0", array_type, NpgsqlDbType.Integer);
-		public TypeTest WhereArray_typeLength(int len, string sqlOperator = "=") => Where($"array_length({MainAlias}.array_type, 1) {sqlOperator} {{0}}", len);
 
 		#endregion
 
