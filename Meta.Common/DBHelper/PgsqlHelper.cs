@@ -12,6 +12,9 @@ using System.Text;
 
 namespace Meta.Common.DbHelper
 {
+	/// <summary>
+	/// 
+	/// </summary>
 	public static class PgsqlHelper
 	{
 
@@ -59,7 +62,7 @@ namespace Meta.Common.DbHelper
 				if (execute.Count == 1)
 					return execute[0];
 
-				else if (execute.Count > 1)
+				if (execute.Count > 1)
 					return execute[_ran.Next(0, execute.Count)];
 			}
 			// 从没有从库连接会查主库->如果没有连接会报错
@@ -70,6 +73,8 @@ namespace Meta.Common.DbHelper
 		/// 初始化一主多从数据库连接
 		/// </summary>
 		/// <param name="options">数据库连接</param>
+		/// <exception cref="ArgumentNullException"></exception>
+		/// <exception cref="ArgumentOutOfRangeException"></exception>
 		public static void InitDBConnectionOption(params BaseDbOption[] options)
 		{
 			if (options == null)
@@ -135,6 +140,7 @@ namespace Meta.Common.DbHelper
 		/// </summary>
 		/// <typeparam name="T">列表类型</typeparam>
 		/// <param name="cmdText">sql语句</param>
+		/// <param name="cmdType"></param>
 		/// <param name="cmdParams">sql参数</param>
 		/// <param name="type">数据库类型</param>
 		/// <returns>列表</returns>
@@ -153,6 +159,7 @@ namespace Meta.Common.DbHelper
 		/// </summary>
 		/// <typeparam name="T">实体类型</typeparam>
 		/// <param name="cmdText">sql语句</param>
+		/// <param name="cmdType"></param>
 		/// <param name="cmdParams">sql参数</param>
 		/// <param name="type">数据库类型</param>
 		/// <returns>实体</returns>
@@ -181,7 +188,7 @@ namespace Meta.Common.DbHelper
 			foreach (var item in builders)
 			{
 				paras.AddRange(item.Params);
-				cmdText.Append(item.GetCommandTextString()).AppendLine(";");
+				cmdText.Append(item.CommandText).AppendLine(";");
 			}
 			GetExecute(type).ExecuteDataReaderBase(dr =>
 			{

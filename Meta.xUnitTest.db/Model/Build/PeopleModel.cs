@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using Meta.Common.Interface;
 using System.Xml;
 using System.Net;
+using Meta.Common.SqlBuilder;
 using Meta.xUnitTest.DAL;
 
 namespace Meta.xUnitTest.Model
@@ -17,41 +18,33 @@ namespace Meta.xUnitTest.Model
 	public partial class PeopleModel : IDbModel
 	{
 		#region Properties
-		[JsonProperty, DbField(16, NpgsqlDbType.Uuid)]
-		public Guid Id { get; set; }
+		[JsonProperty] public Guid Id { get; set; }
 		/// <summary>
 		/// 年龄
 		/// </summary>
-		[JsonProperty, DbField(4, NpgsqlDbType.Integer)]
-		public int Age { get; set; }
+		[JsonProperty] public int Age { get; set; }
 		/// <summary>
 		/// 姓名
 		/// </summary>
-		[JsonProperty, DbField(255, NpgsqlDbType.Varchar)]
-		public string Name { get; set; }
+		[JsonProperty] public string Name { get; set; }
 		/// <summary>
 		/// 性别
 		/// </summary>
-		[JsonProperty, DbField(1, NpgsqlDbType.Boolean)]
-		public bool? Sex { get; set; }
-		[JsonProperty, DbField(8, NpgsqlDbType.Timestamp)]
-		public DateTime Create_time { get; set; }
+		[JsonProperty] public bool? Sex { get; set; }
+		[JsonProperty] public DateTime Create_time { get; set; }
 		/// <summary>
 		/// 家庭住址
 		/// </summary>
-		[JsonProperty, DbField(255, NpgsqlDbType.Varchar)]
-		public string Address { get; set; }
+		[JsonProperty] public string Address { get; set; }
 		/// <summary>
 		/// 详细住址
 		/// </summary>
-		[JsonProperty, DbField(-1, NpgsqlDbType.Jsonb)]
-		public JToken Address_detail { get; set; }
-		[JsonProperty, DbField(4)]
-		public EDataState State { get; set; }
+		[JsonProperty] public JToken Address_detail { get; set; }
+		[JsonProperty] public EDataState State { get; set; }
 		#endregion
 
 		#region Update/Insert
-		public People.PeopleUpdateBuilder Update => DAL.People.Update(this);
+		public UpdateBuilder<PeopleModel> Update => DAL.People.Update(this);
 
 		public int Delete() => DAL.People.Delete(this);
 		public int Commit() => DAL.People.Commit(this);

@@ -3,6 +3,7 @@ using Meta.Common.Interface;
 using Meta.Common.Model;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Npgsql.LegacyPostgis;
 using NpgsqlTypes;
 using System;
 using System.Collections;
@@ -68,10 +69,7 @@ namespace Meta.Common.Extensions
 					else
 					{
 						if (!objReader[i].IsNullOrDBNull())
-						{
-							var p = modelType.GetProperty(objReader.GetName(i), BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-							if (p != null) p.SetValue(model, CheckType(objReader[i], p.PropertyType));
-						}
+							SetPropertyValue(modelType, objReader[i], model, objReader.GetName(i));
 					}
 				}
 			}
@@ -135,8 +133,7 @@ namespace Meta.Common.Extensions
 					if (!dr[columnIndex].IsNullOrDBNull())
 					{
 						isSet = true;
-						var p = objType.GetProperty(fs[i], BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-						p.SetValue(model, CheckType(dr[columnIndex], p.PropertyType));
+						SetPropertyValue(objType, dr[columnIndex], model, fs[i]);
 					}
 				}
 				return isSet ? model : default;
@@ -147,6 +144,13 @@ namespace Meta.Common.Extensions
 				return CheckType(dr[columnIndex], objType);
 			}
 		}
+
+		private static void SetPropertyValue(Type objType, object value, object model, string fs)
+		{
+			var p = objType.GetProperty(fs, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+			if (p != null) p.SetValue(model, CheckType(value, p.PropertyType));
+		}
+
 		static bool IsNullOrDBNull(this object obj) => obj is DBNull || obj == null;
 		/// <summary>
 		/// 对可空类型转化
@@ -159,26 +163,25 @@ namespace Meta.Common.Extensions
 			if (value.IsNullOrDBNull()) return null;
 			if (valueType.IsGenericType && valueType.GetGenericTypeDefinition().Equals(typeof(Nullable<>)))
 				valueType = new NullableConverter(valueType).UnderlyingType;
-			if (_jTypes.Contains(valueType))
-				return JToken.Parse(value?.ToString() ?? "{}");
+
 			try
 			{
-				if (valueType.Namespace == "NpgsqlTypes")
-					return ConvertPgsqlType(value, valueType);
-				return Convert.ChangeType(value, valueType);
+				return valueType switch
+				{
+					var t when _jTypes.Contains(t) => JToken.Parse(value?.ToString() ?? "{}"),
+
+					var t when t == typeof(NpgsqlTsQuery) => NpgsqlTsQuery.Parse(value.ToString()),
+
+					var t when t == typeof(BitArray) && value is bool b => new BitArray(1, b),
+
+					_ => Convert.ChangeType(value, valueType),
+				};
 			}
 			catch (Exception ex)
 			{
 				throw ex;
 			}
 
-		}
-		static object ConvertPgsqlType(object value, Type valueType)
-		{
-			if (valueType == typeof(NpgsqlTsQuery))
-				return NpgsqlTsQuery.Parse(value.ToString());
-			return Convert.ChangeType(value, valueType);
-			//throw new NotSupportedException("valueType is not supported.");
 		}
 		#endregion
 	}

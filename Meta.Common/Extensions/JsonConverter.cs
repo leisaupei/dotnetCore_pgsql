@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Npgsql.LegacyPostgis;
 using NpgsqlTypes;
 using System;
 using System.Collections;
@@ -12,6 +13,9 @@ using System.Text;
 
 namespace Meta.Common.Extensions
 {
+	/// <summary>
+	/// ip地址
+	/// </summary>
 	public class IPConverter : JsonConverter<IPAddress>
 	{
 		public override void WriteJson(JsonWriter writer, IPAddress value, JsonSerializer serializer)
@@ -27,6 +31,9 @@ namespace Meta.Common.Extensions
 			return IPAddress.Parse(s);
 		}
 	}
+	/// <summary>
+	/// 
+	/// </summary>
 	public class NpgsqlTsVectorConverter : JsonConverter<NpgsqlTsVector>
 	{
 		public override NpgsqlTsVector ReadJson(JsonReader reader, Type objectType, [AllowNull] NpgsqlTsVector existingValue, bool hasExistingValue, JsonSerializer serializer)
@@ -71,20 +78,22 @@ namespace Meta.Common.Extensions
 				if (reader.TokenType == JsonToken.EndArray)
 					break;
 				var point = new NpgsqlPoint();
-				if (!reader.Read()) break;
-				if (reader.Value.ToString() == "x")
+				while (reader.Read())
 				{
-					if (!reader.Read()) break;
-					point.X = Convert.ToDouble(reader.Value);
-				}
-				if (!reader.Read()) break;
-				if (reader.Value.ToString() == "y")
-				{
-					if (!reader.Read()) break;
-					point.Y = Convert.ToDouble(reader.Value);
+					if (reader.TokenType == JsonToken.EndObject)
+						break;
+					if (reader.TokenType != JsonToken.PropertyName)
+						continue;
+
+					if (reader.Value.ToString() == "x")
+						if (reader.Read())
+							point.X = Convert.ToDouble(reader.Value);
+
+					if (reader.Value.ToString() == "y")
+						if (reader.Read())
+							point.Y = Convert.ToDouble(reader.Value);
 				}
 				points.Add(point);
-				if (!reader.Read()) break;
 			}
 			if (objectType.IsGenericType && objectType.GetGenericTypeDefinition().Equals(typeof(Nullable<>)))
 				objectType = new NullableConverter(objectType).UnderlyingType;
@@ -141,5 +150,52 @@ namespace Meta.Common.Extensions
 			writer.WriteValue(value?.ToString());
 		}
 	}
+	public class PostgisGeometryConverter : JsonConverter<PostgisGeometry>
+	{
+		public override PostgisGeometry ReadJson(JsonReader reader, Type objectType, PostgisGeometry existingValue, bool hasExistingValue, JsonSerializer serializer)
+		{
+			if (reader.TokenType == JsonToken.Null)
+				return null;
+			double x = 0;
+			double y = 0;
+			uint srid = 0;
+			while (reader.Read())
+			{
+				if (reader.TokenType == JsonToken.EndObject)
+					break;
+				if (reader.TokenType != JsonToken.PropertyName)
+					continue;
 
+				if (reader.Value.ToString() == "x")
+					if (reader.Read())
+						x = Convert.ToDouble(reader.Value);
+				if (reader.Value.ToString() == "y")
+					if (reader.Read())
+						y = Convert.ToDouble(reader.Value);
+				if (reader.Value.ToString() == "srid")
+					if (reader.Read())
+						srid = Convert.ToUInt32(reader.Value);
+			}
+			return new PostgisPoint(x, y) { SRID = srid };
+		}
+
+		public override void WriteJson(JsonWriter writer, PostgisGeometry value, JsonSerializer serializer)
+		{
+			switch (value)
+			{
+				case PostgisPoint point:
+					writer.WriteStartObject();
+					writer.WritePropertyName("x");
+					writer.WriteValue(point.X);
+					writer.WritePropertyName("y");
+					writer.WriteValue(point.Y);
+					writer.WritePropertyName("srid");
+					writer.WriteValue(point.SRID);
+					writer.WriteEndObject();
+					break;
+				default:
+					throw new NotSupportedException("Property of type geometry only supported PostgisPoint derived class.");
+			}
+		}
+	}
 }

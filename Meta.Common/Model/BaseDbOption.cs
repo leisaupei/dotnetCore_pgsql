@@ -98,10 +98,7 @@ namespace Meta.Common.Model
 		void SetDatabaseOption(DbConnection connection)
 		{
 			if (Type == DatabaseType.Postgres)
-			{
 				Options.MapAction?.Invoke((NpgsqlConnection)connection);
-				var mappings = ((NpgsqlConnection)connection).TypeMapper.Mappings;
-			}
 		}
 	}
 	public class DbConnectionOptions

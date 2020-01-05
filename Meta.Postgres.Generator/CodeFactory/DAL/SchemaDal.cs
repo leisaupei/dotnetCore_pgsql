@@ -3,7 +3,7 @@ using System.Linq;
 using Meta.Common.DbHelper;
 using Meta.Common.SqlBuilder;
 
-namespace CodeFactory.DAL
+namespace Meta.Postgres.Generator.CodeFactory.DAL
 {
 	/// <summary>
 	/// 

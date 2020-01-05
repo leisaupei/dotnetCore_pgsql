@@ -23,7 +23,7 @@ namespace Meta.xUnitTest.DAL
 		public static People Select => new People();
 		public static People SelectDiy(string fields) => new People { Fields = fields };
 		public static People SelectDiy(string fields, string alias) => new People { Fields = fields, MainAlias = alias };
-		public static PeopleUpdateBuilder UpdateDiy => new PeopleUpdateBuilder();
+		public static UpdateBuilder<PeopleModel> UpdateDiy => new UpdateBuilder<PeopleModel>();
 		public static DeleteBuilder<PeopleModel> DeleteDiy => new DeleteBuilder<PeopleModel>();
 		public static InsertBuilder<PeopleModel> InsertDiy => new InsertBuilder<PeopleModel>();
 		#endregion
@@ -38,7 +38,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
-			return DeleteDiy.WhereOr("id = {0}", ids, NpgsqlDbType.Uuid).ToRows();
+			return DeleteDiy.WhereAny(a => a.Id, ids).ToRows();
 		}
 		#endregion
 
@@ -48,6 +48,14 @@ namespace Meta.xUnitTest.DAL
 		{
 			SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));
 			return model;
+		}
+		public static int Commit(IEnumerable<PeopleModel> models, bool isExceptionCancel = true)
+		{
+			if (models == null)
+				throw new ArgumentNullException(nameof(models));
+			var sqlbuilders = isExceptionCancel ? models.Select(f => GetInsertBuilder(f).ToRowsPipe()) :
+				models.Select(f => GetInsertBuilder(f).WhereNotExists(Select.Where(a => a.Id == f.Id)).ToRowsPipe());
+			return InsertMultiple(models, sqlbuilders, DbOptions.Master, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey, model.Id));
 		}
 		private static InsertBuilder<PeopleModel> GetInsertBuilder(PeopleModel model)
 		{
@@ -72,19 +80,16 @@ namespace Meta.xUnitTest.DAL
 		#endregion
 
 		#region Update
-		public static PeopleUpdateBuilder Update(PeopleModel model) => Update(new[] { model.Id });
-		public static PeopleUpdateBuilder Update(Guid id) => Update(new[] { id });
-		public static PeopleUpdateBuilder Update(IEnumerable<PeopleModel> models) => Update(models.Select(a => a.Id));
-		public static PeopleUpdateBuilder Update(IEnumerable<Guid> ids)
+		public static UpdateBuilder<PeopleModel> Update(PeopleModel model) => Update(new[] { model.Id });
+		public static UpdateBuilder<PeopleModel> Update(Guid id) => Update(new[] { id });
+		public static UpdateBuilder<PeopleModel> Update(IEnumerable<PeopleModel> models) => Update(models.Select(a => a.Id));
+		public static UpdateBuilder<PeopleModel> Update(IEnumerable<Guid> ids)
 		{
 			if (ids == null)
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
-			return UpdateDiy.WhereOr("id = {0}", ids, NpgsqlDbType.Uuid);
-		}
-		public class PeopleUpdateBuilder : UpdateBuilder<PeopleUpdateBuilder, PeopleModel>
-		{
+			return UpdateDiy.WhereAny(a => a.Id, ids);
 		}
 		#endregion
 

@@ -23,7 +23,7 @@ namespace Meta.xUnitTest.DAL
 		public static TypeTest Select => new TypeTest();
 		public static TypeTest SelectDiy(string fields) => new TypeTest { Fields = fields };
 		public static TypeTest SelectDiy(string fields, string alias) => new TypeTest { Fields = fields, MainAlias = alias };
-		public static TypeTestUpdateBuilder UpdateDiy => new TypeTestUpdateBuilder();
+		public static UpdateBuilder<TypeTestModel> UpdateDiy => new UpdateBuilder<TypeTestModel>();
 		public static DeleteBuilder<TypeTestModel> DeleteDiy => new DeleteBuilder<TypeTestModel>();
 		public static InsertBuilder<TypeTestModel> InsertDiy => new InsertBuilder<TypeTestModel>();
 		#endregion
@@ -38,7 +38,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
-			return DeleteDiy.WhereOr("id = {0}", ids, NpgsqlDbType.Uuid).ToRows();
+			return DeleteDiy.WhereAny(a => a.Id, ids).ToRows();
 		}
 		#endregion
 
@@ -48,6 +48,14 @@ namespace Meta.xUnitTest.DAL
 		{
 			SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));
 			return model;
+		}
+		public static int Commit(IEnumerable<TypeTestModel> models, bool isExceptionCancel = true)
+		{
+			if (models == null)
+				throw new ArgumentNullException(nameof(models));
+			var sqlbuilders = isExceptionCancel ? models.Select(f => GetInsertBuilder(f).ToRowsPipe()) :
+				models.Select(f => GetInsertBuilder(f).WhereNotExists(Select.Where(a => a.Id == f.Id)).ToRowsPipe());
+			return InsertMultiple(models, sqlbuilders, DbOptions.Master, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey, model.Id));
 		}
 		private static InsertBuilder<TypeTestModel> GetInsertBuilder(TypeTestModel model)
 		{
@@ -80,6 +88,9 @@ namespace Meta.xUnitTest.DAL
 				.Set(a => a.Path_type, model.Path_type)
 				.Set(a => a.Point_type, model.Point_type)
 				.Set(a => a.Polygon_type, model.Polygon_type)
+				.Set(a => a.Serial2_type, model.Serial2_type)
+				.Set(a => a.Serial4_type, model.Serial4_type)
+				.Set(a => a.Serial8_type, model.Serial8_type)
 				.Set(a => a.Text_type, model.Text_type)
 				.Set(a => a.Time_type, model.Time_type)
 				.Set(a => a.Timestamp_type, model.Timestamp_type)
@@ -95,9 +106,7 @@ namespace Meta.xUnitTest.DAL
 				.Set(a => a.Composite_type, model.Composite_type)
 				.Set(a => a.Bit_length_type, model.Bit_length_type)
 				.Set(a => a.Array_type, model.Array_type)
-				.Set(a => a.Serial2_type, model.Serial2_type)
-				.Set(a => a.Serial4_type, model.Serial4_type)
-				.Set(a => a.Serial8_type, model.Serial8_type);
+				.Set(a => a.Uuid_array_type, model.Uuid_array_type);
 		}
 		#endregion
 
@@ -108,19 +117,16 @@ namespace Meta.xUnitTest.DAL
 		#endregion
 
 		#region Update
-		public static TypeTestUpdateBuilder Update(TypeTestModel model) => Update(new[] { model.Id });
-		public static TypeTestUpdateBuilder Update(Guid id) => Update(new[] { id });
-		public static TypeTestUpdateBuilder Update(IEnumerable<TypeTestModel> models) => Update(models.Select(a => a.Id));
-		public static TypeTestUpdateBuilder Update(IEnumerable<Guid> ids)
+		public static UpdateBuilder<TypeTestModel> Update(TypeTestModel model) => Update(new[] { model.Id });
+		public static UpdateBuilder<TypeTestModel> Update(Guid id) => Update(new[] { id });
+		public static UpdateBuilder<TypeTestModel> Update(IEnumerable<TypeTestModel> models) => Update(models.Select(a => a.Id));
+		public static UpdateBuilder<TypeTestModel> Update(IEnumerable<Guid> ids)
 		{
 			if (ids == null)
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
-			return UpdateDiy.WhereOr("id = {0}", ids, NpgsqlDbType.Uuid);
-		}
-		public class TypeTestUpdateBuilder : UpdateBuilder<TypeTestUpdateBuilder, TypeTestModel>
-		{
+			return UpdateDiy.WhereAny(a => a.Id, ids);
 		}
 		#endregion
 

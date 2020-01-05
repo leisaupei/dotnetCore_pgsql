@@ -8,11 +8,17 @@
     <Company>leisaupei</Company>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>bin\Debug\netstandard2.1\Meta.Common.xml</DocumentationFile>
+    <NoWarn>1701;1702;1591</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="CSRedisCore" Version="3.1.17" />
+    <PackageReference Include="CSRedisCore" Version="3.3.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="3.0.0" />
     <PackageReference Include="NLog.Extensions.Logging" Version="1.6.1" />
     <PackageReference Include="Npgsql" Version="4.1.2" />
     <PackageReference Include="Npgsql.Json.NET" Version="4.1.2" />
+    <PackageReference Include="Npgsql.LegacyPostgis" Version="4.1.2" />
   </ItemGroup>
 </Project>

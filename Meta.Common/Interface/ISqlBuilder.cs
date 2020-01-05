@@ -8,6 +8,9 @@ using System.Text;
 
 namespace Meta.Common.Interface
 {
+	/// <summary>
+	/// 查询语句
+	/// </summary>
 	public interface ISqlBuilder
 	{
 		/// <summary>
@@ -18,7 +21,7 @@ namespace Meta.Common.Interface
 		/// 
 		/// </summary>
 		/// <returns>参数化sql语句</returns>
-		string GetCommandTextString();
+		string CommandText { get; }
 		/// <summary>
 		/// 返回实例类型
 		/// </summary>
@@ -31,5 +34,9 @@ namespace Meta.Common.Interface
 		/// 是否直接返回默认值
 		/// </summary>
 		bool IsReturnDefault { get; }
+		/// <summary>
+		/// 查询字段
+		/// </summary>
+		string Fields { get; set; }
 	}
 }

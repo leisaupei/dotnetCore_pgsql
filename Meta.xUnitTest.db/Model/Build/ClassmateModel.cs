@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using Meta.Common.Interface;
 using System.Xml;
 using System.Net;
+using Meta.Common.SqlBuilder;
 using Meta.xUnitTest.DAL;
 
 namespace Meta.xUnitTest.Model
@@ -17,14 +18,10 @@ namespace Meta.xUnitTest.Model
 	public partial class ClassmateModel : IDbModel
 	{
 		#region Properties
-		[JsonProperty, DbField(16, NpgsqlDbType.Uuid)]
-		public Guid Teacher_id { get; set; }
-		[JsonProperty, DbField(16, NpgsqlDbType.Uuid)]
-		public Guid Student_id { get; set; }
-		[JsonProperty, DbField(16, NpgsqlDbType.Uuid)]
-		public Guid Grade_id { get; set; }
-		[JsonProperty, DbField(8, NpgsqlDbType.Timestamp)]
-		public DateTime? Create_time { get; set; }
+		[JsonProperty] public Guid Teacher_id { get; set; }
+		[JsonProperty] public Guid Student_id { get; set; }
+		[JsonProperty] public Guid Grade_id { get; set; }
+		[JsonProperty] public DateTime? Create_time { get; set; }
 		#endregion
 
 		#region Foreign Key
@@ -39,7 +36,7 @@ namespace Meta.xUnitTest.Model
 		#endregion
 
 		#region Update/Insert
-		public Classmate.ClassmateUpdateBuilder Update => DAL.Classmate.Update(this);
+		public UpdateBuilder<ClassmateModel> Update => DAL.Classmate.Update(this);
 
 		public int Delete() => DAL.Classmate.Delete(this);
 		public int Commit() => DAL.Classmate.Commit(this);

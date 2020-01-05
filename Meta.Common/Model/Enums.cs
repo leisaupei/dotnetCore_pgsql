@@ -16,11 +16,12 @@ namespace Meta.Common.Model
 	public enum ExpressionExcutionType
 	{
 		None = 0, Single, Union, Condition, SingleForNoAlias
-    }
+	}
+
 	public enum DatabaseType
 	{
-		Postgres = 0,
+		Postgres = 1,
 		[EditorBrowsable(EditorBrowsableState.Never), Obsolete("Future")]
-		Mysql = 1,
+		Mysql = 2,
 	}
 }

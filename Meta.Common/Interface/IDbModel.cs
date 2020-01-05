@@ -6,6 +6,9 @@ using System.Text;
 
 namespace Meta.Common.Interface
 {
+	/// <summary>
+	/// 数据库表模型
+	/// </summary>
 	[JsonObject(MemberSerialization.OptIn)]
 	public interface IDbModel
 	{

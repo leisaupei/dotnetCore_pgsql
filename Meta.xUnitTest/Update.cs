@@ -3,7 +3,9 @@ using Meta.Common.SqlBuilder;
 using Meta.xUnitTest.DAL;
 using Meta.xUnitTest.Model;
 using Meta.xUnitTest.Options;
+using Newtonsoft.Json;
 using Npgsql;
+using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -17,11 +19,6 @@ namespace Meta.xUnitTest
 	[Order(4)]
 	public class Update : BaseTest
 	{
-		[Fact]
-		public void Union()
-		{
-			
-		}
 
 	}
 }

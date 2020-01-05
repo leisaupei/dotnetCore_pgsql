@@ -1,6 +1,6 @@
 ﻿using NpgsqlTypes;
 
-namespace CodeFactory
+namespace Meta.Postgres.Generator.CodeFactory
 {
 	/// <summary>
 	/// 

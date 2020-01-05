@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace CodeFactory.Extension
+namespace Meta.Postgres.Generator.CodeFactory.Extension
 {
 	static class Extensions
 	{

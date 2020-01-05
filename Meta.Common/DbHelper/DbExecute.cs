@@ -20,9 +20,7 @@ namespace Meta.Common.DbHelper
 		/// <summary>
 		/// constructer
 		/// </summary>
-		/// <param name="poolSize"></param>
-		/// <param name="connectionString"></param>
-		/// <param name="logger"></param>
+		/// <param name="conn"></param>
 		protected DbExecute(DbConnectionModel conn)
 		{
 			if (string.IsNullOrEmpty(conn.ConnectionString))

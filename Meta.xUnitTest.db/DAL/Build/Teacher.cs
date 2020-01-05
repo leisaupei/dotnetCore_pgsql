@@ -23,7 +23,7 @@ namespace Meta.xUnitTest.DAL
 		public static Teacher Select => new Teacher();
 		public static Teacher SelectDiy(string fields) => new Teacher { Fields = fields };
 		public static Teacher SelectDiy(string fields, string alias) => new Teacher { Fields = fields, MainAlias = alias };
-		public static TeacherUpdateBuilder UpdateDiy => new TeacherUpdateBuilder();
+		public static UpdateBuilder<TeacherModel> UpdateDiy => new UpdateBuilder<TeacherModel>();
 		public static DeleteBuilder<TeacherModel> DeleteDiy => new DeleteBuilder<TeacherModel>();
 		public static InsertBuilder<TeacherModel> InsertDiy => new InsertBuilder<TeacherModel>();
 		#endregion
@@ -38,7 +38,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
-			return DeleteDiy.WhereOr("id = {0}", ids, NpgsqlDbType.Uuid).ToRows();
+			return DeleteDiy.WhereAny(a => a.Id, ids).ToRows();
 		}
 		#endregion
 
@@ -48,6 +48,14 @@ namespace Meta.xUnitTest.DAL
 		{
 			SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));
 			return model;
+		}
+		public static int Commit(IEnumerable<TeacherModel> models, bool isExceptionCancel = true)
+		{
+			if (models == null)
+				throw new ArgumentNullException(nameof(models));
+			var sqlbuilders = isExceptionCancel ? models.Select(f => GetInsertBuilder(f).ToRowsPipe()) :
+				models.Select(f => GetInsertBuilder(f).WhereNotExists(Select.Where(a => a.Id == f.Id)).ToRowsPipe());
+			return InsertMultiple(models, sqlbuilders, DbOptions.Master, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey, model.Id));
 		}
 		private static InsertBuilder<TeacherModel> GetInsertBuilder(TeacherModel model)
 		{
@@ -72,19 +80,16 @@ namespace Meta.xUnitTest.DAL
 		#endregion
 
 		#region Update
-		public static TeacherUpdateBuilder Update(TeacherModel model) => Update(new[] { model.Id });
-		public static TeacherUpdateBuilder Update(Guid id) => Update(new[] { id });
-		public static TeacherUpdateBuilder Update(IEnumerable<TeacherModel> models) => Update(models.Select(a => a.Id));
-		public static TeacherUpdateBuilder Update(IEnumerable<Guid> ids)
+		public static UpdateBuilder<TeacherModel> Update(TeacherModel model) => Update(new[] { model.Id });
+		public static UpdateBuilder<TeacherModel> Update(Guid id) => Update(new[] { id });
+		public static UpdateBuilder<TeacherModel> Update(IEnumerable<TeacherModel> models) => Update(models.Select(a => a.Id));
+		public static UpdateBuilder<TeacherModel> Update(IEnumerable<Guid> ids)
 		{
 			if (ids == null)
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
-			return UpdateDiy.WhereOr("id = {0}", ids, NpgsqlDbType.Uuid);
-		}
-		public class TeacherUpdateBuilder : UpdateBuilder<TeacherUpdateBuilder, TeacherModel>
-		{
+			return UpdateDiy.WhereAny(a => a.Id, ids);
 		}
 		#endregion
 

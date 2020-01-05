@@ -23,7 +23,7 @@ namespace Meta.xUnitTest.DAL
 		public static ClassGrade Select => new ClassGrade();
 		public static ClassGrade SelectDiy(string fields) => new ClassGrade { Fields = fields };
 		public static ClassGrade SelectDiy(string fields, string alias) => new ClassGrade { Fields = fields, MainAlias = alias };
-		public static ClassGradeUpdateBuilder UpdateDiy => new ClassGradeUpdateBuilder();
+		public static UpdateBuilder<ClassGradeModel> UpdateDiy => new UpdateBuilder<ClassGradeModel>();
 		public static DeleteBuilder<ClassGradeModel> DeleteDiy => new DeleteBuilder<ClassGradeModel>();
 		public static InsertBuilder<ClassGradeModel> InsertDiy => new InsertBuilder<ClassGradeModel>();
 		#endregion
@@ -38,7 +38,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
-			return DeleteDiy.WhereOr("id = {0}", ids, NpgsqlDbType.Uuid).ToRows();
+			return DeleteDiy.WhereAny(a => a.Id, ids).ToRows();
 		}
 		#endregion
 
@@ -48,6 +48,14 @@ namespace Meta.xUnitTest.DAL
 		{
 			SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));
 			return model;
+		}
+		public static int Commit(IEnumerable<ClassGradeModel> models, bool isExceptionCancel = true)
+		{
+			if (models == null)
+				throw new ArgumentNullException(nameof(models));
+			var sqlbuilders = isExceptionCancel ? models.Select(f => GetInsertBuilder(f).ToRowsPipe()) :
+				models.Select(f => GetInsertBuilder(f).WhereNotExists(Select.Where(a => a.Id == f.Id)).ToRowsPipe());
+			return InsertMultiple(models, sqlbuilders, DbOptions.Master, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey, model.Id));
 		}
 		private static InsertBuilder<ClassGradeModel> GetInsertBuilder(ClassGradeModel model)
 		{
@@ -67,19 +75,16 @@ namespace Meta.xUnitTest.DAL
 		#endregion
 
 		#region Update
-		public static ClassGradeUpdateBuilder Update(ClassGradeModel model) => Update(new[] { model.Id });
-		public static ClassGradeUpdateBuilder Update(Guid id) => Update(new[] { id });
-		public static ClassGradeUpdateBuilder Update(IEnumerable<ClassGradeModel> models) => Update(models.Select(a => a.Id));
-		public static ClassGradeUpdateBuilder Update(IEnumerable<Guid> ids)
+		public static UpdateBuilder<ClassGradeModel> Update(ClassGradeModel model) => Update(new[] { model.Id });
+		public static UpdateBuilder<ClassGradeModel> Update(Guid id) => Update(new[] { id });
+		public static UpdateBuilder<ClassGradeModel> Update(IEnumerable<ClassGradeModel> models) => Update(models.Select(a => a.Id));
+		public static UpdateBuilder<ClassGradeModel> Update(IEnumerable<Guid> ids)
 		{
 			if (ids == null)
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
-			return UpdateDiy.WhereOr("id = {0}", ids, NpgsqlDbType.Uuid);
-		}
-		public class ClassGradeUpdateBuilder : UpdateBuilder<ClassGradeUpdateBuilder, ClassGradeModel>
-		{
+			return UpdateDiy.WhereAny(a => a.Id, ids);
 		}
 		#endregion
 

@@ -68,3 +68,5 @@ Thumbs.db
 
 /.vs/Meta/v16/TestStore/2
 /Meta.Generator/Properties
+/Meta.Postgres.Generator/Properties
+/Meta.Initiator/Properties
