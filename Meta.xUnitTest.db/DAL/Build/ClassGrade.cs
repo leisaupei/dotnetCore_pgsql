@@ -14,7 +14,6 @@ using System.Net;
 
 namespace Meta.xUnitTest.DAL
 {
-	[DbTable("class.grade")]
 	public sealed partial class ClassGrade : SelectBuilder<ClassGrade, ClassGradeModel>
 	{
 		#region Properties

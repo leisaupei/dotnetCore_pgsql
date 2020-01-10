@@ -24,4 +24,5 @@ namespace Meta.Common.Model
 		[EditorBrowsable(EditorBrowsableState.Never), Obsolete("Future")]
 		Mysql = 2,
 	}
+
 }

@@ -12,6 +12,7 @@ using Xunit;
 using Xunit.Extensions.Ordering;
 using Meta.xUnitTest.Extensions;
 using Meta.Common.DbHelper;
+using System.Threading.Tasks;
 
 namespace Meta.xUnitTest
 {
@@ -35,6 +36,12 @@ namespace Meta.xUnitTest
 					}.Insert();
 				});
 			}
+		}
+		[Fact]
+		public async Task TestAsync()
+		{
+			var affrows = await PgsqlHelper.ExecuteNonQueryAsync("update people set age = 2 where id = '5ef5a598-e4a1-47b3-919e-4cc1fdd97757';");
+
 		}
 	}
 }

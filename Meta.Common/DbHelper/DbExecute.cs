@@ -7,6 +7,7 @@ using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Meta.Common.DbHelper
 {
@@ -28,7 +29,6 @@ namespace Meta.Common.DbHelper
 			_conn = conn;
 		}
 
-
 		/// <summary>
 		/// 当前线程事务
 		/// </summary>
@@ -42,47 +42,76 @@ namespace Meta.Common.DbHelper
 				return null;
 			}
 		}
-		/// <summary>
-		/// 执行命令前准备
-		/// </summary>
-		protected DbCommand PrepareCommand(string cmdText, CommandType cmdType, DbParameter[] cmdParams)
-		{
-			if (string.IsNullOrEmpty(cmdText))
-				throw new ArgumentNullException(nameof(cmdText));
-			DbCommand cmd;
-			if (CurrentTransaction == null)
-			{
-				cmd = _conn.GetConnection.CreateCommand();
-			}
-			else
-			{
-				cmd = CurrentTransaction.Connection.CreateCommand();
-				cmd.Transaction = CurrentTransaction;
-			}
-			cmd.CommandText = cmdText;
-			cmd.CommandType = cmdType;
-			if (cmdParams?.Any() != true) return cmd;
 
-			foreach (var p in cmdParams)
-			{
-				if (p == null) continue;
-				if ((p.Direction == ParameterDirection.Input || p.Direction == ParameterDirection.InputOutput) && p.Value == null)
-					p.Value = DBNull.Value;
-				cmd.Parameters.Add(p);
-			}
-			return cmd;
-		}
 		/// <summary>
 		/// 返回一行数据
 		/// </summary>
 		public object ExecuteScalar(string cmdText, CommandType cmdType, DbParameter[] cmdParams)
+			=> ExecuteScalarAsync(cmdText, cmdType, cmdParams, false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+
+		/// <summary>
+		/// 返回一行数据
+		/// </summary>
+		public Task<object> ExecuteScalarAsync(string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
+			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<object>(cancellationToken) : ExecuteScalarAsync(cmdText, cmdType, cmdParams, true, cancellationToken).AsTask();
+
+		/// <summary>
+		/// 执行sql语句
+		/// </summary>
+		public int ExecuteNonQuery(string cmdText, CommandType cmdType, DbParameter[] cmdParams)
+			=> ExecuteNonQueryAsync(cmdText, cmdType, cmdParams, false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+
+		/// <summary>
+		/// 执行sql语句
+		/// </summary>
+		public Task<int> ExecuteNonQueryAsync(string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
+			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<int>(cancellationToken) : ExecuteNonQueryAsync(cmdText, cmdType, cmdParams, true, cancellationToken).AsTask();
+
+		/// <summary>
+		/// 读取数据库reader
+		/// </summary>
+		public void ExecuteDataReader(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams)
+			=> ExecuteDataReaderBaseAsync(dr =>
+			{
+				while (dr.Read())
+					action?.Invoke(dr);
+
+			}, cmdText, cmdType, cmdParams, false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+
+		/// <summary>
+		/// 读取数据库reader
+		/// </summary>
+		public Task ExecuteDataReaderAsync(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
+			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken)
+			: ExecuteDataReaderBaseAsync(async dr =>
+			{
+				while (await dr.ReadAsync(cancellationToken))
+					action?.Invoke(dr);
+
+			}, cmdText, cmdType, cmdParams, true, cancellationToken).AsTask();
+
+		/// <summary>
+		/// 读取数据库reader
+		/// </summary>
+		public void ExecuteDataReaderBase(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams)
+			=> ExecuteDataReaderBaseAsync(action, cmdText, cmdType, cmdParams, false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+
+		/// <summary>
+		/// 读取数据库reader
+		/// </summary>
+		public Task ExecuteDataReaderBaseAsync(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
+			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : ExecuteDataReaderBaseAsync(action, cmdText, cmdType, cmdParams, true, cancellationToken).AsTask();
+
+		async ValueTask ExecuteDataReaderBaseAsync(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams, bool async, CancellationToken cancellationToken)
 		{
+			DbDataReader dr = null;
 			DbCommand cmd = null;
-			object ret = null;
 			try
 			{
-				cmd = PrepareCommand(cmdText, cmdType, cmdParams);
-				ret = cmd.ExecuteScalar();
+				cmd = await PrepareCommandAsync(cmdText, cmdType, cmdParams, async, cancellationToken);
+				dr = async ? await cmd.ExecuteReaderAsync(cancellationToken) : cmd.ExecuteReader();
+				using (dr)
+					action?.Invoke(dr);
 			}
 			catch (Exception ex)
 			{
@@ -91,21 +120,25 @@ namespace Meta.Common.DbHelper
 			}
 			finally
 			{
-				CloseCommand(cmd);
+				await CloseCommandAsync(cmd, async);
+				if (dr != null && !dr.IsClosed)
+				{
+					if (async)
+						await dr.DisposeAsync();
+					else
+						dr.Dispose();
+				}
 			}
-			return ret;
 		}
-		/// <summary>
-		/// 执行sql语句
-		/// </summary>
-		public int ExecuteNonQuery(string cmdText, CommandType cmdType, DbParameter[] cmdParams)
+
+		async ValueTask<int> ExecuteNonQueryAsync(string cmdText, CommandType cmdType, DbParameter[] cmdParams, bool async, CancellationToken cancellationToken)
 		{
 			int affrows = 0;
 			DbCommand cmd = null;
 			try
 			{
-				cmd = PrepareCommand(cmdText, cmdType, cmdParams);
-				affrows = cmd.ExecuteNonQuery();
+				cmd = await PrepareCommandAsync(cmdText, cmdType, cmdParams, async, cancellationToken);
+				affrows = async ? await cmd.ExecuteNonQueryAsync(cancellationToken) : cmd.ExecuteNonQuery();
 			}
 			catch (Exception ex)
 			{
@@ -114,35 +147,19 @@ namespace Meta.Common.DbHelper
 			}
 			finally
 			{
-				CloseCommand(cmd);
+				await CloseCommandAsync(cmd, async);
 			}
 			return affrows;
 		}
-		/// <summary>
-		/// 读取数据库reader
-		/// </summary>
-		public void ExecuteDataReader(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams)
-		{
-			ExecuteDataReaderBase(dr =>
-			{
-				while (dr.Read())
-					action?.Invoke(dr);
 
-			}, cmdText, cmdType, cmdParams);
-		}
-		/// <summary>
-		/// 读取数据库reader
-		/// </summary>
-		public void ExecuteDataReaderBase(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams)
+		async ValueTask<object> ExecuteScalarAsync(string cmdText, CommandType cmdType, DbParameter[] cmdParams, bool async, CancellationToken cancellationToken)
 		{
-
-			DbDataReader dr = null;
 			DbCommand cmd = null;
+			object ret = null;
 			try
 			{
-				cmd = PrepareCommand(cmdText, cmdType, cmdParams);
-				using (dr = cmd.ExecuteReader())
-					action?.Invoke(dr);
+				cmd = await PrepareCommandAsync(cmdText, cmdType, cmdParams, async, cancellationToken);
+				ret = async ? await cmd.ExecuteScalarAsync(cancellationToken) : cmd.ExecuteScalar();
 			}
 			catch (Exception ex)
 			{
@@ -151,11 +168,44 @@ namespace Meta.Common.DbHelper
 			}
 			finally
 			{
-				CloseCommand(cmd);
-				if (dr != null && !dr.IsClosed)
-					dr.Close();
+				await CloseCommandAsync(cmd, async);
 			}
+			return ret;
 		}
+
+		async ValueTask<DbCommand> PrepareCommandAsync(string cmdText, CommandType cmdType, DbParameter[] cmdParams, bool async, CancellationToken cancellationToken)
+		{
+
+			if (string.IsNullOrEmpty(cmdText))
+				throw new ArgumentNullException(nameof(cmdText));
+			DbCommand cmd;
+			using (cancellationToken.Register(cmd => ((NpgsqlCommand)cmd!).Cancel(), this))
+			{
+				if (CurrentTransaction == null)
+				{
+					var conn = async ? await _conn.GetConnectionAsync(cancellationToken) : _conn.GetConnection();
+					cmd = conn.CreateCommand();
+				}
+				else
+				{
+					cmd = CurrentTransaction.Connection.CreateCommand();
+					cmd.Transaction = CurrentTransaction;
+				}
+				cmd.CommandText = cmdText;
+				cmd.CommandType = cmdType;
+				if (cmdParams?.Any() != true) return cmd;
+
+				foreach (var p in cmdParams)
+				{
+					if (p == null) continue;
+					if ((p.Direction == ParameterDirection.Input || p.Direction == ParameterDirection.InputOutput) && p.Value == null)
+						p.Value = DBNull.Value;
+					cmd.Parameters.Add(p);
+				}
+			}
+			return cmd;
+		}
+
 		/// <summary>
 		/// 抛出异常
 		/// </summary>
@@ -171,49 +221,31 @@ namespace Meta.Common.DbHelper
 
 		}
 
-		/// <summary>
-		/// 关闭连接
-		/// </summary>
-		/// <param name="connection"></param>
-		void CloseConnection(DbConnection connection)
+		async Task CloseConnectionAsync(DbConnection connection, bool async)
 		{
-			if (connection == null) return;
-			if (connection.State != ConnectionState.Closed)
-				connection.Dispose();
+			if (connection != null && connection.State != ConnectionState.Closed)
+			{
+				if (async)
+					await connection.DisposeAsync();
+				else
+					connection.Dispose();
+			}
 		}
-		/// <summary>
-		/// 检查连接是否为空
-		/// </summary>
-		/// <param name="connection"></param>
-		void ConnectionNullCheck(DbConnection connection)
-		{
-			if (connection == null)
-				throw new ArgumentNullException(nameof(connection));
-		}
-		/// <summary>
-		/// 打开连接
-		/// </summary>
-		/// <param name="connection"></param>
-		void OpenConnection(DbConnection connection)
-		{
-			ConnectionNullCheck(connection);
 
-			if (connection.State == ConnectionState.Broken)
-				connection.Close();
-			if (connection.State != ConnectionState.Open)
-				connection.Open();
-		}
-		/// <summary>
-		/// 关闭命令及连接
-		/// </summary>
-		void CloseCommand(DbCommand cmd)
+		async Task CloseCommandAsync(DbCommand cmd, bool async)
 		{
-			if (cmd == null) return;
+			if (cmd == null)
+				return;
 			if (cmd.Parameters != null)
 				cmd.Parameters.Clear();
+
 			if (CurrentTransaction == null)
-				CloseConnection(cmd.Connection);
-			cmd.Dispose();
+				await CloseConnectionAsync(cmd.Connection, async);
+
+			if (async)
+				await cmd.DisposeAsync();
+			else
+				cmd.Dispose();
 		}
 
 		#region 事务
@@ -221,34 +253,78 @@ namespace Meta.Common.DbHelper
 		/// 开启事务
 		/// </summary>
 		public void BeginTransaction()
+			=> BeginTransactionAsync(false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+
+		/// <summary>
+		/// 开启事务
+		/// </summary>
+		public Task BeginTransactionAsync(CancellationToken cancellationToken)
+			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : BeginTransactionAsync(true, cancellationToken).AsTask();
+
+		async ValueTask BeginTransactionAsync(bool async, CancellationToken cancellationToken)
 		{
 			var tid = Thread.CurrentThread.ManagedThreadId;
 			if (CurrentTransaction != null || _transPool.ContainsKey(tid))
 				throw new Exception("this thread exists a transaction already");
-			var tran = _conn.GetConnection.BeginTransaction();
+
+			var conn = async ? await _conn.GetConnectionAsync(cancellationToken) : _conn.GetConnection();
+			var tran = async ? await conn.BeginTransactionAsync(cancellationToken) : conn.BeginTransaction();
 			_transPool[tid] = tran;
 		}
+
 		/// <summary>
 		/// 确认事务
 		/// </summary>
-		public void CommitTransaction() => ReleaseTransaction(tran => tran.Commit());
+		public void CommitTransaction()
+			=> CommitTransactionAsync(false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+
+		/// <summary>
+		/// 确认事务
+		/// </summary>
+		public Task CommitTransactionAsync(CancellationToken cancellationToken)
+			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : CommitTransactionAsync(false, CancellationToken.None).AsTask();
 
 		/// <summary>
 		/// 回滚事务
 		/// </summary>
-		public void RollBackTransaction() => ReleaseTransaction(tran => tran.Rollback());
-
+		public void RollBackTransaction()
+			=> RollBackTransactionAsync(false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 		/// <summary>
-		/// 释放事务
+		/// 回滚事务
 		/// </summary>
-		void ReleaseTransaction(Action<DbTransaction> action)
+		public Task RollBackTransactionAsync(CancellationToken cancellationToken)
+			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : RollBackTransactionAsync(false, CancellationToken.None).AsTask();
+
+		async ValueTask CommitTransactionAsync(bool async, CancellationToken cancellationToken)
+		{
+			var tran = GetTransaction();
+			using var conn = tran?.Connection;
+			if (async)
+				await tran.CommitAsync(cancellationToken);
+			else
+				tran.Commit();
+		}
+
+		async ValueTask RollBackTransactionAsync(bool async, CancellationToken cancellationToken)
+		{
+			var tran = GetTransaction();
+			using var conn = tran?.Connection;
+			if (async)
+				await tran.RollbackAsync(cancellationToken);
+			else
+				tran.Rollback();
+		}
+
+		private DbTransaction GetTransaction()
 		{
 			var tran = CurrentTransaction;
-			if (tran == null) return;
-			var tid = Thread.CurrentThread.ManagedThreadId;
-			_transPool.Remove(tid);
-			using var conn = tran.Connection;
-			action.Invoke(tran);
+			if (tran == null)
+			{
+				var tid = Thread.CurrentThread.ManagedThreadId;
+				_transPool.Remove(tid);
+			}
+
+			return tran;
 		}
 		#endregion
 

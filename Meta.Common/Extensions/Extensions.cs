@@ -168,6 +168,9 @@ namespace Meta.Common.Extensions
 			{
 				return valueType switch
 				{
+					// 如果c#是enum 数据库是整型
+					var t when t.IsEnum && value.GetType().GetInterface(nameof(IFormattable)) != null => Enum.ToObject(t, value),
+					// jsonb json 类型
 					var t when _jTypes.Contains(t) => JToken.Parse(value?.ToString() ?? "{}"),
 
 					var t when t == typeof(NpgsqlTsQuery) => NpgsqlTsQuery.Parse(value.ToString()),

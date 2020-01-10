@@ -36,7 +36,7 @@ namespace Meta.Postgres.Generator.CodeFactory
 			Build(model);
 			Console.WriteLine("Done...");
 		}
-		
+
 		/// <summary>
 		/// 创建目录
 		/// </summary>
@@ -51,6 +51,7 @@ namespace Meta.Postgres.Generator.CodeFactory
 					Directory.CreateDirectory(ps[i]);
 			}
 		}
+		static bool IsMultiple = false;
 		/// <summary>
 		/// 构建
 		/// </summary>
@@ -66,16 +67,41 @@ namespace Meta.Postgres.Generator.CodeFactory
 			ProjectName = buildModel.ProjectName;
 			CreateDir();
 			List<string> schemaList = SchemaDal.GetSchemas();
+			var modelPath = ModelPath;
+			var dalPath = DalPath;
+			if (FinalType != buildModel.TypeName)
+			{
+				IsMultiple = true;
+				FolderByTypeName(buildModel, out modelPath, out dalPath);
+			}
+			else
+			{
+				if (IsMultiple)
+				{
+					FolderByTypeName(buildModel, out modelPath, out dalPath);
+				}
+			}
 			foreach (var schemaName in schemaList)
 			{
 				List<TableViewModel> tableList = GetTables(schemaName);
 				foreach (var item in tableList)
 				{
-					TablesDal td = new TablesDal(ProjectName, ModelPath, DalPath, schemaName, item, buildModel.TypeName);
+					TablesDal td = new TablesDal(ProjectName, modelPath, dalPath, schemaName, item, buildModel.TypeName);
 					td.ModelGenerator();
 				}
 			}
-			EnumsDal.Generate(Path.Combine(OutputDir, ProjectName + ".db"), ModelPath, ProjectName, buildModel.TypeName);
+
+			EnumsDal.Generate(Path.Combine(OutputDir, ProjectName + ".db"), modelPath, ProjectName, buildModel.TypeName);
+		}
+
+		private static void FolderByTypeName(GenerateModel buildModel, out string modelPath, out string dalPath)
+		{
+			modelPath = Path.Combine(ModelPath, buildModel.TypeName.ToUpperPascal());
+			dalPath = Path.Combine(DalPath, buildModel.TypeName.ToUpperPascal());
+			if (!Directory.Exists(dalPath))
+				Directory.CreateDirectory(dalPath);
+			if (!Directory.Exists(modelPath))
+				Directory.CreateDirectory(modelPath);
 		}
 
 		/// <summary>

@@ -14,7 +14,6 @@ using System.Net;
 
 namespace Meta.xUnitTest.DAL
 {
-	[DbTable("classmate")]
 	public sealed partial class Classmate : SelectBuilder<Classmate, ClassmateModel>
 	{
 		#region Properties

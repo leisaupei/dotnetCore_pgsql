@@ -7,9 +7,14 @@ using Newtonsoft.Json.Linq;
 using Npgsql.TypeMapping;
 using Meta.Common.Extensions;
 using Npgsql;
+using Meta.Common.Interface;
 
 namespace Meta.xUnitTest.Options
 {
+
+	[DbName("master")] public class DNMaster : IDbName { }
+
+	[DbName("master-slave")] public class DNSlave : IDbName { }
 	/// <summary>
 	/// 由生成器生成, 会覆盖
 	/// </summary>

@@ -7,6 +7,8 @@ using System.ComponentModel;
 using System.Data;
 using System.Data.Common;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Meta.Common.Model
 {
@@ -78,21 +80,33 @@ namespace Meta.Common.Model
 		/// 创建连接
 		/// </summary>
 		/// <returns></returns>
-		internal DbConnection GetConnection
+		internal DbConnection GetConnection() => GetConnectionAsync(false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+
+		/// <summary>
+		/// 创建连接
+		/// </summary>
+		/// <returns></returns>
+		internal Task<DbConnection> GetConnectionAsync(CancellationToken cancellationToken)
+			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<DbConnection>(cancellationToken) : GetConnectionAsync(true, cancellationToken);
+
+		async Task<DbConnection> GetConnectionAsync(bool async, CancellationToken cancellationToken)
 		{
-			get
-			{
-				DbConnection connection = null;
-				if (Type == DatabaseType.Postgres)
-					connection = new NpgsqlConnection(ConnectionString);
+			if (cancellationToken.IsCancellationRequested)
+				return await Task.FromCanceled<DbConnection>(cancellationToken);
 
-				if (connection == null)
-					throw new ArgumentNullException(nameof(connection));
+			DbConnection connection = null;
+			if (Type == DatabaseType.Postgres)
+				connection = new NpgsqlConnection(ConnectionString);
+
+			if (connection == null)
+				throw new ArgumentNullException(nameof(connection));
+			if (async)
 				connection.Open();
+			else
+				await connection.OpenAsync(cancellationToken);
 
-				SetDatabaseOption(connection);
-				return connection;
-			}
+			SetDatabaseOption(connection);
+			return connection;
 		}
 
 		void SetDatabaseOption(DbConnection connection)

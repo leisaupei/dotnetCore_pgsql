@@ -137,11 +137,11 @@ namespace Meta.xUnitTest
 		public void WhereConst()
 		{
 			var info = People.Select
-				  .Where(a => a.Name == "leisaupei")
-				  .ToOne();
+				.Where(a => a.Id == Guid.Empty)
+				.ToOne();
 			info = People.Select
-				 .Where(a => a.Id == Guid.Empty)
-				 .ToOne();
+				.Where(a => a.Name == "leisaupei")
+				.ToOne();
 			Assert.Equal("leisaupei", info.Name);
 		}
 		[Fact]

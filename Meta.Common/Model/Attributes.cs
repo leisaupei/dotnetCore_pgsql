@@ -11,4 +11,10 @@ namespace Meta.Common.Model
 		public string TableName { get; set; }
 		public DbTableAttribute(string tableName) => TableName = tableName;
 	}
+	[AttributeUsage(AttributeTargets.Class, Inherited = true)]
+	public class DbNameAttribute : Attribute
+	{
+		public string DbName { get; set; }
+		public DbNameAttribute(string dbName) => DbName = dbName;
+	}
 }

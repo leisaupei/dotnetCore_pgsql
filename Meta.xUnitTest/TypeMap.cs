@@ -217,7 +217,7 @@ namespace Meta.xUnitTest
 		public void Int8()
 		{
 			var affrows = TypeTest.Update(Guid.Empty).SetIncrement(a => a.Int8_type, 34, 0).ToRows();
-			affrows = TypeTest.Update(Guid.Empty).Set(a => a.Int8_type, People.Select.Field(b => b.Id)).ToRows();
+			affrows = TypeTest.Update(Guid.Empty).Set(a => a.Int8_type, People.Select.Count()).ToRows();
 			affrows = TypeTest.Update(Guid.Empty).Set(a => a.Int8_type, 34).ToRows();
 			Assert.True(affrows > 0);
 		}
@@ -268,9 +268,13 @@ namespace Meta.xUnitTest
 		[Fact]
 		public void Money()
 		{
+			var affrows = TypeTest.Update(Guid.Empty).Set(a => a.Money_type, 12.3M).ToRows();
+
 			// not supported of increment of postgres dbtype is money 
-			var affrows = TypeTest.Update(Guid.Empty).SetIncrement(a => a.Money_type, 12.3M, 0M).ToRows();
-			affrows = TypeTest.Update(Guid.Empty).Set(a => a.Money_type, 12.3M).ToRows();
+			Assert.Throws<PostgresException>(() =>
+			{
+				TypeTest.Update(Guid.Empty).SetIncrement(a => a.Money_type, 12.3M, 0M).ToRows();
+			});
 			Assert.True(affrows > 0);
 		}
 

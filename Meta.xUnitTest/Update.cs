@@ -19,6 +19,12 @@ namespace Meta.xUnitTest
 	[Order(4)]
 	public class Update : BaseTest
 	{
+		[Fact]
+		public void SetEnumToInt()
+		{
+			//var info = TypeTest.GetItem(Guid.Empty);
+			var affrows = TypeTest.Update(Guid.Empty).Set(a => a.Enum_type, EDataState.Õý³£).ToRows();
+		}
 
 	}
 }

@@ -459,7 +459,6 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			writer.WriteLine();
 			writer.WriteLine($"namespace {_projectName}.DAL");
 			writer.WriteLine("{");
-			writer.WriteLine($"\t[DbTable(\"{TableName}\")]");
 			writer.WriteLine($"\tpublic sealed partial class {DalClassName} : SelectBuilder<{DalClassName}, {ModelClassName}>");
 			writer.WriteLine("\t{");
 
@@ -502,45 +501,13 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 		/// <param name="writer"></param>
 		void PropertiesGenerator(StreamWriter writer)
 		{
-			//StringBuilder sb_field = new StringBuilder();
-			//StringBuilder sb_param = new StringBuilder();
-			//StringBuilder sb_query = new StringBuilder();
-			//for (int i = 0; i < _fieldList.Count; i++)
-			//{
-			//	var item = _fieldList[i];
-			//	if (item.IsIdentity) continue;
-			//	if (item.DbType == "geometry")
-			//	{
-			//		sb_query.AppendFormat("ST_X(a.{0}) as {0}_x, ST_Y(a.{0}) as {0}_y, ST_SRID(a.{0}) as {0}_srid", item.Field);
-			//		sb_field.Append($"{item.Field}");
-			//		sb_param.AppendFormat("ST_GeomFromText(@{0}_point0, @{0}_srid0)", item.Field);
-			//	}
-			//	else
-			//	{
-			//		sb_query.Append($"a.{item.Field}");
-			//		sb_field.Append($"{item.Field}");
-			//		sb_param.Append($"@{item.Field}");
-			//	}
-			//	if (_fieldList.Count > i + 1)
-			//	{
-			//		sb_field.Append(", ");
-			//		sb_param.Append(", ");
-			//		sb_query.Append(", ");
-			//	}
-			//}
-
 			string parameterCount = string.Empty;
 			for (int i = 0; i < _pkList.Count; i++)
 			{
 				parameterCount += string.Concat("_{", i, "}");
 			}
 			writer.WriteLine("\t\tpublic const string CacheKey = \"{0}\";", string.Concat(_projectName.Replace('.', '_').ToLower(), "_model_", ModelClassName.ToLower(), parameterCount));
-			//if (_isGeometryTable)
-			//{
-			//	writer.WriteLine($"\t\tconst string _field = \"{sb_query.ToString()}\";");
-			//	writer.WriteLine("\t\tprivate {0}() {{ Fields = _field; }}", DalClassName);
-			//}
-			//else
+
 			writer.WriteLine("\t\tprivate {0}() {{ }}", DalClassName);
 			writer.WriteLine("\t\tpublic static {0} Select => new {0}(){1};", DalClassName, DataSelectString);
 			writer.WriteLine("\t\tpublic static {0} SelectDiy(string fields) => new {0} {{ Fields = fields }}{1};", DalClassName, DataSelectString);
@@ -647,7 +614,10 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			writer.WriteLine("\t\t{");
 			writer.WriteLine("\t\t\tif (model == null)");
 			writer.WriteLine("\t\t\t\tthrow new ArgumentNullException(nameof(model));");
-			writer.WriteLine($"\t\t\treturn InsertDiy");
+			if (_fieldList.Count == 0)
+				writer.WriteLine($"\t\t\treturn InsertDiy;");
+			else
+				writer.WriteLine($"\t\t\treturn InsertDiy");
 			for (int i = 0; i < _fieldList.Count; i++)
 			{
 				FieldInfo item = _fieldList[i];
@@ -659,10 +629,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 				if (item.DbType == "geometry")
 				{
 					writer.WriteLine($"\t\t\t\t.Set(a => a.{item.Field.ToUpperPascal()}, model.{item.Field.ToUpperPascal()}{SetInsertDefaultValue(item.Field, item.CSharpType, item.IsNotNull)}){end}");
-					//writer.WriteLine($"\t\t\t{valuename}.Set(\"{item.Field}_point0\", $\"POINT({{model.{item.Field.ToUpperPascal()}_x}} {{model.{item.Field.ToUpperPascal()}_y}})\", -1);");
-					//writer.WriteLine($"\t\t\t{valuename}.Set(\"{item.Field}_srid0\", model.{item.Field.ToUpperPascal()}_srid, -1);");
-					//writer.WriteLine($"\t\t\t\t.Set(\"{item.Field}\", \"ST_GeomFromText(@{item.Field}_point0, @{item.Field}_srid0)\",");
-					//writer.WriteLine($"\t\t\t\tnew[] {{ new NpgsqlParameter(\"{item.Field}_point0\", $\"POINT({{model.{item.Field.ToUpperPascal()}_x}} {{model.{item.Field.ToUpperPascal()}_y}})\"),new NpgsqlParameter(\"{item.Field}_srid0\", model.{item.Field.ToUpperPascal()}_srid) }}){end}");
+
 				}
 			}
 			writer.WriteLine("\t\t}");

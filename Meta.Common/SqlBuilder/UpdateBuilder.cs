@@ -42,7 +42,7 @@ namespace Meta.Common.SqlBuilder
 		/// <param name="selector">key selector</param>
 		/// <param name="sqlBuilder">SQL语句</param>
 		/// <returns></returns>
-		public UpdateBuilder<TModel> Set(Expression<Func<TModel, object>> selector, ISqlBuilder sqlBuilder)
+		public UpdateBuilder<TModel> Set(Expression<Func<TModel, object>> selector, [DisallowNull]ISqlBuilder sqlBuilder)
 		{
 			var exp = string.Concat(SqlExpressionVisitor.Instance.VisitSingleForNoAlias(selector).SqlText, " = ", $"({sqlBuilder.CommandText})");
 			AddParameters(sqlBuilder.Params);
@@ -87,6 +87,31 @@ namespace Meta.Common.SqlBuilder
 		}
 
 		/// <summary>
+		/// 设置整型等于一个枚举
+		/// </summary>
+		/// <param name="selector">字段key selector</param>
+		/// <param name="value">value</param>
+		/// <returns></returns>
+		private UpdateBuilder<TModel> Set<TKey>(Expression<Func<TModel, TKey>> selector, [DisallowNull]Enum value) where TKey : IFormattable
+			=> Set(selector, (TKey)Convert.ChangeType(value, typeof(TKey)));
+
+		/// <summary>
+		/// 设置整型等于一个枚举
+		/// </summary>
+		/// <param name="selector">字段key selector</param>
+		/// <param name="value">value</param>
+		/// <returns></returns>
+		private UpdateBuilder<TModel> Set<TKey>(Expression<Func<TModel, TKey?>> selector, Enum value) where TKey : struct, IFormattable
+		{
+			var field = SqlExpressionVisitor.Instance.VisitSingleForNoAlias(selector).SqlText;
+			if (value == null)
+				return AddSetExpression(string.Format("{0} = null", field));
+
+			AddParameterT((TKey)Convert.ChangeType(value, typeof(TKey)), out string valueIndex);
+			return AddSetExpression(string.Format("{0} = @{1}", field, valueIndex));
+		}
+
+		/// <summary>
 		/// 设置一个字段值(可空类型)
 		/// </summary>
 		/// <typeparam name="TKey">字段类型</typeparam>
@@ -98,10 +123,8 @@ namespace Meta.Common.SqlBuilder
 			var field = SqlExpressionVisitor.Instance.VisitSingleForNoAlias(selector).SqlText;
 			if (value == null)
 				return AddSetExpression(string.Format("{0} = null", field));
-
 			AddParameterT(value.Value, out string valueIndex);
 			return AddSetExpression(string.Format("{0} = @{1}", field, valueIndex));
-
 		}
 
 		/// <summary>
