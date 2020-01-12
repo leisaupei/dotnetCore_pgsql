@@ -396,7 +396,7 @@ namespace Meta.xUnitTest
 			var xml = new XmlDocument();
 			xml.LoadXml("<type>xxx</type>");
 			var str = xml.InnerXml;
-			var affrows = TypeTest.Update(Guid.Empty).Set(a => a.Xml_type, null).ToRows();
+			var affrows = TypeTest.Update(Guid.Empty).Set(a => a.Xml_type, xml).ToRows();
 			var info = TypeTest.Select.Where(a => a.Id == Guid.Empty).ToOne();
 			Assert.True(affrows > 0);
 
@@ -415,25 +415,6 @@ namespace Meta.xUnitTest
 		{
 			var info = TypeTest.GetItem(Guid.Empty);
 			info = TypeTest.GetItem(Guid.Empty);
-		}
-		[Fact]
-		public void Geometry()
-		{
-			PostgisGeometry point = new PostgisPoint(1, 2)
-			{
-				SRID = 4326
-			};
-			var ClrTypes = new[]
-						{
-						typeof(PostgisGeometry),
-						typeof(PostgisPoint),
-						typeof(PostgisMultiPoint),
-						typeof(PostgisLineString),
-						typeof(PostgisMultiLineString),
-						typeof(PostgisPolygon),
-						typeof(PostgisMultiPolygon),
-						typeof(PostgisGeometryCollection),
-					};
 		}
 	}
 }

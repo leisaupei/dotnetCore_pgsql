@@ -185,7 +185,7 @@ WHERE ns.nspname || '.' || a.typname not in ({Types.ConvertArrayToSql(notCreateC
 			_sbConstTypeName.AppendFormat("\t\t/// <summary>\n\t\t/// {0}主库\n\t\t/// </summary>\n", TypeName);
 			_sbConstTypeName.AppendFormat("\t\tpublic const string {0}Master = \"{1}\";\n", TypeName.ToUpperPascal(), _typeName.ToLower());
 			_sbConstTypeName.AppendFormat("\t\t/// <summary>\n\t\t/// {0}从库\n\t\t/// </summary>\n", TypeName);
-			_sbConstTypeName.AppendFormat("\t\tpublic const string {0}Slave = \"{1}\";\n", TypeName.ToUpperPascal(), _typeName.ToLower() + BaseDbOption.SlaveSuffix);
+			_sbConstTypeName.AppendFormat("\t\tpublic const string {0}Slave = \"{1}\";\n", TypeName.ToUpperPascal(), _typeName.ToLower() + PgsqlHelper.SlaveSuffix);
 
 			_sbConstTypeConstrutor.AppendFormat("\t\t#region {0}\n", _typeName);
 			_sbConstTypeConstrutor.AppendFormat("\t\tpublic class {0}DbOption : BaseDbOption\n", _typeName.ToUpperPascal());

@@ -1,9 +1,11 @@
 ﻿using Meta.Common.DbHelper;
+using Meta.Common.Interface;
 using Meta.Common.Model;
 using Meta.Common.SqlBuilder;
 using Meta.Postgres.Generator.CodeFactory.DAL;
 using Meta.Postgres.Generator.CodeFactory.Extension;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,6 +13,8 @@ using System.Linq;
 using System.Text;
 namespace Meta.Postgres.Generator.CodeFactory
 {
+	public struct DbMaster : IDbName { }
+	public struct DbSlave : IDbName { }
 	/// <summary>
 	/// 
 	/// </summary>
@@ -32,7 +36,10 @@ namespace Meta.Postgres.Generator.CodeFactory
 		public static void Produce(GenerateModel model)
 		{
 			Console.OutputEncoding = Encoding.UTF8;
-			PgsqlHelper.InitDBConnectionOption(new BaseDbOption("master", model.ConnectionString, null, new LoggerFactory().CreateLogger<BaseDbOption>()));
+			var dboptions = new IDbOption[] {
+				new BaseDbOption<DbMaster, DbSlave>(model.ConnectionString, null, new LoggerFactory().CreateLogger<BaseDbOption<DbMaster, DbSlave>>())
+			};
+			PgsqlHelper.InitDBConnectionOption<DbMaster>(dboptions);
 			Build(model);
 			Console.WriteLine("Done...");
 		}

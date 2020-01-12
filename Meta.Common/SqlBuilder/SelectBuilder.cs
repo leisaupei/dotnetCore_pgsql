@@ -831,9 +831,9 @@ namespace Meta.Common.SqlBuilder
 		/// <param name="timeout"></param>
 		/// <param name="func"></param>
 		/// <returns></returns>
-		protected static int InsertMultiple(IEnumerable<TModel> models, IEnumerable<ISqlBuilder> sqlbuilders, string dbName, int timeout, Func<TModel, string> func)
+		protected static int InsertMultiple<TDbName>(IEnumerable<TModel> models, IEnumerable<ISqlBuilder> sqlbuilders, string dbName, int timeout, Func<TModel, string> func) where TDbName : struct, IDbName
 		{
-			var rows = PgsqlHelper.ExecuteDataReaderPipe(sqlbuilders, type: dbName).OfType<int>();
+			var rows = PgsqlHelper<TDbName>.ExecuteDataReaderPipe(sqlbuilders).OfType<int>();
 			if (timeout != 0)
 				RedisHelper.StartPipe(h =>
 				{

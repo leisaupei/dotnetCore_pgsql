@@ -11,10 +11,9 @@ using Meta.Common.Interface;
 
 namespace Meta.xUnitTest.Options
 {
+	public struct DbMaster : IDbName { }
 
-	[DbName("master")] public class DNMaster : IDbName { }
-
-	[DbName("master-slave")] public class DNSlave : IDbName { }
+	public struct DbMasterSlave : IDbName { }
 	/// <summary>
 	/// 由生成器生成, 会覆盖
 	/// </summary>
@@ -30,11 +29,22 @@ namespace Meta.xUnitTest.Options
 		/// </summary>
 		public const string Slave = "master-slave";
 		#endregion
+		private readonly static DbConnectionOptions MasterConnectionOptions = new DbConnectionOptions
+		{
+			MapAction = conn =>
+			{
+				conn.TypeMapper.UseJsonNetForJtype();
+				conn.TypeMapper.UseCustomXml();
+				conn.TypeMapper.MapEnum<EtDataState>("public.et_data_state", _translator);
+				conn.TypeMapper.MapEnum<EDataState>("public.e_data_state", _translator);
+				conn.TypeMapper.MapComposite<Info>("public.info");
+			}
+		};
 
 		#region Master
-		public class MasterDbOption : BaseDbOption
+		public class MasterDbOption : BaseDbOption<DbMaster, DbMasterSlave>
 		{
-			public MasterDbOption(string masterConnectionString, string[] slaveConnectionStrings, ILogger logger) : base(Master, masterConnectionString, slaveConnectionStrings, logger)
+			public MasterDbOption(string masterConnectionString, string[] slaveConnectionStrings, ILogger logger) : base(masterConnectionString, slaveConnectionStrings, logger)
 			{
 				Options.MapAction = conn =>
 				{

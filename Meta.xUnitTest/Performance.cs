@@ -40,7 +40,8 @@ namespace Meta.xUnitTest
 		[Fact]
 		public async Task TestAsync()
 		{
-			var affrows = await PgsqlHelper.ExecuteNonQueryAsync("update people set age = 2 where id = '5ef5a598-e4a1-47b3-919e-4cc1fdd97757';");
+			var affrows = PgsqlHelper<DbMaster>.ExecuteScalar("update people set age = 2 where id = '5ef5a598-e4a1-47b3-919e-4cc1fdd97757';");
+			PgsqlHelper.ExecuteScalar("update people set age = 2 where id = '5ef5a598-e4a1-47b3-919e-4cc1fdd97757';");
 
 		}
 	}

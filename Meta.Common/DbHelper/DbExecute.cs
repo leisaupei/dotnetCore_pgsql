@@ -1,4 +1,6 @@
-﻿using Meta.Common.Model;
+﻿using Meta.Common.Extensions;
+using Meta.Common.Interface;
+using Meta.Common.Model;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using System;
@@ -6,6 +8,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -46,31 +49,31 @@ namespace Meta.Common.DbHelper
 		/// <summary>
 		/// 返回一行数据
 		/// </summary>
-		public object ExecuteScalar(string cmdText, CommandType cmdType, DbParameter[] cmdParams)
+		internal object ExecuteScalar(string cmdText, CommandType cmdType, DbParameter[] cmdParams)
 			=> ExecuteScalarAsync(cmdText, cmdType, cmdParams, false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		/// <summary>
 		/// 返回一行数据
 		/// </summary>
-		public Task<object> ExecuteScalarAsync(string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
+		internal Task<object> ExecuteScalarAsync(string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
 			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<object>(cancellationToken) : ExecuteScalarAsync(cmdText, cmdType, cmdParams, true, cancellationToken).AsTask();
 
 		/// <summary>
 		/// 执行sql语句
 		/// </summary>
-		public int ExecuteNonQuery(string cmdText, CommandType cmdType, DbParameter[] cmdParams)
+		internal int ExecuteNonQuery(string cmdText, CommandType cmdType, DbParameter[] cmdParams)
 			=> ExecuteNonQueryAsync(cmdText, cmdType, cmdParams, false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		/// <summary>
 		/// 执行sql语句
 		/// </summary>
-		public Task<int> ExecuteNonQueryAsync(string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
+		internal Task<int> ExecuteNonQueryAsync(string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
 			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<int>(cancellationToken) : ExecuteNonQueryAsync(cmdText, cmdType, cmdParams, true, cancellationToken).AsTask();
 
 		/// <summary>
 		/// 读取数据库reader
 		/// </summary>
-		public void ExecuteDataReader(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams)
+		internal void ExecuteDataReader(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams)
 			=> ExecuteDataReaderBaseAsync(dr =>
 			{
 				while (dr.Read())
@@ -81,7 +84,7 @@ namespace Meta.Common.DbHelper
 		/// <summary>
 		/// 读取数据库reader
 		/// </summary>
-		public Task ExecuteDataReaderAsync(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
+		internal Task ExecuteDataReaderAsync(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
 			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken)
 			: ExecuteDataReaderBaseAsync(async dr =>
 			{
@@ -93,14 +96,14 @@ namespace Meta.Common.DbHelper
 		/// <summary>
 		/// 读取数据库reader
 		/// </summary>
-		public void ExecuteDataReaderBase(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams)
-			=> ExecuteDataReaderBaseAsync(action, cmdText, cmdType, cmdParams, false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+		void ExecuteDataReaderBase(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams)
+		   => ExecuteDataReaderBaseAsync(action, cmdText, cmdType, cmdParams, false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		/// <summary>
 		/// 读取数据库reader
 		/// </summary>
-		public Task ExecuteDataReaderBaseAsync(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : ExecuteDataReaderBaseAsync(action, cmdText, cmdType, cmdParams, true, cancellationToken).AsTask();
+		Task ExecuteDataReaderBaseAsync(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
+		   => cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : ExecuteDataReaderBaseAsync(action, cmdText, cmdType, cmdParams, true, cancellationToken).AsTask();
 
 		async ValueTask ExecuteDataReaderBaseAsync(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams, bool async, CancellationToken cancellationToken)
 		{
@@ -207,9 +210,150 @@ namespace Meta.Common.DbHelper
 		}
 
 		/// <summary>
+		/// 查询一行(helper类包装)
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="cmdText"></param>
+		/// <param name="cmdType"></param>
+		/// <param name="cmdParams"></param>
+		/// <param name="async"></param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		internal async Task<T> ExecuteDataReaderModelAsync<T>(string cmdText, CommandType cmdType, DbParameter[] cmdParams, bool async, CancellationToken cancellationToken)
+		{
+			var list = await ExecuteDataReaderListAsync<T>(cmdText, cmdType, cmdParams, async, cancellationToken);
+			return list.Count > 0 ? list[0] : default;
+		}
+
+		/// <summary>
+		/// 查询多行(helper类包装)
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="cmdText"></param>
+		/// <param name="cmdType"></param>
+		/// <param name="cmdParams"></param>
+		/// <param name="async"></param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		internal async Task<List<T>> ExecuteDataReaderListAsync<T>(string cmdText, CommandType cmdType, DbParameter[] cmdParams, bool async, CancellationToken cancellationToken)
+		{
+			var list = new List<T>();
+			if (async)
+				await ExecuteDataReaderAsync(dr =>
+				{
+					list.Add(dr.ReaderToModel<T>());
+				}, cmdText, cmdType, cmdParams, cancellationToken);
+			else
+				ExecuteDataReader(dr =>
+				{
+					list.Add(dr.ReaderToModel<T>());
+				}, cmdText, cmdType, cmdParams);
+			return list;
+		}
+
+		/// <summary>
+		/// 事务(helper类包装)
+		/// </summary>
+		/// <param name="action"></param>
+		/// <param name="async"></param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		internal async Task TransactionAsync(Action action, bool async, CancellationToken cancellationToken)
+		{
+			if (action == null)
+				throw new ArgumentNullException(nameof(action));
+
+			try
+			{
+				if (async) await BeginTransactionAsync(cancellationToken);
+				else BeginTransaction();
+
+				action?.Invoke();
+
+				if (async) await CommitTransactionAsync(cancellationToken);
+				else CommitTransaction();
+			}
+			catch (Exception e)
+			{
+				if (async) await RollBackTransactionAsync(cancellationToken);
+				else RollBackTransaction();
+				throw e;
+			}
+		}
+
+		/// <summary>
+		/// 管道(helper类包装)
+		/// </summary>
+		/// <param name="builders"></param>
+		/// <param name="cmdType"></param>
+		/// <param name="async"></param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		internal async Task<object[]> ExecuteDataReaderPipeAsync(IEnumerable<ISqlBuilder> builders, CommandType cmdType, bool async, CancellationToken cancellationToken)
+		{
+			if (builders?.Any() != true)
+				throw new ArgumentNullException(nameof(builders));
+
+			object[] results = new object[builders.Count()];
+			var paras = new List<DbParameter>();
+			var cmdText = new StringBuilder();
+			foreach (var item in builders)
+			{
+				paras.AddRange(item.Params);
+				cmdText.Append(item.CommandText).AppendLine(";");
+			}
+			if (async)
+				await ExecuteDataReaderBaseAsync(async dr =>
+				{
+					for (int i = 0; i < results.Length; i++)
+					{
+						var item = builders.ElementAt(i);
+						List<object> list = new List<object>();
+						while (await dr.ReadAsync(cancellationToken))
+							list.Add(dr.ReaderToModel(item.Type));
+
+						results[i] = GetResult(dr, item, list);
+
+						await dr.NextResultAsync();
+					}
+				}, cmdText.ToString(), cmdType, paras.ToArray(), cancellationToken);
+			else
+				ExecuteDataReaderBase(dr =>
+				{
+					for (int i = 0; i < results.Length; i++)
+					{
+						var item = builders.ElementAt(i);
+						List<object> list = new List<object>();
+						while (dr.Read())
+							list.Add(dr.ReaderToModel(item.Type));
+
+						results[i] = GetResult(dr, item, list);
+
+						dr.NextResult();
+					}
+				}, cmdText.ToString(), cmdType, paras.ToArray());
+
+			static object GetResult(DbDataReader dr, ISqlBuilder item, List<object> list)
+			{
+				return item.ReturnType switch
+				{
+					var t when t == PipeReturnType.List =>
+						list.ToArray(),
+					var t when t == PipeReturnType.One =>
+						list.Count > 0 ? list[0] : item.Type.IsTuple() ? Activator.CreateInstance(item.Type) : default, // 返回默认值
+					var t when t == PipeReturnType.Rows =>
+						dr.RecordsAffected,
+					_ => throw new ArgumentException("ReturnType is wrong", nameof(item.ReturnType)),
+				};
+			}
+
+			return results;
+		}
+
+		/// <summary>
 		/// 抛出异常
 		/// </summary>
-		public void ThrowException(DbCommand cmd, Exception ex)
+		void ThrowException(DbCommand cmd, Exception ex)
 		{
 			ex.Data["ConnectionString"] = cmd?.Connection.ConnectionString;
 			string str = string.Empty;
@@ -252,13 +396,13 @@ namespace Meta.Common.DbHelper
 		/// <summary>
 		/// 开启事务
 		/// </summary>
-		public void BeginTransaction()
+		internal void BeginTransaction()
 			=> BeginTransactionAsync(false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		/// <summary>
 		/// 开启事务
 		/// </summary>
-		public Task BeginTransactionAsync(CancellationToken cancellationToken)
+		internal Task BeginTransactionAsync(CancellationToken cancellationToken)
 			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : BeginTransactionAsync(true, cancellationToken).AsTask();
 
 		async ValueTask BeginTransactionAsync(bool async, CancellationToken cancellationToken)
@@ -275,24 +419,24 @@ namespace Meta.Common.DbHelper
 		/// <summary>
 		/// 确认事务
 		/// </summary>
-		public void CommitTransaction()
+		internal void CommitTransaction()
 			=> CommitTransactionAsync(false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		/// <summary>
 		/// 确认事务
 		/// </summary>
-		public Task CommitTransactionAsync(CancellationToken cancellationToken)
+		internal Task CommitTransactionAsync(CancellationToken cancellationToken)
 			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : CommitTransactionAsync(false, CancellationToken.None).AsTask();
 
 		/// <summary>
 		/// 回滚事务
 		/// </summary>
-		public void RollBackTransaction()
+		internal void RollBackTransaction()
 			=> RollBackTransactionAsync(false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 		/// <summary>
 		/// 回滚事务
 		/// </summary>
-		public Task RollBackTransactionAsync(CancellationToken cancellationToken)
+		internal Task RollBackTransactionAsync(CancellationToken cancellationToken)
 			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : RollBackTransactionAsync(false, CancellationToken.None).AsTask();
 
 		async ValueTask CommitTransactionAsync(bool async, CancellationToken cancellationToken)

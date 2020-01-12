@@ -106,6 +106,8 @@ ORDER BY typname;
 
 		public override ValueTask<XmlDocument> Read(NpgsqlReadBuffer buf, int len, bool async, FieldDescription fieldDescription = null)
 		{
+			if (len == 0)
+				return new ValueTask<XmlDocument>(result: null);
 			var xmlStr = buf.ReadString(len);
 			var xml = new XmlDocument();
 			if (string.IsNullOrEmpty(xmlStr))
@@ -120,6 +122,8 @@ ORDER BY typname;
 
 		public override Task Write(XmlDocument value, NpgsqlWriteBuffer buf, NpgsqlLengthCache lengthCache, NpgsqlParameter parameter, bool async)
 		{
+			if (value == null)
+				return buf.WriteString(null, 0, async);
 			var xmlStr = value.InnerXml;
 			var charLen = parameter == null || parameter.Size <= 0 || parameter.Size >= xmlStr.Length ? xmlStr.Length : parameter.Size;
 			return buf.WriteString(xmlStr, charLen, async);

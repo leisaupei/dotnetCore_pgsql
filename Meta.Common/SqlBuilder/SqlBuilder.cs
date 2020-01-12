@@ -9,6 +9,8 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Meta.Common.SqlBuilder
 {
@@ -30,7 +32,7 @@ namespace Meta.Common.SqlBuilder
 		/// <summary>
 		/// 设置默认数据库
 		/// </summary>
-		protected string DataType { get; set; } = "master";
+		protected string DbName { get; set; } = "Master";
 		/// <summary>
 		/// 是否返回默认值
 		/// </summary>
@@ -86,21 +88,14 @@ namespace Meta.Common.SqlBuilder
 		/// <returns></returns>
 		public TSQL Data(string type)
 		{
-			DataType = type;
+			DbName = type;
 			return This;
 		}
-		/// <summary>
-		/// 使用别名为master-slave数据库
-		/// </summary>
-		/// <returns></returns>
-		public TSQL BySlave() => Data("master-slave");
-
-		/// <summary>
-		/// 使用别名为master的数据库
-		/// </summary>
-		/// <returns></returns>
-		public TSQL ByMaster() => Data("master");
-
+		public TSQL By<TDbName>() where TDbName : struct, IDbName
+		{
+			DbName = nameof(TDbName);
+			return This;
+		}
 		/// <summary>
 		/// 添加参数
 		/// </summary>
@@ -182,21 +177,61 @@ namespace Meta.Common.SqlBuilder
 		/// 返回第一个元素
 		/// </summary>
 		/// <returns></returns>
-		protected object ToScalar() => PgsqlHelper.ExecuteScalar(CommandText, CommandType.Text, Params.ToArray(), DataType);
+		protected object ToScalar()
+			=> PgsqlHelper.GetExecute(DbName).ExecuteScalar(CommandText, CommandType.Text, Params.ToArray());
+
+		/// <summary>
+		/// 返回第一个元素
+		/// </summary>
+		/// <returns></returns>
+		protected Task<object> ToScalarAsync(CancellationToken cancellationToken)
+			=> PgsqlHelper.GetExecute(DbName).ExecuteScalarAsync(CommandText, CommandType.Text, Params.ToArray(), cancellationToken);
 
 		/// <summary>
 		/// 返回list 
 		/// </summary>
 		/// <typeparam name="T">model type</typeparam>
 		/// <returns></returns>
-		protected List<T> ToList<T>() => PgsqlHelper.ExecuteDataReaderList<T>(CommandText, CommandType.Text, Params.ToArray(), DataType);
+		protected List<T> ToList<T>()
+			=> PgsqlHelper.GetExecute(DbName).ExecuteDataReaderListAsync<T>(CommandText, CommandType.Text, Params.ToArray(), false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+
+		/// <summary>
+		/// 返回list 
+		/// </summary>
+		/// <typeparam name="T">model type</typeparam>
+		/// <returns></returns>
+		protected Task<List<T>> ToListAsync<T>(CancellationToken cancellationToken)
+			=> PgsqlHelper.GetExecute(DbName).ExecuteDataReaderListAsync<T>(CommandText, CommandType.Text, Params.ToArray(), true, cancellationToken);
 
 		/// <summary>
 		/// 返回一个Model
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		protected T ToOne<T>() => PgsqlHelper.ExecuteDataReaderModel<T>(CommandText, CommandType.Text, Params.ToArray(), DataType);
+		protected T ToOne<T>()
+			=> PgsqlHelper.GetExecute(DbName).ExecuteDataReaderModelAsync<T>(CommandText, CommandType.Text, Params.ToArray(), false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+
+		/// <summary>
+		/// 返回一个Model
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		protected Task<T> ToOneAsync<T>(CancellationToken cancellationToken)
+			=> PgsqlHelper.GetExecute(DbName).ExecuteDataReaderModelAsync<T>(CommandText, CommandType.Text, Params.ToArray(), true, cancellationToken);
+
+		/// <summary>
+		/// 返回行数
+		/// </summary>
+		/// <returns></returns>
+		protected int ToRows()
+			=> PgsqlHelper.GetExecute(DbName).ExecuteNonQuery(CommandText, CommandType.Text, Params.ToArray());
+
+		/// <summary>
+		/// 返回行数
+		/// </summary>
+		/// <returns></returns>
+		protected Task<int> ToRowsAsync(CancellationToken cancellationToken)
+			=> PgsqlHelper.GetExecute(DbName).ExecuteNonQueryAsync(CommandText, CommandType.Text, Params.ToArray(), cancellationToken);
 
 		/// <summary>
 		/// 输出管道元素
@@ -209,12 +244,6 @@ namespace Meta.Common.SqlBuilder
 			ReturnType = returnType;
 			return This;
 		}
-
-		/// <summary>
-		/// 返回行数
-		/// </summary>
-		/// <returns></returns>
-		protected int ToRows() => PgsqlHelper.ExecuteNonQuery(CommandText, CommandType.Text, Params.ToArray(), DataType);
 
 		/// <summary>
 		/// Override ToString()

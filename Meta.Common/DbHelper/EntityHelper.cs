@@ -107,7 +107,13 @@ namespace Meta.Common.DbHelper
 				throw new ArgumentNullException(nameof(DbTableAttribute));
 			return mapping.TableName;
 		}
-
+		public static string GetDbName<T>()
+		{
+			var mapping = typeof(T).GetCustomAttribute<DbNameAttribute>();
+			if (mapping == null)
+				throw new ArgumentNullException(nameof(DbNameAttribute));
+			return mapping.DbName;
+		}
 		/// <summary>
 		/// 获取当前类字段的字符串
 		/// </summary>

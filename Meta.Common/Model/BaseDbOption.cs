@@ -1,4 +1,5 @@
-﻿using Meta.Common.Interface;
+﻿using Meta.Common.DbHelper;
+using Meta.Common.Interface;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using System;
@@ -6,60 +7,45 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Data.Common;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Meta.Common.Model
 {
-	public class BaseDbOption
+	public class BaseDbOption<TDbMaterName, TDbSlaveName> : IDbOption
+		where TDbMaterName : struct, IDbName
+		where TDbSlaveName : struct, IDbName
 	{
-		/// <summary>
-		/// 从库后缀
-		/// </summary>
-		public const string SlaveSuffix = "-slave";
-		public BaseDbOption(string typeName, string connectionString, string[] slaveConnectionStrings, ILogger logger)
-		{
-			TypeName = typeName;
-			MasterConnectionString = connectionString;
-			SlaveConnectionStrings = slaveConnectionStrings;
-			Logger = logger;
-		}
-		/// <summary>
-		/// 从库连接
-		/// </summary>
-		public string[] SlaveConnectionStrings { get; }
-		/// <summary>
-		/// logger
-		/// </summary>
-		public ILogger Logger { get; }
-		/// <summary>
-		/// 主库连接
-		/// </summary>
-		public string MasterConnectionString { get; }
-		/// <summary>
-		/// 数据库别名
-		/// </summary>
-		public string TypeName { get; }
-		/// <summary>
-		/// 数据库类型
-		/// </summary>
-		public DatabaseType Type { get; } = DatabaseType.Postgres;
-		/// <summary>
-		/// 数据库配置
-		/// </summary>
-		public DbConnectionOptions Options { get; private set; } = new DbConnectionOptions();
+		private readonly string _masterConnectionString;
+		private readonly string[] _slaveConnectionStrings;
+		private readonly ILogger _logger;
 
+		public DbConnectionOptions Options { get; set; }
+
+		public BaseDbOption(string masterConnectionString, string[] slaveConnectionStrings, ILogger logger)
+		{
+			_masterConnectionString = masterConnectionString;
+			_slaveConnectionStrings = slaveConnectionStrings;
+			_logger = logger;
+		}
+
+		DbConnectionModel IDbOption.Master => new DbConnectionModel(_masterConnectionString, _logger, DatabaseType.Postgres, nameof(TDbMaterName), Options);
+
+		DbConnectionModel[] IDbOption.Slave => _slaveConnectionStrings.Select(f => new DbConnectionModel(f, _logger, DatabaseType.Postgres, nameof(TDbMaterName), Options)).ToArray();
 	}
 	internal class DbConnectionModel
 	{
-		public DbConnectionModel(string connectionString, ILogger logger, DatabaseType type)
+		public DbConnectionModel(string connectionString, ILogger logger, DatabaseType type, string dbName, DbConnectionOptions options)
 		{
 			Logger = logger;
 			ConnectionString = connectionString;
 			Type = type;
+			DbName = dbName;
+			Options = options;
 		}
-
+		public string DbName { get; }
 		/// <summary>
 		/// logger
 		/// </summary>
@@ -75,7 +61,7 @@ namespace Meta.Common.Model
 		/// <summary>
 		/// 针对不同类型的数据库需要响应的配置
 		/// </summary>
-		public DbConnectionOptions Options { get; private set; } = new DbConnectionOptions();
+		public DbConnectionOptions Options { get; }
 		/// <summary>
 		/// 创建连接
 		/// </summary>
