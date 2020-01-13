@@ -57,7 +57,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(models));
 			var sqlbuilders = isExceptionCancel ? models.Select(f => GetInsertBuilder(f).ToRowsPipe()) :
 				models.Select(f => GetInsertBuilder(f).WhereNotExists(Select.Where(a => a.Teacher_id == f.Teacher_id && a.Student_id == f.Student_id && a.Grade_id == f.Grade_id)).ToRowsPipe());
-			return InsertMultiple(models, sqlbuilders, DbOptions.Master, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey, model.Teacher_id, model.Student_id, model.Grade_id));
+			return InsertMultiple<DbMaster>(models, sqlbuilders, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey, model.Teacher_id, model.Student_id, model.Grade_id));
 		}
 		private static InsertBuilder<ClassmateModel> GetInsertBuilder(ClassmateModel model)
 		{

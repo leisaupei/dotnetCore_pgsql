@@ -17,10 +17,12 @@ namespace Meta.Common.DbHelper
 	internal abstract class DbExecute
 	{
 		readonly DbConnectionModel _conn;
+
 		/// <summary>
 		/// 事务池
 		/// </summary>
 		readonly Dictionary<int, DbTransaction> _transPool = new Dictionary<int, DbTransaction>();
+
 		/// <summary>
 		/// constructer
 		/// </summary>

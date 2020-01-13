@@ -1,6 +1,7 @@
 ﻿using Meta.Common.DbHelper;
 using Meta.Common.Extensions;
 using Meta.xUnitTest.Model;
+using Meta.xUnitTest.Options;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -32,7 +33,10 @@ namespace Meta.xUnitTest
 			if (!IsInit)
 			{
 				var logger = new LoggerFactory();
-				PgsqlHelper.InitDBConnectionOption(new MasterDbOption(TestConnectionString, null, logger.CreateLogger<BaseTest>()));
+				var options = new[] {
+					new MasterDbOption(TestConnectionString, null, logger.CreateLogger<BaseTest>())
+				};
+				PgsqlHelper.InitDBConnectionOption<DbMaster>(options);
 				//RedisHelper.Initialization(new CSRedis.CSRedisClient("172.16.1.250:6379,defaultDatabase=13,name=weibo,password=Gworld2017,prefix=weibo,abortConnect=false"));
 				IsInit = true;
 				JsonConvert.DefaultSettings = () =>

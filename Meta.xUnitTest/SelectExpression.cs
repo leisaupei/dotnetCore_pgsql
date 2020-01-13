@@ -224,7 +224,7 @@ namespace Meta.xUnitTest
 		[Fact]
 		public void WhereFieldParameter()
 		{
-			var info = TypeTest.Select.Where(a => a.Array_type[1] == 3).ToOne();
+			var info = TypeTest.Select.Where(a => a.Array_type[1] == 1).ToOne();
 			Assert.NotNull(info);
 		}
 		[Fact]

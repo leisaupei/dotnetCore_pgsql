@@ -22,7 +22,7 @@ namespace Meta.Common.Model
 		private readonly string[] _slaveConnectionStrings;
 		private readonly ILogger _logger;
 
-		public DbConnectionOptions Options { get; set; }
+		public DbConnectionOptions Options { get; private set; } = new DbConnectionOptions();
 
 		public BaseDbOption(string masterConnectionString, string[] slaveConnectionStrings, ILogger logger)
 		{
@@ -31,9 +31,9 @@ namespace Meta.Common.Model
 			_logger = logger;
 		}
 
-		DbConnectionModel IDbOption.Master => new DbConnectionModel(_masterConnectionString, _logger, DatabaseType.Postgres, nameof(TDbMaterName), Options);
+		DbConnectionModel IDbOption.Master => new DbConnectionModel(_masterConnectionString, _logger, DatabaseType.Postgres, typeof(TDbMaterName).Name, Options);
 
-		DbConnectionModel[] IDbOption.Slave => _slaveConnectionStrings.Select(f => new DbConnectionModel(f, _logger, DatabaseType.Postgres, nameof(TDbMaterName), Options)).ToArray();
+		DbConnectionModel[] IDbOption.Slave => _slaveConnectionStrings?.Select(f => new DbConnectionModel(f, _logger, DatabaseType.Postgres, typeof(TDbSlaveName).Name, Options)).ToArray();
 	}
 	internal class DbConnectionModel
 	{
@@ -87,9 +87,9 @@ namespace Meta.Common.Model
 			if (connection == null)
 				throw new ArgumentNullException(nameof(connection));
 			if (async)
-				connection.Open();
-			else
 				await connection.OpenAsync(cancellationToken);
+			else
+				connection.Open();
 
 			SetDatabaseOption(connection);
 			return connection;
@@ -98,7 +98,7 @@ namespace Meta.Common.Model
 		void SetDatabaseOption(DbConnection connection)
 		{
 			if (Type == DatabaseType.Postgres)
-				Options.MapAction?.Invoke((NpgsqlConnection)connection);
+				Options?.MapAction?.Invoke((NpgsqlConnection)connection);
 		}
 	}
 	public class DbConnectionOptions

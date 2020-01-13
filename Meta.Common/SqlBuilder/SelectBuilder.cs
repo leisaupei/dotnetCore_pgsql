@@ -827,11 +827,10 @@ namespace Meta.Common.SqlBuilder
 		/// </summary>
 		/// <param name="models"></param>
 		/// <param name="sqlbuilders"></param>
-		/// <param name="dbName"></param>
 		/// <param name="timeout"></param>
 		/// <param name="func"></param>
 		/// <returns></returns>
-		protected static int InsertMultiple<TDbName>(IEnumerable<TModel> models, IEnumerable<ISqlBuilder> sqlbuilders, string dbName, int timeout, Func<TModel, string> func) where TDbName : struct, IDbName
+		protected static int InsertMultiple<TDbName>(IEnumerable<TModel> models, IEnumerable<ISqlBuilder> sqlbuilders, int timeout, Func<TModel, string> func) where TDbName : struct, IDbName
 		{
 			var rows = PgsqlHelper<TDbName>.ExecuteDataReaderPipe(sqlbuilders).OfType<int>();
 			if (timeout != 0)

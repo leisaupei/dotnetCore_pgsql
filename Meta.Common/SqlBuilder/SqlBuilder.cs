@@ -32,7 +32,7 @@ namespace Meta.Common.SqlBuilder
 		/// <summary>
 		/// 设置默认数据库
 		/// </summary>
-		protected string DbName { get; set; } = "Master";
+		protected string DbName { get; set; } = "DbMaster";
 		/// <summary>
 		/// 是否返回默认值
 		/// </summary>

@@ -33,9 +33,9 @@ namespace Meta.Postgres.Generator.CodeFactory.DAL
 		/// </summary>
 		static string _typeName = string.Empty;
 
-		static StringBuilder _sbConstTypeName = new StringBuilder();
+		static readonly StringBuilder _sbConstTypeName = new StringBuilder();
 
-		static StringBuilder _sbConstTypeConstrutor = new StringBuilder();
+		static readonly StringBuilder _sbConstTypeConstrutor = new StringBuilder();
 		/// <summary>
 		/// 生成枚举数据库枚举类型(覆盖生成)
 		/// </summary>
@@ -182,15 +182,15 @@ WHERE ns.nspname || '.' || a.typname not in ({Types.ConvertArrayToSql(notCreateC
 		/// <param name="listComposite"></param>
 		public static void GenerateMapping(List<EnumTypeInfo> list, List<CompositeTypeInfo> listComposite)
 		{
-			_sbConstTypeName.AppendFormat("\t\t/// <summary>\n\t\t/// {0}主库\n\t\t/// </summary>\n", TypeName);
-			_sbConstTypeName.AppendFormat("\t\tpublic const string {0}Master = \"{1}\";\n", TypeName.ToUpperPascal(), _typeName.ToLower());
-			_sbConstTypeName.AppendFormat("\t\t/// <summary>\n\t\t/// {0}从库\n\t\t/// </summary>\n", TypeName);
-			_sbConstTypeName.AppendFormat("\t\tpublic const string {0}Slave = \"{1}\";\n", TypeName.ToUpperPascal(), _typeName.ToLower() + PgsqlHelper.SlaveSuffix);
+			_sbConstTypeName.AppendFormat("\t/// <summary>\n\t/// {0}主库\n\t/// </summary>\n", TypeName);
+			_sbConstTypeName.AppendFormat("\tpublic struct Db{0} : IDbName {{ }}\n", _typeName.ToUpperPascal());
+			_sbConstTypeName.AppendFormat("\t/// <summary>\n\t/// {0}从库\n\t/// </summary>\n", TypeName);
+			_sbConstTypeName.AppendFormat("\tpublic struct Db{0} : IDbName {{ }}\n", _typeName.ToUpperPascal() + PgsqlHelper.SlaveSuffix);
 
 			_sbConstTypeConstrutor.AppendFormat("\t\t#region {0}\n", _typeName);
-			_sbConstTypeConstrutor.AppendFormat("\t\tpublic class {0}DbOption : BaseDbOption\n", _typeName.ToUpperPascal());
+			_sbConstTypeConstrutor.AppendFormat("\t\tpublic class {0}DbOption : BaseDbOption<Db{0}, Db{1}>\n", _typeName.ToUpperPascal(), _typeName.ToUpperPascal() + PgsqlHelper.SlaveSuffix);
 			_sbConstTypeConstrutor.AppendLine("\t\t{");
-			_sbConstTypeConstrutor.AppendFormat("\t\t\tpublic {0}DbOption(string masterConnectionString, string[] slaveConnectionStrings, ILogger logger) : base({1}Master, masterConnectionString, slaveConnectionStrings, logger)\n", _typeName.ToUpperPascal(), TypeName);
+			_sbConstTypeConstrutor.AppendFormat("\t\t\tpublic {0}DbOption(string masterConnectionString, string[] slaveConnectionStrings, ILogger logger) : base(masterConnectionString, slaveConnectionStrings, logger)\n", _typeName.ToUpperPascal(), TypeName);
 			_sbConstTypeConstrutor.AppendLine("\t\t\t{");
 			_sbConstTypeConstrutor.AppendLine("\t\t\t\tOptions.MapAction = conn =>");
 			_sbConstTypeConstrutor.AppendLine("\t\t\t\t{");
@@ -224,17 +224,18 @@ WHERE ns.nspname || '.' || a.typname not in ({Types.ConvertArrayToSql(notCreateC
 				writer.WriteLine("using Npgsql.TypeMapping;");
 				writer.WriteLine("using Meta.Common.Extensions;");
 				writer.WriteLine("using Npgsql;");
+				writer.WriteLine("using Meta.Common.Interface; ");
 				writer.WriteLine();
 				writer.WriteLine($"namespace {_projectName}.Options");
 				writer.WriteLine("{");
+				writer.WriteLine("\t#region DbTypeName");
+				writer.Write(_sbConstTypeName);
+				writer.WriteLine("\t#endregion");
 				writer.WriteLine($"\t/// <summary>");
 				writer.WriteLine($"\t/// 由生成器生成, 会覆盖");
 				writer.WriteLine($"\t/// </summary>");
 				writer.WriteLine($"\tpublic static class DbOptions");
 				writer.WriteLine("\t{");
-				writer.WriteLine("\t\t#region DbTypeName");
-				writer.Write(_sbConstTypeName);
-				writer.WriteLine("\t\t#endregion");
 				writer.WriteLine();
 				writer.Write(_sbConstTypeConstrutor);
 				writer.WriteLine("\t\t#region Private Method And Field");

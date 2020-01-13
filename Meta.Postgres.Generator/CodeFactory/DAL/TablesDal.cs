@@ -86,7 +86,7 @@ namespace Meta.Postgres.Generator.CodeFactory.DAL
 		/// <summary>
 		/// 多库枚举 *需要在目标项目添加枚举以及创建该库实例
 		/// </summary>
-		string DataSelectString => _dataBaseTypeName == GenerateModel.MASTER_DATABASE_TYPE_NAME ? "" : $".Data(DbOptions.{_dataBaseTypeName}Master)";
+		string DataSelectString => _dataBaseTypeName == GenerateModel.MASTER_DATABASE_TYPE_NAME ? "" : $".By<Db{_dataBaseTypeName}>()";
 		/// <summary>
 		/// Model名称
 		/// </summary>
@@ -112,7 +112,7 @@ namespace Meta.Postgres.Generator.CodeFactory.DAL
 		/// <param name="type"></param>
 		public TablesDal(string projectName, string modelPath, string dalPath, string schemaName, TableViewModel table, string type)
 		{
-			_dataBaseTypeName = type;
+			_dataBaseTypeName = type.ToUpperPascal();
 			_projectName = projectName;
 			_modelPath = modelPath;
 			_dalPath = dalPath;
@@ -608,7 +608,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			writer.WriteLine("\t\t\t\tthrow new ArgumentNullException(nameof(models));");
 			writer.WriteLine("\t\t\tvar sqlbuilders = isExceptionCancel ? models.Select(f => GetInsertBuilder(f).ToRowsPipe()) :");
 			writer.WriteLine("\t\t\t\tmodels.Select(f => GetInsertBuilder(f).WhereNotExists(Select{0}).ToRowsPipe());", where);
-			writer.WriteLine("\t\t\treturn InsertMultiple(models, sqlbuilders, DbOptions.{0}Master, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey{1}));", ModelDalSuffix, string.Concat(_pkList.Select(f => $", model.{f.Field.ToUpperPascal()}")));
+			writer.WriteLine("\t\t\treturn InsertMultiple<Db{0}>(models, sqlbuilders, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey{1}));", _dataBaseTypeName, string.Concat(_pkList.Select(f => $", model.{f.Field.ToUpperPascal()}")));
 			writer.WriteLine("\t\t}");
 			writer.WriteLine("\t\tprivate static InsertBuilder<{0}> GetInsertBuilder({0} model)", ModelClassName);
 			writer.WriteLine("\t\t{");

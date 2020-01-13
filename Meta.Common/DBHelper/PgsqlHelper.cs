@@ -21,7 +21,7 @@ namespace Meta.Common.DbHelper
 	/// <typeparam name="TDbName">库名</typeparam>
 	public class PgsqlHelper<TDbName> : PgsqlHelper where TDbName : struct, IDbName
 	{
-		private static string GetDbName => nameof(TDbName);
+		private static string GetDbName => typeof(TDbName).Name;
 
 		/// <summary>
 		/// 查询单个元素
@@ -286,7 +286,7 @@ namespace Meta.Common.DbHelper
 		/// <exception cref="ArgumentOutOfRangeException"></exception>
 		public static void InitDBConnectionOption<TDefaultDbName>(IDbOption[] options, bool useMasterIfSlaveIsEmpty = false) where TDefaultDbName : struct, IDbName
 		{
-			_defaultDbName = nameof(TDefaultDbName);
+			_defaultDbName = typeof(TDefaultDbName).Name;
 			_useMasterIfSlaveIsEmpty = useMasterIfSlaveIsEmpty;
 			if (options == null)
 				throw new ArgumentNullException(nameof(options));
@@ -294,7 +294,7 @@ namespace Meta.Common.DbHelper
 				throw new ArgumentOutOfRangeException(nameof(options));
 			foreach (var option in options)
 			{
-				if (option.Master != null)
+				if (option.Master == null)
 					throw new ArgumentNullException(nameof(option.Master), $"Connection string model is null");
 
 				_executeDict[option.Master.DbName] = new List<DbExecute> { new PgsqlExecute(option.Master) };

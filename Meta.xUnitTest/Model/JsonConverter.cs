@@ -77,47 +77,30 @@ namespace Meta.xUnitTest.Model
 		public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
 		{
 			if (value == null) writer.WriteNull();
-			if (value.GetType() == typeof(DateTime))
-				writer.WriteValue(Convert.ToDateTime(value).ToString("yyyy-MM-dd HH:mm:ss"));
+			if (value is DateTime dt)
+				writer.WriteValue(ToTimestamp(dt));
 			else
 				writer.WriteValue(value);
+		}
+		public static long ToTimestamp(DateTime dt)
+		{
+			return (dt.ToUniversalTime().Ticks - Greenwich_Mean_Time.Ticks) / 10000;
 		}
 		public static DateTime ToDateTime(object val)
 		{
 			DateTime dt = Greenwich_Mean_Time;
 			try
 			{
-				if (val == null)
-					return dt;
-				if (val is long)
-					dt = ToDateTime(Convert.ToInt64(val));
-				else if (val is string)
+				return val switch
 				{
-					if (string.IsNullOrEmpty(val.ToString()))
-						val = null;
+					null => dt,
+					long v => new DateTime(Greenwich_Mean_Time.Ticks + Convert.ToInt64(val) * 10000).ToLocalTime(),
+					_ => Convert.ToDateTime(val),
+				};
+			}
+			catch { }
+			return dt;
+		}
 
-					DateTime.TryParse(val.ToString(), out dt);
-				}
-				else
-					dt = Convert.ToDateTime(val);
-			}
-			catch { }
-			return dt;
-		}
-		/// <summary>
-		/// 13位时间戳用
-		/// </summary>
-		/// <param name="val"></param>
-		/// <returns></returns>
-		public static DateTime ToDateTime(long val)
-		{
-			DateTime dt = Greenwich_Mean_Time;
-			try
-			{
-				dt = new DateTime(Greenwich_Mean_Time.Ticks + val * 10000).ToLocalTime();
-			}
-			catch { }
-			return dt;
-		}
 	}
 }
