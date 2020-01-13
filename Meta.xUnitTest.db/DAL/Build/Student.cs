@@ -22,9 +22,9 @@ namespace Meta.xUnitTest.DAL
 		public static Student Select => new Student();
 		public static Student SelectDiy(string fields) => new Student { Fields = fields };
 		public static Student SelectDiy(string fields, string alias) => new Student { Fields = fields, MainAlias = alias };
-		public static UpdateBuilder<StudentModel> UpdateDiy => new UpdateBuilder<StudentModel>();
-		public static DeleteBuilder<StudentModel> DeleteDiy => new DeleteBuilder<StudentModel>();
-		public static InsertBuilder<StudentModel> InsertDiy => new InsertBuilder<StudentModel>();
+		public static UpdateBuilder<StudentModel> UpdateBuilder => new UpdateBuilder<StudentModel>();
+		public static DeleteBuilder<StudentModel> DeleteBuilder => new DeleteBuilder<StudentModel>();
+		public static InsertBuilder<StudentModel> InsertBuilder => new InsertBuilder<StudentModel>();
 		#endregion
 
 		#region Delete
@@ -37,7 +37,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
-			return DeleteDiy.WhereAny(a => a.Id, ids).ToRows();
+			return DeleteBuilder.WhereAny(a => a.Id, ids).ToRows();
 		}
 		#endregion
 
@@ -60,7 +60,7 @@ namespace Meta.xUnitTest.DAL
 		{
 			if (model == null)
 				throw new ArgumentNullException(nameof(model));
-			return InsertDiy
+			return InsertBuilder
 				.Set(a => a.Stu_no, model.Stu_no)
 				.Set(a => a.Grade_id, model.Grade_id)
 				.Set(a => a.People_id, model.People_id)
@@ -89,7 +89,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
-			return UpdateDiy.WhereAny(a => a.Id, ids);
+			return UpdateBuilder.WhereAny(a => a.Id, ids);
 		}
 		#endregion
 

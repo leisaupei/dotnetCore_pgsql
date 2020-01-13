@@ -22,9 +22,9 @@ namespace Meta.xUnitTest.DAL
 		public static Teacher Select => new Teacher();
 		public static Teacher SelectDiy(string fields) => new Teacher { Fields = fields };
 		public static Teacher SelectDiy(string fields, string alias) => new Teacher { Fields = fields, MainAlias = alias };
-		public static UpdateBuilder<TeacherModel> UpdateDiy => new UpdateBuilder<TeacherModel>();
-		public static DeleteBuilder<TeacherModel> DeleteDiy => new DeleteBuilder<TeacherModel>();
-		public static InsertBuilder<TeacherModel> InsertDiy => new InsertBuilder<TeacherModel>();
+		public static UpdateBuilder<TeacherModel> UpdateBuilder => new UpdateBuilder<TeacherModel>();
+		public static DeleteBuilder<TeacherModel> DeleteBuilder => new DeleteBuilder<TeacherModel>();
+		public static InsertBuilder<TeacherModel> InsertBuilder => new InsertBuilder<TeacherModel>();
 		#endregion
 
 		#region Delete
@@ -37,7 +37,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
-			return DeleteDiy.WhereAny(a => a.Id, ids).ToRows();
+			return DeleteBuilder.WhereAny(a => a.Id, ids).ToRows();
 		}
 		#endregion
 
@@ -60,7 +60,7 @@ namespace Meta.xUnitTest.DAL
 		{
 			if (model == null)
 				throw new ArgumentNullException(nameof(model));
-			return InsertDiy
+			return InsertBuilder
 				.Set(a => a.Teacher_no, model.Teacher_no)
 				.Set(a => a.People_id, model.People_id)
 				.Set(a => a.Create_time, model.Create_time = model.Create_time.Ticks == 0 ? DateTime.Now : model.Create_time)
@@ -88,7 +88,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
-			return UpdateDiy.WhereAny(a => a.Id, ids);
+			return UpdateBuilder.WhereAny(a => a.Id, ids);
 		}
 		#endregion
 

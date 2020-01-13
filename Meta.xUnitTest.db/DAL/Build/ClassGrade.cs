@@ -22,9 +22,9 @@ namespace Meta.xUnitTest.DAL
 		public static ClassGrade Select => new ClassGrade();
 		public static ClassGrade SelectDiy(string fields) => new ClassGrade { Fields = fields };
 		public static ClassGrade SelectDiy(string fields, string alias) => new ClassGrade { Fields = fields, MainAlias = alias };
-		public static UpdateBuilder<ClassGradeModel> UpdateDiy => new UpdateBuilder<ClassGradeModel>();
-		public static DeleteBuilder<ClassGradeModel> DeleteDiy => new DeleteBuilder<ClassGradeModel>();
-		public static InsertBuilder<ClassGradeModel> InsertDiy => new InsertBuilder<ClassGradeModel>();
+		public static UpdateBuilder<ClassGradeModel> UpdateBuilder => new UpdateBuilder<ClassGradeModel>();
+		public static DeleteBuilder<ClassGradeModel> DeleteBuilder => new DeleteBuilder<ClassGradeModel>();
+		public static InsertBuilder<ClassGradeModel> InsertBuilder => new InsertBuilder<ClassGradeModel>();
 		#endregion
 
 		#region Delete
@@ -37,7 +37,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
-			return DeleteDiy.WhereAny(a => a.Id, ids).ToRows();
+			return DeleteBuilder.WhereAny(a => a.Id, ids).ToRows();
 		}
 		#endregion
 
@@ -60,7 +60,7 @@ namespace Meta.xUnitTest.DAL
 		{
 			if (model == null)
 				throw new ArgumentNullException(nameof(model));
-			return InsertDiy
+			return InsertBuilder
 				.Set(a => a.Id, model.Id = model.Id == Guid.Empty ? Guid.NewGuid() : model.Id)
 				.Set(a => a.Name, model.Name)
 				.Set(a => a.Create_time, model.Create_time = model.Create_time.Ticks == 0 ? DateTime.Now : model.Create_time);
@@ -83,7 +83,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
-			return UpdateDiy.WhereAny(a => a.Id, ids);
+			return UpdateBuilder.WhereAny(a => a.Id, ids);
 		}
 		#endregion
 

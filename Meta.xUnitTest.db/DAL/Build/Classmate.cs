@@ -22,9 +22,9 @@ namespace Meta.xUnitTest.DAL
 		public static Classmate Select => new Classmate();
 		public static Classmate SelectDiy(string fields) => new Classmate { Fields = fields };
 		public static Classmate SelectDiy(string fields, string alias) => new Classmate { Fields = fields, MainAlias = alias };
-		public static UpdateBuilder<ClassmateModel> UpdateDiy => new UpdateBuilder<ClassmateModel>();
-		public static DeleteBuilder<ClassmateModel> DeleteDiy => new DeleteBuilder<ClassmateModel>();
-		public static InsertBuilder<ClassmateModel> InsertDiy => new InsertBuilder<ClassmateModel>();
+		public static UpdateBuilder<ClassmateModel> UpdateBuilder => new UpdateBuilder<ClassmateModel>();
+		public static DeleteBuilder<ClassmateModel> DeleteBuilder => new DeleteBuilder<ClassmateModel>();
+		public static InsertBuilder<ClassmateModel> InsertBuilder => new InsertBuilder<ClassmateModel>();
 		#endregion
 
 		#region Delete
@@ -40,7 +40,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(val));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(val.Select(f => string.Format(CacheKey, f.Item1, f.Item2, f.Item3)).ToArray());
-			return DeleteDiy.Where(a => a.Teacher_id, a => a.Student_id, a => a.Grade_id, val).ToRows();
+			return DeleteBuilder.Where(a => a.Teacher_id, a => a.Student_id, a => a.Grade_id, val).ToRows();
 		}
 		#endregion
 
@@ -63,7 +63,7 @@ namespace Meta.xUnitTest.DAL
 		{
 			if (model == null)
 				throw new ArgumentNullException(nameof(model));
-			return InsertDiy
+			return InsertBuilder
 				.Set(a => a.Teacher_id, model.Teacher_id)
 				.Set(a => a.Student_id, model.Student_id)
 				.Set(a => a.Grade_id, model.Grade_id)
@@ -93,7 +93,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(val));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(val.Select(f => string.Format(CacheKey, f.Item1, f.Item2, f.Item3)).ToArray());
-			return UpdateDiy.Where(a => a.Teacher_id, a => a.Student_id, a => a.Grade_id, val);
+			return UpdateBuilder.Where(a => a.Teacher_id, a => a.Student_id, a => a.Grade_id, val);
 		}
 		#endregion
 

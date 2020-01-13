@@ -22,9 +22,9 @@ namespace Meta.xUnitTest.DAL
 		public static TypeTest Select => new TypeTest();
 		public static TypeTest SelectDiy(string fields) => new TypeTest { Fields = fields };
 		public static TypeTest SelectDiy(string fields, string alias) => new TypeTest { Fields = fields, MainAlias = alias };
-		public static UpdateBuilder<TypeTestModel> UpdateDiy => new UpdateBuilder<TypeTestModel>();
-		public static DeleteBuilder<TypeTestModel> DeleteDiy => new DeleteBuilder<TypeTestModel>();
-		public static InsertBuilder<TypeTestModel> InsertDiy => new InsertBuilder<TypeTestModel>();
+		public static UpdateBuilder<TypeTestModel> UpdateBuilder => new UpdateBuilder<TypeTestModel>();
+		public static DeleteBuilder<TypeTestModel> DeleteBuilder => new DeleteBuilder<TypeTestModel>();
+		public static InsertBuilder<TypeTestModel> InsertBuilder => new InsertBuilder<TypeTestModel>();
 		#endregion
 
 		#region Delete
@@ -37,7 +37,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
-			return DeleteDiy.WhereAny(a => a.Id, ids).ToRows();
+			return DeleteBuilder.WhereAny(a => a.Id, ids).ToRows();
 		}
 		#endregion
 
@@ -60,7 +60,7 @@ namespace Meta.xUnitTest.DAL
 		{
 			if (model == null)
 				throw new ArgumentNullException(nameof(model));
-			return InsertDiy
+			return InsertBuilder
 				.Set(a => a.Id, model.Id = model.Id == Guid.Empty ? Guid.NewGuid() : model.Id)
 				.Set(a => a.Bit_type, model.Bit_type)
 				.Set(a => a.Bool_type, model.Bool_type)
@@ -125,7 +125,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
-			return UpdateDiy.WhereAny(a => a.Id, ids);
+			return UpdateBuilder.WhereAny(a => a.Id, ids);
 		}
 		#endregion
 

@@ -514,9 +514,9 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			writer.WriteLine("\t\tpublic static {0} SelectDiy(string fields, string alias) => new {0} {{ Fields = fields, MainAlias = alias }}{1};", DalClassName, DataSelectString);
 			if (_table.Type == "table")
 			{
-				writer.WriteLine("\t\tpublic static UpdateBuilder<{0}> UpdateDiy => new UpdateBuilder<{0}>(){1};", ModelClassName, DataSelectString);
-				writer.WriteLine("\t\tpublic static DeleteBuilder<{0}> DeleteDiy => new DeleteBuilder<{0}>(){1};", ModelClassName, DataSelectString);
-				writer.WriteLine("\t\tpublic static InsertBuilder<{0}> InsertDiy => new InsertBuilder<{0}>(){1};", ModelClassName, DataSelectString);
+				writer.WriteLine("\t\tpublic static UpdateBuilder<{0}> UpdateBuilder => new UpdateBuilder<{0}>(){1};", ModelClassName, DataSelectString);
+				writer.WriteLine("\t\tpublic static DeleteBuilder<{0}> DeleteBuilder => new DeleteBuilder<{0}>(){1};", ModelClassName, DataSelectString);
+				writer.WriteLine("\t\tpublic static InsertBuilder<{0}> InsertBuilder => new InsertBuilder<{0}>(){1};", ModelClassName, DataSelectString);
 			}
 		}
 
@@ -558,7 +558,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 					writer.WriteLine($"\t\t\t\tthrow new ArgumentNullException(nameof({s_key[0]}s));");
 					writer.WriteLine("\t\t\tif (DbConfig.DbCacheTimeOut != 0)");
 					writer.WriteLine($"\t\t\t\tRedisHelper.Del({s_key[0]}s.Select(f => string.Format(CacheKey, f)).ToArray());");
-					writer.WriteLine($"\t\t\treturn DeleteDiy.WhereAny(a => a.{s_key[0].ToUpperPascal()}, {s_key[0]}s).ToRows();");
+					writer.WriteLine($"\t\t\treturn DeleteBuilder.WhereAny(a => a.{s_key[0].ToUpperPascal()}, {s_key[0]}s).ToRows();");
 					writer.WriteLine("\t\t}");
 				}
 				else if (_pkList.Count > 1)
@@ -573,7 +573,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 					writer.WriteLine("\t\t\t\tthrow new ArgumentNullException(nameof(val));");
 					writer.WriteLine("\t\t\tif (DbConfig.DbCacheTimeOut != 0)");
 					writer.WriteLine("\t\t\t\tRedisHelper.Del(val.Select(f => string.Format(CacheKey{0})).ToArray());", string.Concat(_pkList.Select((f, index) => ", f.Item" + (index + 1))));
-					writer.WriteLine($"\t\t\treturn DeleteDiy.Where({s_key.Select(a => $"a => a.{a.ToUpperPascal()}").Join(", ")}, val).ToRows();");
+					writer.WriteLine($"\t\t\treturn DeleteBuilder.Where({s_key.Select(a => $"a => a.{a.ToUpperPascal()}").Join(", ")}, val).ToRows();");
 					writer.WriteLine("\t\t}");
 				}
 			}
@@ -615,9 +615,9 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			writer.WriteLine("\t\t\tif (model == null)");
 			writer.WriteLine("\t\t\t\tthrow new ArgumentNullException(nameof(model));");
 			if (_fieldList.Count == 0)
-				writer.WriteLine($"\t\t\treturn InsertDiy;");
+				writer.WriteLine($"\t\t\treturn InsertBuilder;");
 			else
-				writer.WriteLine($"\t\t\treturn InsertDiy");
+				writer.WriteLine($"\t\t\treturn InsertBuilder");
 			for (int i = 0; i < _fieldList.Count; i++)
 			{
 				FieldInfo item = _fieldList[i];
@@ -738,7 +738,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 					writer.WriteLine($"\t\t\t\tthrow new ArgumentNullException(nameof({s_key[0]}s));");
 					writer.WriteLine("\t\t\tif (DbConfig.DbCacheTimeOut != 0)");
 					writer.WriteLine($"\t\t\t\tRedisHelper.Del({s_key[0]}s.Select(f => string.Format(CacheKey, f)).ToArray());");
-					writer.WriteLine($"\t\t\treturn UpdateDiy.WhereAny(a => a.{s_key[0].ToUpperPascal()}, {s_key[0]}s);");
+					writer.WriteLine($"\t\t\treturn UpdateBuilder.WhereAny(a => a.{s_key[0].ToUpperPascal()}, {s_key[0]}s);");
 					writer.WriteLine("\t\t}");
 				}
 				else if (_pkList.Count > 1)
@@ -754,7 +754,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 					writer.WriteLine("\t\t\t\tthrow new ArgumentNullException(nameof(val));");
 					writer.WriteLine("\t\t\tif (DbConfig.DbCacheTimeOut != 0)");
 					writer.WriteLine("\t\t\t\tRedisHelper.Del(val.Select(f => string.Format(CacheKey{0})).ToArray());", string.Concat(_pkList.Select((f, index) => ", f.Item" + (index + 1))));
-					writer.WriteLine("\t\t\treturn UpdateDiy.Where({0}, val);", s_key.Select(a => $"a => a.{a.ToUpperPascal()}").Join(", "));
+					writer.WriteLine("\t\t\treturn UpdateBuilder.Where({0}, val);", s_key.Select(a => $"a => a.{a.ToUpperPascal()}").Join(", "));
 					writer.WriteLine("\t\t}");
 				}
 			}

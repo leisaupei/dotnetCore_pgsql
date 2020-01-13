@@ -22,9 +22,9 @@ namespace Meta.xUnitTest.DAL
 		public static People Select => new People();
 		public static People SelectDiy(string fields) => new People { Fields = fields };
 		public static People SelectDiy(string fields, string alias) => new People { Fields = fields, MainAlias = alias };
-		public static UpdateBuilder<PeopleModel> UpdateDiy => new UpdateBuilder<PeopleModel>();
-		public static DeleteBuilder<PeopleModel> DeleteDiy => new DeleteBuilder<PeopleModel>();
-		public static InsertBuilder<PeopleModel> InsertDiy => new InsertBuilder<PeopleModel>();
+		public static UpdateBuilder<PeopleModel> UpdateBuilder => new UpdateBuilder<PeopleModel>();
+		public static DeleteBuilder<PeopleModel> DeleteBuilder => new DeleteBuilder<PeopleModel>();
+		public static InsertBuilder<PeopleModel> InsertBuilder => new InsertBuilder<PeopleModel>();
 		#endregion
 
 		#region Delete
@@ -37,7 +37,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
-			return DeleteDiy.WhereAny(a => a.Id, ids).ToRows();
+			return DeleteBuilder.WhereAny(a => a.Id, ids).ToRows();
 		}
 		#endregion
 
@@ -60,7 +60,7 @@ namespace Meta.xUnitTest.DAL
 		{
 			if (model == null)
 				throw new ArgumentNullException(nameof(model));
-			return InsertDiy
+			return InsertBuilder
 				.Set(a => a.Id, model.Id = model.Id == Guid.Empty ? Guid.NewGuid() : model.Id)
 				.Set(a => a.Age, model.Age)
 				.Set(a => a.Name, model.Name)
@@ -88,7 +88,7 @@ namespace Meta.xUnitTest.DAL
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
-			return UpdateDiy.WhereAny(a => a.Id, ids);
+			return UpdateBuilder.WhereAny(a => a.Id, ids);
 		}
 		#endregion
 
