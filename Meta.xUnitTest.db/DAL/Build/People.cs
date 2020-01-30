@@ -11,6 +11,9 @@ using System.Linq;
 using Newtonsoft.Json.Linq;
 using System.Xml;
 using System.Net;
+using System.Threading.Tasks;
+using System.Threading;
+using Meta.Common.Interface;
 
 namespace Meta.xUnitTest.DAL
 {
@@ -20,42 +23,75 @@ namespace Meta.xUnitTest.DAL
 		public const string CacheKey = "meta_xunittest_model_peoplemodel_{0}";
 		private People() { }
 		public static People Select => new People();
-		public static People SelectDiy(string fields) => new People { Fields = fields };
-		public static People SelectDiy(string fields, string alias) => new People { Fields = fields, MainAlias = alias };
 		public static UpdateBuilder<PeopleModel> UpdateBuilder => new UpdateBuilder<PeopleModel>();
 		public static DeleteBuilder<PeopleModel> DeleteBuilder => new DeleteBuilder<PeopleModel>();
 		public static InsertBuilder<PeopleModel> InsertBuilder => new InsertBuilder<PeopleModel>();
 		#endregion
 
 		#region Delete
-		public static int Delete(PeopleModel model) => Delete(new[] { model.Id });
-		public static int Delete(Guid id) => Delete(new[] { id });
-		public static int Delete(IEnumerable<PeopleModel> models) => Delete(models.Select(a => a.Id));
-		public static int Delete(IEnumerable<Guid> ids)
+		public static int Delete(params Guid[] ids)
+			=> DeleteAsync(false, CancellationToken.None, ids).ConfigureAwait(false).GetAwaiter().GetResult();
+
+		public static ValueTask<int> DeleteAsync(CancellationToken cancellationToken = default, params Guid[] ids)
+			=> DeleteAsync(true, cancellationToken, ids);
+
+		private static async ValueTask<int> DeleteAsync(bool async, CancellationToken cancellationToken, params Guid[] ids)
 		{
 			if (ids == null)
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
-				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
+			{
+				var keys = ids.Select(f => string.Format(CacheKey, f)).ToArray();
+				if(async)
+					await RedisHelper.DelAsync(keys);
+				else
+					RedisHelper.Del(keys);
+			}
+			if(async)
+				return await DeleteBuilder.WhereAny(a => a.Id, ids).ToRowsAsync(cancellationToken);
 			return DeleteBuilder.WhereAny(a => a.Id, ids).ToRows();
 		}
 		#endregion
 
 		#region Insert
-		public static int Commit(PeopleModel model) => SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows());
+		public static int Commit(PeopleModel model) 
+			=> SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows());
+
 		public static PeopleModel Insert(PeopleModel model)
 		{
 			SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));
 			return model;
 		}
+
 		public static int Commit(IEnumerable<PeopleModel> models, bool isExceptionCancel = true)
 		{
 			if (models == null)
 				throw new ArgumentNullException(nameof(models));
-			var sqlbuilders = isExceptionCancel ? models.Select(f => GetInsertBuilder(f).ToRowsPipe()) :
-				models.Select(f => GetInsertBuilder(f).WhereNotExists(Select.Where(a => a.Id == f.Id)).ToRowsPipe());
+			var sqlbuilders = GetSqlBuilder(models, isExceptionCancel);
 			return InsertMultiple<DbMaster>(models, sqlbuilders, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey, model.Id));
 		}
+
+		public static Task<PeopleModel> InsertAsync(PeopleModel model, CancellationToken cancellationToken = default)
+			=> SetRedisCacheAsync(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToOneAsync(cancellationToken));
+
+		public static ValueTask<int> CommitAsync(PeopleModel model, CancellationToken cancellationToken = default)
+			=> SetRedisCacheAsync(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRowsAsync(cancellationToken), cancellationToken);
+
+		public static ValueTask<int> CommitAsync(IEnumerable<PeopleModel> models, bool isExceptionCancel = true, CancellationToken cancellationToken = default)
+		{
+			if (models == null)
+				return new ValueTask<int>(Task.FromException<int>(new ArgumentNullException(nameof(models))));
+			var sqlbuilders = GetSqlBuilder(models, isExceptionCancel);
+			return InsertMultipleAsync<DbMaster>(models, sqlbuilders, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey, model.Id), cancellationToken);
+		}
+
+		private static IEnumerable<ISqlBuilder> GetSqlBuilder(IEnumerable<PeopleModel> models, bool isExceptionCancel)
+		{
+			return isExceptionCancel
+				? models.Select(f => GetInsertBuilder(f).ToRowsPipe())
+				: models.Select(f => GetInsertBuilder(f).WhereNotExists(Select.Where(a => a.Id == f.Id)).ToRowsPipe());
+		}
+
 		private static InsertBuilder<PeopleModel> GetInsertBuilder(PeopleModel model)
 		{
 			if (model == null)
@@ -73,16 +109,23 @@ namespace Meta.xUnitTest.DAL
 		#endregion
 
 		#region Select
-		public static PeopleModel GetItem(Guid id) => GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOne());
-		public static List<PeopleModel> GetItems(IEnumerable<Guid> ids) => Select.WhereAny(a => a.Id, ids).ToList();
+
+		public static PeopleModel GetItem(Guid id) 
+			=> GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOne());
+
+		public static Task<PeopleModel> GetItemAsync(Guid id, CancellationToken cancellationToken = default) 
+			=> GetRedisCacheAsync(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOneAsync(cancellationToken), cancellationToken);
+
+		public static List<PeopleModel> GetItems(IEnumerable<Guid> ids) 
+			=> Select.WhereAny(a => a.Id, ids).ToList();
+
+		public static Task<List<PeopleModel>> GetItemsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default) 
+			=> Select.WhereAny(a => a.Id, ids).ToListAsync(cancellationToken);
 
 		#endregion
 
 		#region Update
-		public static UpdateBuilder<PeopleModel> Update(PeopleModel model) => Update(new[] { model.Id });
-		public static UpdateBuilder<PeopleModel> Update(Guid id) => Update(new[] { id });
-		public static UpdateBuilder<PeopleModel> Update(IEnumerable<PeopleModel> models) => Update(models.Select(a => a.Id));
-		public static UpdateBuilder<PeopleModel> Update(IEnumerable<Guid> ids)
+		public static UpdateBuilder<PeopleModel> Update(params Guid[] ids)
 		{
 			if (ids == null)
 				throw new ArgumentNullException(nameof(ids));

@@ -24,5 +24,23 @@ namespace Meta.Common.Model
 		[EditorBrowsable(EditorBrowsableState.Never), Obsolete("Future")]
 		Mysql = 2,
 	}
-
+	public enum TableStrategyType
+	{
+		/// <summary>
+		/// 当值相等
+		/// </summary>
+		WhenValueEqual = 1,
+		/// <summary>
+		/// 当值比较
+		/// </summary>
+		WhenValueCompare = 2
+	}
+	public enum TableStrategyOptions
+	{
+		EveryEnum = 1,
+		SomeEnum = 2,
+		EveryYear = 3,
+		EveryMonth = 4,
+		DatetimeInterval,
+	}
 }

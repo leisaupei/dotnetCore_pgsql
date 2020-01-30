@@ -89,7 +89,7 @@ namespace Meta.xUnitTest
 			var info = ClassGrade.GetItem(GradeId);
 			if (info != null) return;
 
-			var affrows = ClassGrade.InsertDiy.Set(a => a.Id, GradeId)
+			var affrows = ClassGrade.InsertBuilder.Set(a => a.Id, GradeId)
 				.Set(f => f.Name, "移动互联网")
 				.Set(a => a.Create_time, DateTime.Now)
 				.ToRows(ref info); //return modify rows ref model
@@ -99,9 +99,9 @@ namespace Meta.xUnitTest
 		[Fact, Order(4)]
 		public void InsertCustomized()
 		{
-			var info = Student.GetItemByPeople_id(StuPeopleId1);
+			var info = Student.Select.Where(a => a.People_id == StuPeopleId1).ToOne();
 			if (info != null) return;
-			var affrows = Student.InsertDiy.Set(f => f.Id, Guid.NewGuid())
+			var affrows = Student.InsertBuilder.Set(f => f.Id, Guid.NewGuid())
 							.Set(a => a.People_id, StuPeopleId1)
 							.Set(a => a.Stu_no, StuNo1)
 							.Set(a => a.Grade_id, GradeId)
@@ -110,9 +110,9 @@ namespace Meta.xUnitTest
 			Assert.NotNull(info);
 			Assert.Equal(1, affrows);
 
-			var info1 = Student.GetItemByPeople_id(StuPeopleId2);
+			var info1 = Student.Select.Where(a => a.People_id == StuPeopleId2).ToOne();
 			if (info1 != null) return;
-			var affrows1 = Student.InsertDiy.Set(a => a.Id, Guid.NewGuid())
+			var affrows1 = Student.InsertBuilder.Set(a => a.Id, Guid.NewGuid())
 							.Set(a => a.People_id, StuPeopleId2)
 							.Set(a => a.Stu_no, StuNo2)
 							.Set(a => a.Grade_id, GradeId)

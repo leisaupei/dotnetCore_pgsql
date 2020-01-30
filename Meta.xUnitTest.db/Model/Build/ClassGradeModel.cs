@@ -9,6 +9,8 @@ using Newtonsoft.Json.Linq;
 using Meta.Common.Interface;
 using System.Xml;
 using System.Net;
+using System.Threading.Tasks;
+using System.Threading;
 using Meta.Common.SqlBuilder;
 using Meta.xUnitTest.DAL;
 
@@ -29,9 +31,10 @@ namespace Meta.xUnitTest.Model
 		#region Update/Insert
 		public UpdateBuilder<ClassGradeModel> Update => DAL.ClassGrade.Update(this);
 
-		public int Delete() => DAL.ClassGrade.Delete(this);
 		public int Commit() => DAL.ClassGrade.Commit(this);
 		public ClassGradeModel Insert() => DAL.ClassGrade.Insert(this);
+		public ValueTask<int> CommitAsync(CancellationToken cancellationToken = default) => DAL.ClassGrade.CommitAsync(this, cancellationToken);
+		public Task<ClassGradeModel> InsertAsync(CancellationToken cancellationToken = default) => DAL.ClassGrade.InsertAsync(this, cancellationToken);
 		#endregion
 	}
 }

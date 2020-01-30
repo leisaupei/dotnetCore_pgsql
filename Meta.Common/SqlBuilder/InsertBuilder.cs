@@ -8,6 +8,8 @@ using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Meta.Common.SqlBuilder
 {
@@ -84,10 +86,17 @@ namespace Meta.Common.SqlBuilder
 			return AddParameterT(index, value);
 		}
 		/// <summary>
-		/// 返回受影响行数
+		/// 返回修改行数
 		/// </summary>
 		/// <returns></returns>
 		public new int ToRows() => base.ToRows();
+
+		/// <summary>
+		/// 返回修改行数
+		/// </summary>
+		/// <returns></returns>
+		public new ValueTask<int> ToRowsAsync(CancellationToken cancellationToken = default)
+			=> base.ToRowsAsync(cancellationToken);
 
 		/// <summary>
 		/// 返回受影响行数
@@ -105,6 +114,26 @@ namespace Meta.Common.SqlBuilder
 			_isReturn = true;
 			info = ToOne<T>();
 			return info != null ? 1 : 0;
+		}
+
+		/// <summary>
+		/// 插入数据库并返回数据
+		/// </summary>
+		/// <returns></returns>
+		public TModel ToOne()
+		{
+			_isReturn = true;
+			return ToOne<TModel>();
+		}
+
+		/// <summary>
+		/// 插入数据库并返回数据
+		/// </summary>
+		/// <returns></returns>
+		public Task<TModel> ToOneAsync(CancellationToken cancellationToken = default)
+		{
+			_isReturn = true;
+			return base.ToOneAsync<TModel>(cancellationToken);
 		}
 		#region Override
 		public override string ToString() => base.ToString();

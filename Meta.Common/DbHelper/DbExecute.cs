@@ -57,8 +57,8 @@ namespace Meta.Common.DbHelper
 		/// <summary>
 		/// 返回一行数据
 		/// </summary>
-		internal Task<object> ExecuteScalarAsync(string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<object>(cancellationToken) : ExecuteScalarAsync(cmdText, cmdType, cmdParams, true, cancellationToken).AsTask();
+		internal ValueTask<object> ExecuteScalarAsync(string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
+			=> cancellationToken.IsCancellationRequested ? new ValueTask<object>(Task.FromCanceled<object>(cancellationToken)) : ExecuteScalarAsync(cmdText, cmdType, cmdParams, true, cancellationToken);
 
 		/// <summary>
 		/// 执行sql语句
@@ -69,8 +69,8 @@ namespace Meta.Common.DbHelper
 		/// <summary>
 		/// 执行sql语句
 		/// </summary>
-		internal Task<int> ExecuteNonQueryAsync(string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<int>(cancellationToken) : ExecuteNonQueryAsync(cmdText, cmdType, cmdParams, true, cancellationToken).AsTask();
+		internal ValueTask<int> ExecuteNonQueryAsync(string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
+			=> cancellationToken.IsCancellationRequested ? new ValueTask<int>(Task.FromCanceled<int>(cancellationToken)) : ExecuteNonQueryAsync(cmdText, cmdType, cmdParams, true, cancellationToken);
 
 		/// <summary>
 		/// 读取数据库reader
@@ -260,7 +260,7 @@ namespace Meta.Common.DbHelper
 		/// <param name="async"></param>
 		/// <param name="cancellationToken"></param>
 		/// <returns></returns>
-		internal async Task TransactionAsync(Action action, bool async, CancellationToken cancellationToken)
+		internal async ValueTask TransactionAsync(Action action, bool async, CancellationToken cancellationToken)
 		{
 			if (action == null)
 				throw new ArgumentNullException(nameof(action));
@@ -291,7 +291,7 @@ namespace Meta.Common.DbHelper
 		/// <param name="async"></param>
 		/// <param name="cancellationToken"></param>
 		/// <returns></returns>
-		internal async Task<object[]> ExecuteDataReaderPipeAsync(IEnumerable<ISqlBuilder> builders, CommandType cmdType, bool async, CancellationToken cancellationToken)
+		internal async ValueTask<object[]> ExecuteDataReaderPipeAsync(IEnumerable<ISqlBuilder> builders, CommandType cmdType, bool async, CancellationToken cancellationToken)
 		{
 			if (builders?.Any() != true)
 				throw new ArgumentNullException(nameof(builders));

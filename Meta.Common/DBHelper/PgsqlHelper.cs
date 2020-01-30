@@ -41,8 +41,8 @@ namespace Meta.Common.DbHelper
 		/// <param name="cmdParams">sql参数</param>
 		/// <param name="cancellationToken"></param>
 		/// <returns>返回(0,0)值</returns>
-		public new static Task<object> ExecuteScalarAsync(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, CancellationToken cancellationToken = default)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<object>(cancellationToken) : GetExecute(GetDbName).ExecuteScalarAsync(cmdText, cmdType, cmdParams, cancellationToken);
+		public new static ValueTask<object> ExecuteScalarAsync(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, CancellationToken cancellationToken = default)
+			=> GetExecute(GetDbName).ExecuteScalarAsync(cmdText, cmdType, cmdParams, cancellationToken);
 
 		/// <summary>
 		/// 执行NonQuery
@@ -62,7 +62,7 @@ namespace Meta.Common.DbHelper
 		/// <param name="cmdParams">sql参数</param>
 		/// <param name="cancellationToken"></param>
 		/// <returns>修改行数</returns>
-		public new static Task<int> ExecuteNonQueryAsync(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, CancellationToken cancellationToken = default)
+		public new static ValueTask<int> ExecuteNonQueryAsync(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, CancellationToken cancellationToken = default)
 			=> GetExecute(GetDbName).ExecuteNonQueryAsync(cmdText, cmdType, cmdParams, cancellationToken);
 
 		/// <summary>
@@ -151,7 +151,7 @@ namespace Meta.Common.DbHelper
 		/// <exception cref="ArgumentNullException">builders is null or empty</exception>
 		/// <returns>实体</returns>
 		public new static Task<object[]> ExecuteDataReaderPipeAsync(IEnumerable<ISqlBuilder> builders, CommandType cmdType = CommandType.Text, CancellationToken cancellationToken = default)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<object[]>(cancellationToken) : GetExecute(GetDbName).ExecuteDataReaderPipeAsync(builders, cmdType, true, cancellationToken);
+			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<object[]>(cancellationToken) : GetExecute(GetDbName).ExecuteDataReaderPipeAsync(builders, cmdType, true, cancellationToken).AsTask();
 
 		/// <summary>
 		/// 事务 (暂不支持分布式事务)
@@ -168,7 +168,7 @@ namespace Meta.Common.DbHelper
 		/// <param name="cancellationToken"></param>
 		/// <exception cref="ArgumentNullException">委托是null</exception>
 		public new static Task TransactionAsync(Action action, CancellationToken cancellationToken = default)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : GetExecute(GetDbName).TransactionAsync(action, true, cancellationToken);
+			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : GetExecute(GetDbName).TransactionAsync(action, true, cancellationToken).AsTask();
 
 		/// <summary>
 		/// 开启事务
@@ -329,8 +329,8 @@ namespace Meta.Common.DbHelper
 		/// <param name="cmdParams">sql参数</param>
 		/// <param name="cancellationToken"></param>
 		/// <returns>返回(0,0)值</returns>
-		public static Task<object> ExecuteScalarAsync(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, CancellationToken cancellationToken = default)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<object>(cancellationToken) : GetExecute(_defaultDbName).ExecuteScalarAsync(cmdText, cmdType, cmdParams, cancellationToken);
+		public static ValueTask<object> ExecuteScalarAsync(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, CancellationToken cancellationToken = default)
+			=> GetExecute(_defaultDbName).ExecuteScalarAsync(cmdText, cmdType, cmdParams, cancellationToken);
 
 		/// <summary>
 		/// 执行NonQuery
@@ -350,8 +350,8 @@ namespace Meta.Common.DbHelper
 		/// <param name="cmdParams">sql参数</param>
 		/// <param name="cancellationToken"></param>
 		/// <returns>修改行数</returns>
-		public static Task<int> ExecuteNonQueryAsync(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, CancellationToken cancellationToken = default)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<int>(cancellationToken) : GetExecute(_defaultDbName).ExecuteNonQueryAsync(cmdText, cmdType, cmdParams, cancellationToken);
+		public static ValueTask<int> ExecuteNonQueryAsync(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, CancellationToken cancellationToken = default)
+			=> GetExecute(_defaultDbName).ExecuteNonQueryAsync(cmdText, cmdType, cmdParams, cancellationToken);
 
 		/// <summary>
 		/// DataReader
@@ -439,7 +439,7 @@ namespace Meta.Common.DbHelper
 		/// <exception cref="ArgumentNullException">builders is null or empty</exception>
 		/// <returns>实体</returns>
 		public static Task<object[]> ExecuteDataReaderPipeAsync(IEnumerable<ISqlBuilder> builders, CommandType cmdType = CommandType.Text, CancellationToken cancellationToken = default)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<object[]>(cancellationToken) : GetExecute(_defaultDbName).ExecuteDataReaderPipeAsync(builders, cmdType, true, cancellationToken);
+			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<object[]>(cancellationToken) : GetExecute(_defaultDbName).ExecuteDataReaderPipeAsync(builders, cmdType, true, cancellationToken).AsTask();
 
 		/// <summary>
 		/// 事务 (暂不支持分布式事务)
@@ -455,8 +455,8 @@ namespace Meta.Common.DbHelper
 		/// <param name="action">Action委托</param>
 		/// <param name="cancellationToken"></param>
 		/// <exception cref="ArgumentNullException">委托是null</exception>
-		public static Task TransactionAsync(Action action, CancellationToken cancellationToken = default)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : GetExecute(_defaultDbName).TransactionAsync(action, true, cancellationToken);
+		public static ValueTask TransactionAsync(Action action, CancellationToken cancellationToken = default)
+			=> GetExecute(_defaultDbName).TransactionAsync(action, true, cancellationToken);
 
 		/// <summary>
 		/// 开启事务

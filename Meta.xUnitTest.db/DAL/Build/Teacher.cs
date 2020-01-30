@@ -11,6 +11,9 @@ using System.Linq;
 using Newtonsoft.Json.Linq;
 using System.Xml;
 using System.Net;
+using System.Threading.Tasks;
+using System.Threading;
+using Meta.Common.Interface;
 
 namespace Meta.xUnitTest.DAL
 {
@@ -20,42 +23,75 @@ namespace Meta.xUnitTest.DAL
 		public const string CacheKey = "meta_xunittest_model_teachermodel_{0}";
 		private Teacher() { }
 		public static Teacher Select => new Teacher();
-		public static Teacher SelectDiy(string fields) => new Teacher { Fields = fields };
-		public static Teacher SelectDiy(string fields, string alias) => new Teacher { Fields = fields, MainAlias = alias };
 		public static UpdateBuilder<TeacherModel> UpdateBuilder => new UpdateBuilder<TeacherModel>();
 		public static DeleteBuilder<TeacherModel> DeleteBuilder => new DeleteBuilder<TeacherModel>();
 		public static InsertBuilder<TeacherModel> InsertBuilder => new InsertBuilder<TeacherModel>();
 		#endregion
 
 		#region Delete
-		public static int Delete(TeacherModel model) => Delete(new[] { model.Id });
-		public static int Delete(Guid id) => Delete(new[] { id });
-		public static int Delete(IEnumerable<TeacherModel> models) => Delete(models.Select(a => a.Id));
-		public static int Delete(IEnumerable<Guid> ids)
+		public static int Delete(params Guid[] ids)
+			=> DeleteAsync(false, CancellationToken.None, ids).ConfigureAwait(false).GetAwaiter().GetResult();
+
+		public static ValueTask<int> DeleteAsync(CancellationToken cancellationToken = default, params Guid[] ids)
+			=> DeleteAsync(true, cancellationToken, ids);
+
+		private static async ValueTask<int> DeleteAsync(bool async, CancellationToken cancellationToken, params Guid[] ids)
 		{
 			if (ids == null)
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
-				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
+			{
+				var keys = ids.Select(f => string.Format(CacheKey, f)).ToArray();
+				if(async)
+					await RedisHelper.DelAsync(keys);
+				else
+					RedisHelper.Del(keys);
+			}
+			if(async)
+				return await DeleteBuilder.WhereAny(a => a.Id, ids).ToRowsAsync(cancellationToken);
 			return DeleteBuilder.WhereAny(a => a.Id, ids).ToRows();
 		}
 		#endregion
 
 		#region Insert
-		public static int Commit(TeacherModel model) => SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows());
+		public static int Commit(TeacherModel model) 
+			=> SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows());
+
 		public static TeacherModel Insert(TeacherModel model)
 		{
 			SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));
 			return model;
 		}
+
 		public static int Commit(IEnumerable<TeacherModel> models, bool isExceptionCancel = true)
 		{
 			if (models == null)
 				throw new ArgumentNullException(nameof(models));
-			var sqlbuilders = isExceptionCancel ? models.Select(f => GetInsertBuilder(f).ToRowsPipe()) :
-				models.Select(f => GetInsertBuilder(f).WhereNotExists(Select.Where(a => a.Id == f.Id)).ToRowsPipe());
+			var sqlbuilders = GetSqlBuilder(models, isExceptionCancel);
 			return InsertMultiple<DbMaster>(models, sqlbuilders, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey, model.Id));
 		}
+
+		public static Task<TeacherModel> InsertAsync(TeacherModel model, CancellationToken cancellationToken = default)
+			=> SetRedisCacheAsync(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToOneAsync(cancellationToken));
+
+		public static ValueTask<int> CommitAsync(TeacherModel model, CancellationToken cancellationToken = default)
+			=> SetRedisCacheAsync(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRowsAsync(cancellationToken), cancellationToken);
+
+		public static ValueTask<int> CommitAsync(IEnumerable<TeacherModel> models, bool isExceptionCancel = true, CancellationToken cancellationToken = default)
+		{
+			if (models == null)
+				return new ValueTask<int>(Task.FromException<int>(new ArgumentNullException(nameof(models))));
+			var sqlbuilders = GetSqlBuilder(models, isExceptionCancel);
+			return InsertMultipleAsync<DbMaster>(models, sqlbuilders, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey, model.Id), cancellationToken);
+		}
+
+		private static IEnumerable<ISqlBuilder> GetSqlBuilder(IEnumerable<TeacherModel> models, bool isExceptionCancel)
+		{
+			return isExceptionCancel
+				? models.Select(f => GetInsertBuilder(f).ToRowsPipe())
+				: models.Select(f => GetInsertBuilder(f).WhereNotExists(Select.Where(a => a.Id == f.Id)).ToRowsPipe());
+		}
+
 		private static InsertBuilder<TeacherModel> GetInsertBuilder(TeacherModel model)
 		{
 			if (model == null)
@@ -69,20 +105,23 @@ namespace Meta.xUnitTest.DAL
 		#endregion
 
 		#region Select
-		public static TeacherModel GetItem(Guid id) => GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOne());
-		public static List<TeacherModel> GetItems(IEnumerable<Guid> ids) => Select.WhereAny(a => a.Id, ids).ToList();
-		public static TeacherModel GetItemByTeacher_no(string teacher_no) => Select.Where(a => a.Teacher_no == teacher_no).ToOne();
-		public static List<TeacherModel> GetItemsByTeacher_no(IEnumerable<string> teacher_nos) => Select.WhereAny(a => a.Teacher_no, teacher_nos).ToList();
-		public static TeacherModel GetItemByPeople_id(Guid people_id) => Select.Where(a => a.People_id == people_id).ToOne();
-		public static List<TeacherModel> GetItemsByPeople_id(IEnumerable<Guid> people_ids) => Select.WhereAny(a => a.People_id, people_ids).ToList();
+
+		public static TeacherModel GetItem(Guid id) 
+			=> GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOne());
+
+		public static Task<TeacherModel> GetItemAsync(Guid id, CancellationToken cancellationToken = default) 
+			=> GetRedisCacheAsync(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOneAsync(cancellationToken), cancellationToken);
+
+		public static List<TeacherModel> GetItems(IEnumerable<Guid> ids) 
+			=> Select.WhereAny(a => a.Id, ids).ToList();
+
+		public static Task<List<TeacherModel>> GetItemsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default) 
+			=> Select.WhereAny(a => a.Id, ids).ToListAsync(cancellationToken);
 
 		#endregion
 
 		#region Update
-		public static UpdateBuilder<TeacherModel> Update(TeacherModel model) => Update(new[] { model.Id });
-		public static UpdateBuilder<TeacherModel> Update(Guid id) => Update(new[] { id });
-		public static UpdateBuilder<TeacherModel> Update(IEnumerable<TeacherModel> models) => Update(models.Select(a => a.Id));
-		public static UpdateBuilder<TeacherModel> Update(IEnumerable<Guid> ids)
+		public static UpdateBuilder<TeacherModel> Update(params Guid[] ids)
 		{
 			if (ids == null)
 				throw new ArgumentNullException(nameof(ids));

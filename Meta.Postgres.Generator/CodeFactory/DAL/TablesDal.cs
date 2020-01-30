@@ -80,9 +80,9 @@ namespace Meta.Postgres.Generator.CodeFactory.DAL
 		/// </summary>
 		readonly string _dataBaseTypeName;
 		/// <summary>
-		/// 多库前缀
+		/// 命名空间后缀
 		/// </summary>
-		string ModelDalSuffix => _dataBaseTypeName == GenerateModel.MASTER_DATABASE_TYPE_NAME ? "" : _dataBaseTypeName;
+		string NamespaceSuffix => _dataBaseTypeName == GenerateModel.MASTER_DATABASE_TYPE_NAME && LetsGo.FinalType == _dataBaseTypeName ? "" : "." + _dataBaseTypeName;
 		/// <summary>
 		/// 多库枚举 *需要在目标项目添加枚举以及创建该库实例
 		/// </summary>
@@ -94,7 +94,7 @@ namespace Meta.Postgres.Generator.CodeFactory.DAL
 		/// <summary>
 		/// DAL名称
 		/// </summary>
-		string DalClassName => ModelDalSuffix + Types.DeletePublic(_schemaName, _table.Name, isView: _isView);
+		string DalClassName => Types.DeletePublic(_schemaName, _table.Name, isView: _isView);
 		/// <summary>
 		/// 表名
 		/// </summary>
@@ -179,11 +179,11 @@ WHERE (b.nspname='{_schemaName}' and a.relname='{_table.Name}')
 				 //	_type = "bool";
 
 				if (f.IsEnum)
-					_type = ModelDalSuffix + Types.DeletePublic(f.Nspname, _type);
+					_type = Types.DeletePublic(f.Nspname, _type);
 				f.CSharpType = _type;
 
 				if (f.DataType == "c")
-					f.RelType = ModelDalSuffix + Types.DeletePublic(f.Nspname, _type);
+					f.RelType = Types.DeletePublic(f.Nspname, _type);
 				else
 				{
 					string _notnull = "";
@@ -342,12 +342,14 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			writer.WriteLine("using Meta.Common.Interface;");
 			writer.WriteLine("using System.Xml;");
 			writer.WriteLine("using System.Net;");
+			writer.WriteLine("using System.Threading.Tasks;");
+			writer.WriteLine("using System.Threading;");
 			if (_isGeometryTable)
 				writer.WriteLine("using Npgsql.LegacyPostgis;");
 			writer.WriteLine("using Meta.Common.SqlBuilder;");
-			writer.WriteLine($"using {_projectName}.DAL;");
+			writer.WriteLine($"using {_projectName}.DAL{NamespaceSuffix};");
 			writer.WriteLine();
-			writer.WriteLine($"namespace {_projectName}.Model");
+			writer.WriteLine($"namespace {_projectName}.Model{NamespaceSuffix}");
 			writer.WriteLine("{");
 			writer.WriteLine($"\t[DbTable(\"{TableName}\")]");
 			writer.WriteLine($"\tpublic partial class {ModelClassName} : IDbModel");
@@ -379,7 +381,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 				void WriteForeignKey(string nspname, string tableName, string conname, bool? isPk, string refColumn)
 				{
 					var tableNameWithoutSuffix = Types.DeletePublic(nspname, tableName);
-					string nspTableName = ModelDalSuffix + tableNameWithoutSuffix;
+					string nspTableName = tableNameWithoutSuffix;
 					string propertyName = $"{ForeignKeyPrefix}{tableNameWithoutSuffix}";
 					if (ht.ContainsKey(propertyName))
 						propertyName = propertyName + "By" + Types.ExceptUnderlineToUpper(conname);
@@ -392,7 +394,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 					if (isPk == true)
 						sb.AppendFormat("\t\tpublic {0}{1} {2} => {3} ??= {0}.GetItem({4});\n", nspTableName, ModelSuffix, propertyName, tmp_var, DotValueHelper(conname, _fieldList));
 					else
-						sb.AppendFormat("\t\tpublic {0}{1} {2} => {3} ??= {0}.Select.Where{5}({4}).ToOne();\n", nspTableName, ModelSuffix, propertyName, tmp_var, DotValueHelper(conname, _fieldList), refColumn.ToUpperPascal());
+						sb.AppendFormat("\t\tpublic {0}{1} {2} => {3} ??= {0}.Select.Where(a => a.{5} == {4}).ToOne();\n", nspTableName, ModelSuffix, propertyName, tmp_var, DotValueHelper(conname, _fieldList), refColumn.ToUpperPascal());
 
 					if (propertyName.IsNotNullOrEmpty() && !ht.ContainsKey(propertyName))
 						ht.Add(propertyName, "");
@@ -417,12 +419,12 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 				}
 				writer.WriteLine("\t\t#region Update/Insert");
 				if (_pkList.Count > 0)
-					writer.WriteLine("\t\tpublic UpdateBuilder<{0}> Update => DAL.{1}.Update(this);", ModelClassName, DalClassName);
+					writer.WriteLine("\t\tpublic UpdateBuilder<{0}> Update => DAL{2}.{1}.Update(this);", ModelClassName, DalClassName, NamespaceSuffix);
 				writer.WriteLine();
-				if (_pkList.Count > 0)
-					writer.WriteLine("\t\tpublic int Delete() => DAL.{0}.Delete(this);", DalClassName);
-				writer.WriteLine("\t\tpublic int Commit() => DAL.{0}.Commit(this);", DalClassName);
-				writer.WriteLine("\t\tpublic {0} Insert() => DAL.{1}.Insert(this);", ModelClassName, DalClassName);
+				writer.WriteLine("\t\tpublic int Commit() => DAL{1}.{0}.Commit(this);", DalClassName, NamespaceSuffix);
+				writer.WriteLine("\t\tpublic {0} Insert() => DAL{2}.{1}.Insert(this);", ModelClassName, DalClassName, NamespaceSuffix);
+				writer.WriteLine("\t\tpublic ValueTask<int> CommitAsync(CancellationToken cancellationToken = default) => DAL{1}.{0}.CommitAsync(this, cancellationToken);", DalClassName, NamespaceSuffix);
+				writer.WriteLine("\t\tpublic Task<{0}> InsertAsync(CancellationToken cancellationToken = default) => DAL{2}.{1}.InsertAsync(this, cancellationToken);", ModelClassName, DalClassName, NamespaceSuffix);
 				writer.WriteLine("\t\t#endregion");
 			}
 			writer.WriteLine("\t}");
@@ -443,7 +445,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			using StreamWriter writer = new StreamWriter(File.Create(_filename), Encoding.UTF8);
 			writer.WriteLine("using Meta.Common.SqlBuilder;");
 			writer.WriteLine("using Meta.Common.Model;");
-			writer.WriteLine($"using {_projectName}.{ModelSuffix};");
+			writer.WriteLine($"using {_projectName}.{ModelSuffix}{NamespaceSuffix};");
 			writer.WriteLine($"using {_projectName}.Options;");
 			writer.WriteLine("using System.Collections;");
 			writer.WriteLine("using System.Net.NetworkInformation;");
@@ -454,10 +456,13 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			writer.WriteLine("using Newtonsoft.Json.Linq;");
 			writer.WriteLine("using System.Xml;");
 			writer.WriteLine("using System.Net;");
+			writer.WriteLine("using System.Threading.Tasks;");
+			writer.WriteLine("using System.Threading;");
+			writer.WriteLine("using Meta.Common.Interface;");
 			if (_isGeometryTable)
 				writer.WriteLine("using Npgsql;");
 			writer.WriteLine();
-			writer.WriteLine($"namespace {_projectName}.DAL");
+			writer.WriteLine($"namespace {_projectName}.DAL{NamespaceSuffix}");
 			writer.WriteLine("{");
 			writer.WriteLine($"\tpublic sealed partial class {DalClassName} : SelectBuilder<{DalClassName}, {ModelClassName}>");
 			writer.WriteLine("\t{");
@@ -469,12 +474,12 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 
 			if (_table.Type == "table")
 			{
-				writer.WriteLine("\t\t#region Delete");
+				writer.Write("\t\t#region Delete");
 				DeleteGenerator(writer);
 				writer.WriteLine("\t\t#endregion");
 				writer.WriteLine();
 
-				writer.WriteLine("\t\t#region Insert");
+				writer.Write("\t\t#region Insert");
 				InsertGenerator(writer);
 				writer.WriteLine("\t\t#endregion");
 				writer.WriteLine();
@@ -510,8 +515,6 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 
 			writer.WriteLine("\t\tprivate {0}() {{ }}", DalClassName);
 			writer.WriteLine("\t\tpublic static {0} Select => new {0}(){1};", DalClassName, DataSelectString);
-			writer.WriteLine("\t\tpublic static {0} SelectDiy(string fields) => new {0} {{ Fields = fields }}{1};", DalClassName, DataSelectString);
-			writer.WriteLine("\t\tpublic static {0} SelectDiy(string fields, string alias) => new {0} {{ Fields = fields, MainAlias = alias }}{1};", DalClassName, DataSelectString);
 			if (_table.Type == "table")
 			{
 				writer.WriteLine("\t\tpublic static UpdateBuilder<{0}> UpdateBuilder => new UpdateBuilder<{0}>(){1};", ModelClassName, DataSelectString);
@@ -547,34 +550,68 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 				}
 				where1 = where1.Contains(",") ? $"({where1})" : where1;
 				where = where.Contains(",") ? $"({where})" : where;
-				writer.WriteLine($"\t\tpublic static int Delete({ModelClassName} model) => Delete(new[] {{ {where1} }});");
-				writer.WriteLine($"\t\tpublic static int Delete({string.Join(", ", d_key)}) => Delete(new[] {{ {where} }});");
 				if (_pkList.Count == 1)
 				{
-					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<{ModelClassName}> models) => Delete(models.Select(a => a.{s_key[0].ToUpperPascal()}));");
-					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<{types}> {s_key[0]}s)");
-					writer.WriteLine("\t\t{");
-					writer.WriteLine($"\t\t\tif ({s_key[0]}s == null)");
-					writer.WriteLine($"\t\t\t\tthrow new ArgumentNullException(nameof({s_key[0]}s));");
-					writer.WriteLine("\t\t\tif (DbConfig.DbCacheTimeOut != 0)");
-					writer.WriteLine($"\t\t\t\tRedisHelper.Del({s_key[0]}s.Select(f => string.Format(CacheKey, f)).ToArray());");
-					writer.WriteLine($"\t\t\treturn DeleteBuilder.WhereAny(a => a.{s_key[0].ToUpperPascal()}, {s_key[0]}s).ToRows();");
-					writer.WriteLine("\t\t}");
+					writer.Write(@"
+		public static int Delete(params {0}[] {1}s)
+			=> DeleteAsync(false, CancellationToken.None, ids).ConfigureAwait(false).GetAwaiter().GetResult();
+
+		public static ValueTask<int> DeleteAsync(CancellationToken cancellationToken = default, params {0}[] {1}s)
+			=> DeleteAsync(true, cancellationToken, ids);
+
+		private static async ValueTask<int> DeleteAsync(bool async, CancellationToken cancellationToken, params {0}[] {1}s)
+		{{
+			if ({1}s == null)
+				throw new ArgumentNullException(nameof({1}s));
+			if (DbConfig.DbCacheTimeOut != 0)
+			{{
+				var keys = {1}s.Select(f => string.Format(CacheKey, f)).ToArray();
+				if(async)
+					await RedisHelper.DelAsync(keys);
+				else
+					RedisHelper.Del(keys);
+			}}
+			if(async)
+				return await DeleteBuilder.WhereAny(a => a.{2}, {1}s).ToRowsAsync(cancellationToken);
+			return DeleteBuilder.WhereAny(a => a.{2}, {1}s).ToRows();
+		}}
+", types, s_key[0], s_key[0].ToUpperPascal());
+
 				}
 				else if (_pkList.Count > 1)
 				{
-					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<{ModelClassName}> models) =>  Delete(models.Select(a => ({s_key.Select(a => $"a.{a.ToUpperPascal()}").Join(", ")})));");
-					writer.WriteLine($"\t\t/// <summary>");
-					writer.WriteLine($"\t\t/// ({s_key.Select(a => $"{a}").Join(", ")})");
-					writer.WriteLine($"\t\t/// </summary>");
-					writer.WriteLine($"\t\tpublic static int Delete(IEnumerable<({types})> val)");
-					writer.WriteLine("\t\t{");
-					writer.WriteLine("\t\t\tif (val == null)");
-					writer.WriteLine("\t\t\t\tthrow new ArgumentNullException(nameof(val));");
-					writer.WriteLine("\t\t\tif (DbConfig.DbCacheTimeOut != 0)");
-					writer.WriteLine("\t\t\t\tRedisHelper.Del(val.Select(f => string.Format(CacheKey{0})).ToArray());", string.Concat(_pkList.Select((f, index) => ", f.Item" + (index + 1))));
-					writer.WriteLine($"\t\t\treturn DeleteBuilder.Where({s_key.Select(a => $"a => a.{a.ToUpperPascal()}").Join(", ")}, val).ToRows();");
-					writer.WriteLine("\t\t}");
+
+					writer.Write(@"
+		/// <summary>
+		/// ({3})
+		/// </summary>
+		public static int Delete(params ({0})[] values)
+			=> DeleteAsync(false, CancellationToken.None, values).ConfigureAwait(false).GetAwaiter().GetResult();
+
+		/// <summary>
+		/// ({3})
+		/// </summary>
+		public static ValueTask<int> DeleteAsync(CancellationToken cancellationToken = default, params ({0})[] values)
+			=> DeleteAsync(true, cancellationToken, values);
+
+		private static async ValueTask<int> DeleteAsync(bool async, CancellationToken cancellationToken, params ({0})[] values)
+		{{
+			if (values == null)
+				throw new ArgumentNullException(nameof(values));
+			if (DbConfig.DbCacheTimeOut != 0)
+			{{
+				var keys = values.Select(f => string.Format(CacheKey{1})).ToArray();
+				if(async)
+					await RedisHelper.DelAsync(keys);
+				else
+					RedisHelper.Del(keys);
+			}}
+			if(async)
+				return await DeleteBuilder.Where({2}, values).ToRowsAsync(cancellationToken);
+			return DeleteBuilder.Where({2}, values).ToRows();
+		}}
+", types, string.Concat(_pkList.Select((f, index) => ", f.Item" + (index + 1))), s_key.Select(a => $"a => a.{a.ToUpperPascal()}").Join(", "), s_key.Select(a => $"{a}").Join(", "));
+
 				}
 			}
 		}
@@ -596,28 +633,52 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 					where += " && ";
 			}
 			where += ")";
-			writer.WriteLine("\t\tpublic static int Commit({0} model) => SetRedisCache(string.Format(CacheKey{1}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows());", ModelClassName, string.Concat(_pkList.Select(f => $", model.{f.Field.ToUpperPascal()}")));
-			writer.WriteLine("\t\tpublic static {0} Insert({0} model)", ModelClassName);
-			writer.WriteLine("\t\t{");
-			writer.WriteLine("\t\t\tSetRedisCache(string.Format(CacheKey{0}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));", string.Concat(_pkList.Select(f => $", model.{f.Field.ToUpperPascal()}")));
-			writer.WriteLine("\t\t\treturn model;");
-			writer.WriteLine("\t\t}");
-			writer.WriteLine("\t\tpublic static int Commit(IEnumerable<{0}> models, bool isExceptionCancel = true)", ModelClassName);
-			writer.WriteLine("\t\t{");
-			writer.WriteLine("\t\t\tif (models == null)");
-			writer.WriteLine("\t\t\t\tthrow new ArgumentNullException(nameof(models));");
-			writer.WriteLine("\t\t\tvar sqlbuilders = isExceptionCancel ? models.Select(f => GetInsertBuilder(f).ToRowsPipe()) :");
-			writer.WriteLine("\t\t\t\tmodels.Select(f => GetInsertBuilder(f).WhereNotExists(Select{0}).ToRowsPipe());", where);
-			writer.WriteLine("\t\t\treturn InsertMultiple<Db{0}>(models, sqlbuilders, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey{1}));", _dataBaseTypeName, string.Concat(_pkList.Select(f => $", model.{f.Field.ToUpperPascal()}")));
-			writer.WriteLine("\t\t}");
-			writer.WriteLine("\t\tprivate static InsertBuilder<{0}> GetInsertBuilder({0} model)", ModelClassName);
-			writer.WriteLine("\t\t{");
-			writer.WriteLine("\t\t\tif (model == null)");
-			writer.WriteLine("\t\t\t\tthrow new ArgumentNullException(nameof(model));");
-			if (_fieldList.Count == 0)
-				writer.WriteLine($"\t\t\treturn InsertBuilder;");
-			else
-				writer.WriteLine($"\t\t\treturn InsertBuilder");
+			writer.Write(@"
+		public static int Commit({0} model) 
+			=> SetRedisCache(string.Format(CacheKey{1}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows());
+
+		public static {0} Insert({0} model)
+		{{
+			SetRedisCache(string.Format(CacheKey{1}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));
+			return model;
+		}}
+
+		public static int Commit(IEnumerable<{0}> models, bool isExceptionCancel = true)
+		{{
+			if (models == null)
+				throw new ArgumentNullException(nameof(models));
+			var sqlbuilders = GetSqlBuilder(models, isExceptionCancel);
+			return InsertMultiple<Db{2}>(models, sqlbuilders, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey{1}));
+		}}
+
+		public static Task<{0}> InsertAsync({0} model, CancellationToken cancellationToken = default)
+			=> SetRedisCacheAsync(string.Format(CacheKey{1}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToOneAsync(cancellationToken));
+
+		public static ValueTask<int> CommitAsync({0} model, CancellationToken cancellationToken = default)
+			=> SetRedisCacheAsync(string.Format(CacheKey{1}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRowsAsync(cancellationToken), cancellationToken);
+
+		public static ValueTask<int> CommitAsync(IEnumerable<{0}> models, bool isExceptionCancel = true, CancellationToken cancellationToken = default)
+		{{
+			if (models == null)
+				return new ValueTask<int>(Task.FromException<int>(new ArgumentNullException(nameof(models))));
+			var sqlbuilders = GetSqlBuilder(models, isExceptionCancel);
+			return InsertMultipleAsync<Db{2}>(models, sqlbuilders, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey{1}), cancellationToken);
+		}}
+
+		private static IEnumerable<ISqlBuilder> GetSqlBuilder(IEnumerable<{0}> models, bool isExceptionCancel)
+		{{
+			return isExceptionCancel
+				? models.Select(f => GetInsertBuilder(f).ToRowsPipe())
+				: models.Select(f => GetInsertBuilder(f).WhereNotExists(Select{3}).ToRowsPipe());
+		}}
+
+		private static InsertBuilder<{0}> GetInsertBuilder({0} model)
+		{{
+			if (model == null)
+				throw new ArgumentNullException(nameof(model));
+			return InsertBuilder{4}
+", ModelClassName, string.Concat(_pkList.Select(f => $", model.{f.Field.ToUpperPascal()}")), _dataBaseTypeName, where, _fieldList.Count == 0 ? ";" : "");
+
 			for (int i = 0; i < _fieldList.Count; i++)
 			{
 				FieldInfo item = _fieldList[i];
@@ -663,23 +724,41 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 					else
 						where += ")";
 				}
-				writer.WriteLine("\t\tpublic static {0} GetItem({1}) => GetRedisCache(string.Format(CacheKey{2}), DbConfig.DbCacheTimeOut, () => Select{3}.ToOne());", ModelClassName, string.Join(", ", d_key), string.Concat(_pkList.Select(f => $", {f.Field}")), where);
+				writer.Write(@"
+		public static {0} GetItem({1}) 
+			=> GetRedisCache(string.Format(CacheKey{2}), DbConfig.DbCacheTimeOut, () => Select{3}.ToOne());
+
+		public static Task<{0}> GetItemAsync({1}, CancellationToken cancellationToken = default) 
+			=> GetRedisCacheAsync(string.Format(CacheKey{2}), DbConfig.DbCacheTimeOut, () => Select{3}.ToOneAsync(cancellationToken), cancellationToken);
+", ModelClassName, string.Join(", ", d_key), string.Concat(_pkList.Select(f => $", {f.Field}")), where);
 
 				if (_pkList.Count == 1)
 				{
-					writer.WriteLine($"\t\tpublic static List<{ModelClassName}> GetItems(IEnumerable<{types}> {s_key[0]}s) => Select.WhereAny(a => a.{s_key[0].ToUpperPascal()}, {s_key[0]}s).ToList();");
+					writer.Write(@"
+		public static List<{0}> GetItems(IEnumerable<{1}> {2}s) 
+			=> Select.WhereAny(a => a.{3}, {2}s).ToList();
+
+		public static Task<List<{0}>> GetItemsAsync(IEnumerable<{1}> {2}s, CancellationToken cancellationToken = default) 
+			=> Select.WhereAny(a => a.{3}, {2}s).ToListAsync(cancellationToken);
+", ModelClassName, types, s_key[0], s_key[0].ToUpperPascal());
+
 				}
 				else if (_pkList.Count > 1)
 				{
-					writer.WriteLine($"\t\t/// <summary>");
-					writer.WriteLine($"\t\t/// ({s_key.Select(a => $"{a}").Join(", ")})");
-					writer.WriteLine($"\t\t/// </summary>");
-					writer.WriteLine($"\t\tpublic static List<{ModelClassName}> GetItems(IEnumerable<({types})> val) => Select.Where({s_key.Select(a => $"a => a.{a.ToUpperPascal()}").Join(", ")}, val).ToList();");
-				}
-				foreach (var u in _fieldList.Where(f => f.IsUnique == true))
-				{
-					writer.WriteLine($"\t\tpublic static {ModelClassName} GetItemBy{u.Field.ToUpperPascal()}({u.RelType.Replace("?", "")} {u.Field}) => Select.Where(a => a.{u.Field.ToUpperPascal()} == {u.Field}).ToOne();");
-					writer.WriteLine($"\t\tpublic static List<{ModelClassName}> GetItemsBy{u.Field.ToUpperPascal()}(IEnumerable<{u.RelType.Replace("?", "")}> {u.Field}s) => Select.WhereAny(a => a.{u.Field.ToUpperPascal()}, {u.Field}s).ToList();");
+					writer.Write(@"
+		/// <summary>
+		/// ({3})
+		/// </summary>
+		public static List<{0}> GetItems(IEnumerable<({1})> values) 
+			=> Select.Where({2}, values).ToList();
+
+		/// <summary>
+		/// ({3})
+		/// </summary>
+		public static Task<List<{0}>> GetItemsAsync(IEnumerable<({1})> values, CancellationToken cancellationToken = default) 
+			=> Select.Where({2}, values).ToListAsync(cancellationToken);
+", ModelClassName, types, s_key.Select(a => $"a => a.{a.ToUpperPascal()}").Join(", "), s_key.Select(a => $"{a}").Join(", "));
+
 				}
 			}
 			foreach (var item in _fieldList)
@@ -707,32 +786,24 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 		/// <param name="writer"></param>
 		void UpdateGenerator(StreamWriter writer)
 		{
-
 			if (_pkList.Count > 0)
 			{
 				List<string> d_key = new List<string>(), s_key = new List<string>();
-				string where1 = string.Empty, where2 = string.Empty, types = string.Empty;
+				string types = string.Empty;
 				for (int i = 0; i < _pkList.Count; i++)
 				{
 					FieldInfo fs = _fieldList.FirstOrDefault(f => f.Field == _pkList[i].Field);
 					s_key.Add(fs.Field);
 					types += fs.RelType;
 					d_key.Add(fs.RelType + " " + fs.Field);
-					where1 += $"model.{fs.Field.ToUpperPascal()}";
-					where2 += $"{fs.Field}";
 					if (i + 1 != _pkList.Count)
 					{
-						types += ", "; where1 += ", "; where2 += ", ";
+						types += ", ";
 					}
 				}
-				where1 = where1.Contains(",") ? $"({where1})" : where1;
-				where2 = where2.Contains(",") ? $"({where2})" : where2;
-				writer.WriteLine("\t\tpublic static UpdateBuilder<{0}> Update({0} model) => Update(new[] {{ {1} }});", ModelClassName, where1);
-				writer.WriteLine($"\t\tpublic static UpdateBuilder<{ModelClassName}> Update({string.Join(",", d_key)}) => Update(new[] {{ {where2} }});");
 				if (_pkList.Count == 1)
 				{
-					writer.WriteLine("\t\tpublic static UpdateBuilder<{0}> Update(IEnumerable<{0}> models) => Update(models.Select(a => a.{1}));", ModelClassName, s_key[0].ToUpperPascal());
-					writer.WriteLine($"\t\tpublic static UpdateBuilder<{ModelClassName}> Update(IEnumerable<{types}> {s_key[0]}s)");
+					writer.WriteLine($"\t\tpublic static UpdateBuilder<{ModelClassName}> Update(params {types}[] {s_key[0]}s)");
 					writer.WriteLine("\t\t{");
 					writer.WriteLine($"\t\t\tif ({s_key[0]}s == null)");
 					writer.WriteLine($"\t\t\t\tthrow new ArgumentNullException(nameof({s_key[0]}s));");
@@ -743,18 +814,16 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 				}
 				else if (_pkList.Count > 1)
 				{
-					writer.WriteLine("\t\tpublic static UpdateBuilder<{0}> Update(IEnumerable<{0}> models) => Update(models.Select(a => ({1})));",
-						ModelClassName, s_key.Select(a => $"a.{a.ToUpperPascal()}").Join(", "));
 					writer.WriteLine($"\t\t/// <summary>");
 					writer.WriteLine($"\t\t/// ({s_key.Select(a => $"{a}").Join(", ")})");
 					writer.WriteLine($"\t\t/// </summary>");
-					writer.WriteLine("\t\tpublic static UpdateBuilder<{0}> Update(IEnumerable<({1})> val)", ModelClassName, types);
+					writer.WriteLine("\t\tpublic static UpdateBuilder<{0}> Update(params ({1})[] values)", ModelClassName, types);
 					writer.WriteLine("\t\t{");
-					writer.WriteLine("\t\t\tif (val == null)");
-					writer.WriteLine("\t\t\t\tthrow new ArgumentNullException(nameof(val));");
+					writer.WriteLine("\t\t\tif (values == null)");
+					writer.WriteLine("\t\t\t\tthrow new ArgumentNullException(nameof(values));");
 					writer.WriteLine("\t\t\tif (DbConfig.DbCacheTimeOut != 0)");
-					writer.WriteLine("\t\t\t\tRedisHelper.Del(val.Select(f => string.Format(CacheKey{0})).ToArray());", string.Concat(_pkList.Select((f, index) => ", f.Item" + (index + 1))));
-					writer.WriteLine("\t\t\treturn UpdateBuilder.Where({0}, val);", s_key.Select(a => $"a => a.{a.ToUpperPascal()}").Join(", "));
+					writer.WriteLine("\t\t\t\tRedisHelper.Del(values.Select(f => string.Format(CacheKey{0})).ToArray());", string.Concat(_pkList.Select((f, index) => ", f.Item" + (index + 1))));
+					writer.WriteLine("\t\t\treturn UpdateBuilder.Where({0}, values);", s_key.Select(a => $"a => a.{a.ToUpperPascal()}").Join(", "));
 					writer.WriteLine("\t\t}");
 				}
 			}

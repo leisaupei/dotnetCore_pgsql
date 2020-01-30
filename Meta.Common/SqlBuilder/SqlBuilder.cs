@@ -184,8 +184,15 @@ namespace Meta.Common.SqlBuilder
 		/// 返回第一个元素
 		/// </summary>
 		/// <returns></returns>
-		protected Task<object> ToScalarAsync(CancellationToken cancellationToken)
+		protected ValueTask<object> ToScalarAsync(CancellationToken cancellationToken)
 			=> PgsqlHelper.GetExecute(DbName).ExecuteScalarAsync(CommandText, CommandType.Text, Params.ToArray(), cancellationToken);
+
+		/// <summary>
+		/// 返回第一个元素
+		/// </summary>
+		/// <returns></returns>
+		protected async ValueTask<TKey> ToScalarAsync<TKey>(CancellationToken cancellationToken)
+			=> (TKey)await PgsqlHelper.GetExecute(DbName).ExecuteScalarAsync(CommandText, CommandType.Text, Params.ToArray(), cancellationToken);
 
 		/// <summary>
 		/// 返回list 
@@ -230,7 +237,7 @@ namespace Meta.Common.SqlBuilder
 		/// 返回行数
 		/// </summary>
 		/// <returns></returns>
-		protected Task<int> ToRowsAsync(CancellationToken cancellationToken)
+		protected ValueTask<int> ToRowsAsync(CancellationToken cancellationToken)
 			=> PgsqlHelper.GetExecute(DbName).ExecuteNonQueryAsync(CommandText, CommandType.Text, Params.ToArray(), cancellationToken);
 
 		/// <summary>

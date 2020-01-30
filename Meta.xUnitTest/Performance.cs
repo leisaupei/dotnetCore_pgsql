@@ -13,6 +13,7 @@ using Xunit.Extensions.Ordering;
 using Meta.xUnitTest.Extensions;
 using Meta.Common.DbHelper;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Meta.xUnitTest
 {
@@ -38,11 +39,22 @@ namespace Meta.xUnitTest
 			}
 		}
 		[Fact]
-		public async Task TestAsync()
+		public Task TestAsync()
 		{
-			var affrows = PgsqlHelper<DbMaster>.ExecuteScalar("update people set age = 2 where id = '5ef5a598-e4a1-47b3-919e-4cc1fdd97757';");
-			PgsqlHelper.ExecuteScalar("update people set age = 2 where id = '5ef5a598-e4a1-47b3-919e-4cc1fdd97757';");
+			return PgsqlHelper.ExecuteNonQueryAsync("update people set age = 2 where id = '5ef5a598-e4a1-47b3-919e-4cc1fdd97757';").AsTask();
 
 		}
+
+		public class Test
+		{
+			public int Code { get; set; }
+		}
+		[Fact]
+		public async Task TestAsync1()
+		{
+			var affrows = await PgsqlHelper.ExecuteNonQueryAsync("update people set age = 2 where id = '5ef5a598-e4a1-47b3-919e-4cc1fdd97757';");
+
+		}
+
 	}
 }
