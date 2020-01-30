@@ -24,5 +24,43 @@ namespace Meta.Common.Model
 		[EditorBrowsable(EditorBrowsableState.Never), Obsolete("Future")]
 		Mysql = 2,
 	}
+	/// <summary>
+	/// 参照的分割字段类型
+	/// </summary>
+	public enum SplitType
+	{
+		/// <summary>
+		/// 时间类型 从1970-1-1 开始按照N年分割
+		/// </summary>
+		DateTimeEveryYears = 2,
+		/// <summary>
+		/// 时间类型 从1970-1-1 开始按照N个月分割
+		/// </summary>
+		DateTimeEveryMonths = 3,
+		/// <summary>
+		/// 时间类型 从1970-1-1 开始按照N月分割
+		/// </summary>
+		DateTimeEveryDays = 4,
+		/// <summary>
+		/// int类型 每个int一个表
+		/// </summary>
+		IntEveryValue = 11,
+		/// <summary>
+		/// int类型 多个int类型一个表
+		/// </summary>
+		IntEveryValues = 12,
+		/// <summary>
+		/// 枚举 每个枚举类型一个表
+		/// </summary>
+		EnumEveryValue = 21,
+		/// <summary>
+		/// 枚举 多个枚举类型一个表
+		/// </summary>
+		EnumEveryValues = 22,
+		/// <summary>
+		/// Guid 按照首字母分表
+		/// </summary>
+		GuidEveryFirstLatter = 31
+	}
 
 }
