@@ -4,10 +4,13 @@ using Meta.Common.Model;
 using Meta.Common.SqlBuilder.AnalysisExpression;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Meta.Common.SqlBuilder
 {
@@ -36,6 +39,20 @@ namespace Meta.Common.SqlBuilder
 
 		TSQL This => this as TSQL;
 
+		/// <summary>
+		/// 设置单个字段 常用于IN系列与EXISTS系列 会采用key selector别名为表别名
+		/// </summary>
+		/// <param name="selector"></param>
+		/// <returns>ISqlBuilder</returns>
+		public TSQL Field(Expression<Func<TModel, object>> selector)
+		{
+			var visitor = SqlExpressionVisitor.Instance.VisitSingle(selector);
+			Fields = visitor.SqlText;
+			MainAlias = visitor.Alias;
+			return This;
+		}
+
+		#region KeyWord
 		/// <summary>
 		/// sql语句group by
 		/// </summary>
@@ -207,40 +224,9 @@ namespace Meta.Common.SqlBuilder
 		/// <returns></returns>
 		public TSQL OrderByDescending<TSource>(Expression<Func<TSource, object>> selector, bool isNullsLast = false) where TSource : IDbModel, new()
 			=> OrderBy(string.Concat(SqlExpressionVisitor.Instance.VisitSingle(selector).SqlText, " desc", isNullsLast ? " NULLS LAST" : ""));
+		#endregion
 
-		/// <summary>
-		/// 设置单个字段 常用于IN系列与EXISTS系列 会采用key selector别名为表别名
-		/// </summary>
-		/// <param name="selector"></param>
-		/// <returns>ISqlBuilder</returns>
-
-		public TSQL Field(Expression<Func<TModel, object>> selector)
-		{
-			var visitor = SqlExpressionVisitor.Instance.VisitSingle(selector);
-			Fields = visitor.SqlText;
-			MainAlias = visitor.Alias;
-			return This;
-		}
-
-		/// <summary>
-		/// 返回列表(管道)
-		/// </summary>
-		/// <typeparam name="T">model type</typeparam>
-		/// <param name="fields">指定输出字段</param>
-		/// <returns></returns>
-		public TSQL ToListPipe<T>(string fields = null)
-		{
-			if (!string.IsNullOrEmpty(fields)) Fields = fields;
-			return base.ToPipe<T>(PipeReturnType.List);
-		}
-
-		/// <summary>
-		/// 返回列表(管道)
-		/// </summary>
-		/// <param name="fields"></param>
-		/// <returns></returns>
-		public TSQL ToListPipe(string fields = null) => this.ToListPipe<TModel>(fields);
-
+		#region ToList
 		/// <summary>
 		/// 返回列表
 		/// </summary>
@@ -277,28 +263,9 @@ namespace Meta.Common.SqlBuilder
 		/// </summary>
 		/// <returns></returns>
 		public List<TModel> ToList() => this.ToList<TModel>();
+		#endregion
 
-		/// <summary>
-		/// 返回一行(管道)
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="fields">返回字段, 可选</param>
-		/// <returns></returns>
-		public TSQL ToOnePipe<T>(string fields = null)
-		{
-			Limit(1);
-			if (!string.IsNullOrEmpty(fields)) Fields = fields;
-			return base.ToPipe<T>(PipeReturnType.One);
-		}
-
-		/// <summary>
-		/// 返回一行(管道)
-		/// </summary>
-		/// <param name="fields">返回字段, 可选</param>
-		/// <returns></returns>
-		public TSQL ToOnePipe(string fields = null)
-			=> this.ToOnePipe<TModel>(fields);
-
+		#region ToOne
 		/// <summary>
 		/// 返回一行
 		/// </summary>
@@ -368,7 +335,9 @@ namespace Meta.Common.SqlBuilder
 		/// <returns></returns>
 		public TKey ToScalar<TSource, TKey>(Expression<Func<TSource, TKey>> selector) where TSource : IDbModel, new()
 			=> ToScalar<TKey>(SqlExpressionVisitor.Instance.VisitSingle(selector).SqlText);
+		#endregion
 
+		#region Single Method
 		/// <summary>
 		/// 返回行数
 		/// </summary>
@@ -419,7 +388,6 @@ namespace Meta.Common.SqlBuilder
 		public TKey Avg<TSource, TKey>(Expression<Func<TSource, TKey>> selector, TKey defaultValue = default) where TSource : IDbModel, new()
 			=> ScalarTransfer(selector, defaultValue, "AVG");
 
-
 		/// <summary>
 		/// 取最大值
 		/// </summary>
@@ -455,6 +423,294 @@ namespace Meta.Common.SqlBuilder
 		/// <param name="defaultValue">default value</param>
 		/// <returns></returns>
 		public TKey Avg<TKey>(Expression<Func<TModel, TKey>> selector, TKey defaultValue = default) => Avg<TModel, TKey>(selector, defaultValue);
+
+		#endregion
+
+		#region Async
+		#region ToList
+		/// <summary>
+		/// 返回列表
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="fields"></param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public Task<List<T>> ToListAsync<T>(string fields = null, CancellationToken cancellationToken = default)
+		{
+			if (!string.IsNullOrEmpty(fields)) Fields = fields;
+			if (IsReturnDefault) return Task.FromResult(new List<T>());
+			return base.ToListAsync<T>(cancellationToken);
+		}
+
+		/// <summary>
+		/// 返回列表
+		/// </summary>
+		/// <typeparam name="TKey"></typeparam>
+		/// <param name="selector"></param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public Task<List<TKey>> ToListAsync<TKey>(Expression<Func<TModel, TKey>> selector, CancellationToken cancellationToken = default)
+			=> ToListAsync<TModel, TKey>(selector, cancellationToken);
+
+		/// <summary>
+		/// 返回列表
+		/// </summary>
+		/// <typeparam name="TSource"></typeparam>
+		/// <typeparam name="TKey"></typeparam>
+		/// <param name="selector"></param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public Task<List<TKey>> ToListAsync<TSource, TKey>(Expression<Func<TSource, TKey>> selector, CancellationToken cancellationToken = default) where TSource : IDbModel, new()
+			=> ToListAsync<TKey>(SqlExpressionVisitor.Instance.VisitSingle(selector).SqlText, cancellationToken);
+
+		/// <summary>
+		/// 返回列表
+		/// </summary>
+		/// <returns></returns>
+		public Task<List<TModel>> ToListAsync(CancellationToken cancellationToken = default)
+			=> this.ToListAsync<TModel>(cancellationToken);
+		#endregion
+
+		#region ToOne
+		/// <summary>
+		/// 返回一行
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="fields"></param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public Task<T> ToOneAsync<T>(string fields = null, CancellationToken cancellationToken = default)
+		{
+			Limit(1);
+			if (!string.IsNullOrEmpty(fields)) Fields = fields;
+			return base.ToOneAsync<T>(cancellationToken);
+		}
+
+		/// <summary>
+		/// 返回一行
+		/// </summary>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public Task<TModel> ToOneAsync(CancellationToken cancellationToken = default)
+			=> this.ToOneAsync<TModel>(cancellationToken);
+
+		/// <summary>
+		/// 返回一行
+		/// </summary>
+		/// <typeparam name="TKey"></typeparam>
+		/// <param name="selector"></param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public ValueTask<TKey> ToOneAsync<TKey>(Expression<Func<TModel, TKey>> selector, CancellationToken cancellationToken = default)
+			=> ToOneAsync<TModel, TKey>(selector, cancellationToken);
+
+		/// <summary>
+		/// 返回一行
+		/// </summary>
+		/// <typeparam name="TSource"></typeparam>
+		/// <typeparam name="TKey"></typeparam>
+		/// <param name="selector"></param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public ValueTask<TKey> ToOneAsync<TSource, TKey>(Expression<Func<TSource, TKey>> selector, CancellationToken cancellationToken = default) where TSource : IDbModel, new()
+			=> this.ToScalarAsync(selector, cancellationToken);
+
+		/// <summary>
+		/// 返回第一个元素
+		/// </summary>
+		/// <typeparam name="TKey"></typeparam>
+		/// <param name="fields"></param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public ValueTask<TKey> ToScalarAsync<TKey>(string fields, CancellationToken cancellationToken = default)
+		{
+			Limit(1);
+			Fields = fields;
+			return base.ToScalarAsync<TKey>(cancellationToken);
+		}
+
+		/// <summary>
+		/// 返回第一个元素
+		/// </summary>
+		/// <typeparam name="TKey"></typeparam>
+		/// <param name="selector"></param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public ValueTask<TKey> ToScalarAsync<TKey>(Expression<Func<TModel, TKey>> selector, CancellationToken cancellationToken = default)
+			=> this.ToScalarAsync<TModel, TKey>(selector, cancellationToken);
+
+		/// <summary>
+		/// 返回第一个元素
+		/// </summary>
+		/// <typeparam name="TSource"></typeparam>
+		/// <typeparam name="TKey"></typeparam>
+		/// <param name="selector"></param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public ValueTask<TKey> ToScalarAsync<TSource, TKey>(Expression<Func<TSource, TKey>> selector, CancellationToken cancellationToken = default) where TSource : IDbModel, new()
+			=> ToScalarAsync<TKey>(SqlExpressionVisitor.Instance.VisitSingle(selector).SqlText, cancellationToken);
+		#endregion
+
+		#region ToOneUnion
+		/// <summary>
+		/// 返回联表实体
+		/// </summary>
+		/// <typeparam name="T1"></typeparam>
+		/// <returns></returns>
+		public Task<(TModel, T1)> ToOneUnionAsync<T1>(CancellationToken cancellationToken = default) where T1 : IDbModel, new()
+			=> this.ToOneAsync<(TModel, T1)>(cancellationToken);
+
+		/// <summary>
+		/// 返回联表实体
+		/// </summary>
+		/// <typeparam name="T1"></typeparam>
+		/// <typeparam name="T2"></typeparam>
+		/// <returns></returns>
+		public Task<(TModel, T1, T2)> ToOneUnionAsync<T1, T2>(CancellationToken cancellationToken = default) where T1 : IDbModel, new() where T2 : IDbModel, new()
+			=> this.ToOneAsync<(TModel, T1, T2)>(cancellationToken);
+
+		/// <summary>
+		/// 返回联表实体
+		/// </summary>
+		/// <typeparam name="T1"></typeparam>
+		/// <typeparam name="T2"></typeparam>
+		/// <typeparam name="T3"></typeparam>
+		/// <returns></returns>
+		public Task<(TModel, T1, T2, T3)> ToOneUnionAsync<T1, T2, T3>(CancellationToken cancellationToken = default) where T1 : IDbModel, new() where T2 : IDbModel, new() where T3 : IDbModel, new()
+			=> this.ToOneAsync<(TModel, T1, T2, T3)>(cancellationToken);
+		#endregion
+
+		#region ToListUnion
+		/// <summary>
+		/// 返回联表实体列表
+		/// </summary>
+		/// <typeparam name="T1"></typeparam>
+		/// <returns></returns>
+		public Task<List<(TModel, T1)>> ToListUnionAsync<T1>(CancellationToken cancellationToken = default) where T1 : IDbModel, new()
+			=> this.ToListAsync<(TModel, T1)>(cancellationToken);
+
+		/// <summary>
+		/// 返回联表实体列表
+		/// </summary>
+		/// <typeparam name="T1"></typeparam>
+		/// <typeparam name="T2"></typeparam>
+		/// <returns></returns>
+		public Task<List<(TModel, T1, T2)>> ToListUnionAsync<T1, T2>(CancellationToken cancellationToken = default) where T1 : IDbModel, new() where T2 : IDbModel, new()
+			=> this.ToListAsync<(TModel, T1, T2)>(cancellationToken);
+
+		/// <summary>
+		/// 返回联表实体列表
+		/// </summary>
+		/// <typeparam name="T1"></typeparam>
+		/// <typeparam name="T2"></typeparam>
+		/// <typeparam name="T3"></typeparam>
+		/// <returns></returns>
+		public Task<List<(TModel, T1, T2, T3)>> ToListUnionAsync<T1, T2, T3>(CancellationToken cancellationToken = default) where T1 : IDbModel, new() where T2 : IDbModel, new() where T3 : IDbModel, new()
+			=> this.ToListAsync<(TModel, T1, T2, T3)>(cancellationToken);
+		#endregion
+		#endregion
+
+		#region Pipe
+		#region ToOne
+
+		/// <summary>
+		/// 返回一行(管道)
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="fields">返回字段, 可选</param>
+		/// <returns></returns>
+		public TSQL ToOnePipe<T>(string fields = null)
+		{
+			Limit(1);
+			if (!string.IsNullOrEmpty(fields)) Fields = fields;
+			return base.ToPipe<T>(PipeReturnType.One);
+		}
+
+		/// <summary>
+		/// 返回一行(管道)
+		/// </summary>
+		/// <param name="fields">返回字段, 可选</param>
+		/// <returns></returns>
+		public TSQL ToOnePipe(string fields = null)
+			=> this.ToOnePipe<TModel>(fields);
+
+		/// <summary>
+		/// 返回联表实体(管道)
+		/// </summary>
+		/// <typeparam name="T1"></typeparam>
+		/// <returns></returns>
+		public TSQL ToOneUnionPipe<T1>() where T1 : IDbModel, new()
+			=> this.ToOnePipe<(TModel, T1)>();
+
+		/// <summary>
+		/// 返回联表实体(管道)
+		/// </summary>
+		/// <typeparam name="T1"></typeparam>
+		/// <typeparam name="T2"></typeparam>
+		/// <returns></returns>
+		public TSQL ToOneUnionPipe<T1, T2>() where T1 : IDbModel, new() where T2 : IDbModel, new()
+			=> this.ToOnePipe<(TModel, T1, T2)>();
+
+		/// <summary>
+		/// 返回联表实体(管道)
+		/// </summary>
+		/// <typeparam name="T1"></typeparam>
+		/// <typeparam name="T2"></typeparam>
+		/// <typeparam name="T3"></typeparam>
+		/// <returns></returns>
+		public TSQL ToOneUnionPipe<T1, T2, T3>() where T1 : IDbModel, new() where T2 : IDbModel, new() where T3 : IDbModel, new()
+			=> this.ToOnePipe<(TModel, T1, T2, T3)>();
+		#endregion
+
+		#region ToList
+		/// <summary>
+		/// 返回列表(管道)
+		/// </summary>
+		/// <typeparam name="T">model type</typeparam>
+		/// <param name="fields">指定输出字段</param>
+		/// <returns></returns>
+		public TSQL ToListPipe<T>(string fields = null)
+		{
+			if (!string.IsNullOrEmpty(fields)) Fields = fields;
+			return base.ToPipe<T>(PipeReturnType.List);
+		}
+
+		/// <summary>
+		/// 返回列表(管道)
+		/// </summary>
+		/// <param name="fields"></param>
+		/// <returns></returns>
+		public TSQL ToListPipe(string fields = null) => this.ToListPipe<TModel>(fields);
+
+		/// <summary>
+		/// 返回联表实体列表(管道)
+		/// </summary>
+		/// <typeparam name="T1"></typeparam>
+		/// <returns></returns>
+		public TSQL ToListUnionPipe<T1>() where T1 : IDbModel, new()
+			=> this.ToListPipe<(TModel, T1)>();
+
+		/// <summary>
+		/// 返回联表实体列表(管道)
+		/// </summary>
+		/// <typeparam name="T1"></typeparam>
+		/// <typeparam name="T2"></typeparam>
+		/// <returns></returns>
+		public TSQL ToListUnionPipe<T1, T2>() where T1 : IDbModel, new() where T2 : IDbModel, new()
+			=> this.ToListPipe<(TModel, T1, T2)>();
+
+		/// <summary>
+		/// 返回联表实体列表(管道)
+		/// </summary>
+		/// <typeparam name="T1"></typeparam>
+		/// <typeparam name="T2"></typeparam>
+		/// <typeparam name="T3"></typeparam>
+		/// <returns></returns>
+		public TSQL ToListUnionPipe<T1, T2, T3>() where T1 : IDbModel, new() where T2 : IDbModel, new() where T3 : IDbModel, new()
+			=> this.ToListPipe<(TModel, T1, T2, T3)>();
+
+		#endregion
+		#endregion
 
 		#region Union
 		/// <summary>
@@ -594,6 +850,7 @@ namespace Meta.Common.SqlBuilder
 		#endregion
 
 		#region ToUnion
+		#region ToOne
 		/// <summary>
 		/// 返回联表实体
 		/// </summary>
@@ -601,30 +858,6 @@ namespace Meta.Common.SqlBuilder
 		/// <returns></returns>
 		public (TModel, T1) ToOneUnion<T1>() where T1 : IDbModel, new()
 			=> this.ToOne<(TModel, T1)>();
-
-		/// <summary>
-		/// 返回联表实体列表
-		/// </summary>
-		/// <typeparam name="T1"></typeparam>
-		/// <returns></returns>
-		public List<(TModel, T1)> ToListUnion<T1>() where T1 : IDbModel, new()
-			=> this.ToList<(TModel, T1)>();
-
-		/// <summary>
-		/// 返回联表实体(管道)
-		/// </summary>
-		/// <typeparam name="T1"></typeparam>
-		/// <returns></returns>
-		public TSQL ToOneUnionPipe<T1>() where T1 : IDbModel, new()
-			=> this.ToOnePipe<(TModel, T1)>();
-
-		/// <summary>
-		/// 返回联表实体列表(管道)
-		/// </summary>
-		/// <typeparam name="T1"></typeparam>
-		/// <returns></returns>
-		public TSQL ToListUnionPipe<T1>() where T1 : IDbModel, new()
-			=> this.ToListPipe<(TModel, T1)>();
 
 		/// <summary>
 		/// 返回联表实体
@@ -636,33 +869,6 @@ namespace Meta.Common.SqlBuilder
 			=> this.ToOne<(TModel, T1, T2)>();
 
 		/// <summary>
-		/// 返回联表实体列表
-		/// </summary>
-		/// <typeparam name="T1"></typeparam>
-		/// <typeparam name="T2"></typeparam>
-		/// <returns></returns>
-		public List<(TModel, T1, T2)> ToListUnion<T1, T2>() where T1 : IDbModel, new() where T2 : IDbModel, new()
-			=> this.ToList<(TModel, T1, T2)>();
-
-		/// <summary>
-		/// 返回联表实体(管道)
-		/// </summary>
-		/// <typeparam name="T1"></typeparam>
-		/// <typeparam name="T2"></typeparam>
-		/// <returns></returns>
-		public TSQL ToOneUnionPipe<T1, T2>() where T1 : IDbModel, new() where T2 : IDbModel, new()
-			=> this.ToOnePipe<(TModel, T1, T2)>();
-
-		/// <summary>
-		/// 返回联表实体列表(管道)
-		/// </summary>
-		/// <typeparam name="T1"></typeparam>
-		/// <typeparam name="T2"></typeparam>
-		/// <returns></returns>
-		public TSQL ToListUnionPipe<T1, T2>() where T1 : IDbModel, new() where T2 : IDbModel, new()
-			=> this.ToListPipe<(TModel, T1, T2)>();
-
-		/// <summary>
 		/// 返回联表实体
 		/// </summary>
 		/// <typeparam name="T1"></typeparam>
@@ -671,6 +877,25 @@ namespace Meta.Common.SqlBuilder
 		/// <returns></returns>
 		public (TModel, T1, T2, T3) ToOneUnion<T1, T2, T3>() where T1 : IDbModel, new() where T2 : IDbModel, new() where T3 : IDbModel, new()
 			=> this.ToOne<(TModel, T1, T2, T3)>();
+		#endregion
+
+		#region ToList
+		/// <summary>
+		/// 返回联表实体列表
+		/// </summary>
+		/// <typeparam name="T1"></typeparam>
+		/// <returns></returns>
+		public List<(TModel, T1)> ToListUnion<T1>() where T1 : IDbModel, new()
+			=> this.ToList<(TModel, T1)>();
+
+		/// <summary>
+		/// 返回联表实体列表
+		/// </summary>
+		/// <typeparam name="T1"></typeparam>
+		/// <typeparam name="T2"></typeparam>
+		/// <returns></returns>
+		public List<(TModel, T1, T2)> ToListUnion<T1, T2>() where T1 : IDbModel, new() where T2 : IDbModel, new()
+			=> this.ToList<(TModel, T1, T2)>();
 
 		/// <summary>
 		/// 返回联表实体列表
@@ -681,26 +906,7 @@ namespace Meta.Common.SqlBuilder
 		/// <returns></returns>
 		public List<(TModel, T1, T2, T3)> ToListUnion<T1, T2, T3>() where T1 : IDbModel, new() where T2 : IDbModel, new() where T3 : IDbModel, new()
 			=> this.ToList<(TModel, T1, T2, T3)>();
-
-		/// <summary>
-		/// 返回联表实体(管道)
-		/// </summary>
-		/// <typeparam name="T1"></typeparam>
-		/// <typeparam name="T2"></typeparam>
-		/// <typeparam name="T3"></typeparam>
-		/// <returns></returns>
-		public TSQL ToOneUnionPipe<T1, T2, T3>() where T1 : IDbModel, new() where T2 : IDbModel, new() where T3 : IDbModel, new()
-			=> this.ToOnePipe<(TModel, T1, T2, T3)>();
-
-		/// <summary>
-		/// 返回联表实体列表(管道)
-		/// </summary>
-		/// <typeparam name="T1"></typeparam>
-		/// <typeparam name="T2"></typeparam>
-		/// <typeparam name="T3"></typeparam>
-		/// <returns></returns>
-		public TSQL ToListUnionPipe<T1, T2, T3>() where T1 : IDbModel, new() where T2 : IDbModel, new() where T3 : IDbModel, new()
-			=> this.ToListPipe<(TModel, T1, T2, T3)>();
+		#endregion
 		#endregion
 
 		#region Override
@@ -799,6 +1005,67 @@ namespace Meta.Common.SqlBuilder
 		}
 
 		/// <summary>
+		/// 设置redis cache
+		/// </summary>
+		/// <param name="key">redis key</param>
+		/// <param name="model">model value</param>
+		/// <param name="timeout">time out</param>
+		/// <param name="func">修改/删除语句</param>
+		/// <exception cref="ArgumentNullException">func is null or empty</exception>
+		/// <returns></returns>
+		protected static async Task<TModel> SetRedisCacheAsync(string key, TModel model, int timeout, Func<Task<TModel>> func)
+		{
+			if (func == null)
+				throw new ArgumentNullException(nameof(func));
+			if (model == null)
+				throw new ArgumentNullException(nameof(model));
+			if (string.IsNullOrEmpty(key))
+				throw new ArgumentNullException(nameof(key));
+			if (timeout == 0) return await func.Invoke();
+			await RedisHelper.SetAsync(key, model, timeout);
+			TModel ret;
+			try { ret = await func.Invoke(); }
+			catch (Exception ex)
+			{
+				await RedisHelper.DelAsync(key);
+				throw ex;
+			}
+			if (ret == null) await RedisHelper.DelAsync(key);
+			return ret;
+		}
+
+		/// <summary>
+		/// 设置redis cache
+		/// </summary>
+		/// <param name="key">redis key</param>
+		/// <param name="model">model value</param>
+		/// <param name="timeout">time out</param>
+		/// <param name="func">修改/删除语句</param>
+		/// <param name="cancellationToken"></param>
+		/// <exception cref="ArgumentNullException">func is null or empty</exception>
+		/// <returns></returns>
+		protected static async ValueTask<int> SetRedisCacheAsync(string key, TModel model, int timeout, Func<ValueTask<int>> func, CancellationToken cancellationToken)
+		{
+			if (func == null)
+				throw new ArgumentNullException(nameof(func));
+			if (model == null)
+				throw new ArgumentNullException(nameof(model));
+			if (string.IsNullOrEmpty(key))
+				throw new ArgumentNullException(nameof(key));
+			if (timeout == 0) return await func.Invoke();
+			await RedisHelper.SetAsync(key, model, timeout);
+			int affrows;
+			try { affrows = await func.Invoke(); }
+			catch (Exception ex)
+			{
+				await RedisHelper.DelAsync(key);
+				throw ex;
+			}
+			if (affrows == 0) await RedisHelper.DelAsync(key);
+			return affrows;
+		}
+
+		/// <summary>
 		/// select 获取缓存key
 		/// </summary>
 		/// <param name="key"></param>
@@ -823,6 +1090,31 @@ namespace Meta.Common.SqlBuilder
 		}
 
 		/// <summary>
+		/// select 获取缓存key
+		/// </summary>
+		/// <param name="key"></param>
+		/// <param name="timeout"></param>
+		/// <param name="select"></param>
+		/// <param name="cancellationToken"></param>
+		/// <exception cref="ArgumentNullException">func is null or empty</exception>
+		/// <returns></returns>
+		protected static async Task<TModel> GetRedisCacheAsync(string key, int timeout, Func<Task<TModel>> select, CancellationToken cancellationToken)
+		{
+			if (select == null)
+				throw new ArgumentNullException(nameof(select));
+			if (string.IsNullOrEmpty(key))
+				throw new ArgumentNullException(nameof(key));
+			if (timeout == 0) return await select.Invoke();
+			var info = await RedisHelper.GetAsync<TModel>(key);
+			if (info == null)
+			{
+				info = await select.Invoke();
+				await RedisHelper.SetAsync(key, info, timeout);
+			}
+			return info;
+		}
+
+		/// <summary>
 		/// 批量插入数据
 		/// </summary>
 		/// <param name="models"></param>
@@ -833,6 +1125,32 @@ namespace Meta.Common.SqlBuilder
 		protected static int InsertMultiple<TDbName>(IEnumerable<TModel> models, IEnumerable<ISqlBuilder> sqlbuilders, int timeout, Func<TModel, string> func) where TDbName : struct, IDbName
 		{
 			var rows = PgsqlHelper<TDbName>.ExecuteDataReaderPipe(sqlbuilders).OfType<int>();
+			if (timeout != 0)
+				RedisHelper.StartPipe(h =>
+				{
+					for (int i = 0; i < rows.Count(); i++)
+					{
+						if (rows.ElementAt(i) == 0) continue;
+
+						var model = models.ElementAt(i);
+						h.Set(func(model), model, timeout);
+					}
+				});
+			return rows.Sum();
+		}
+
+		/// <summary>
+		/// 批量插入数据
+		/// </summary>
+		/// <param name="models"></param>
+		/// <param name="sqlbuilders"></param>
+		/// <param name="timeout"></param>
+		/// <param name="func"></param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		protected static async ValueTask<int> InsertMultipleAsync<TDbName>(IEnumerable<TModel> models, IEnumerable<ISqlBuilder> sqlbuilders, int timeout, Func<TModel, string> func, CancellationToken cancellationToken) where TDbName : struct, IDbName
+		{
+			var rows = (await PgsqlHelper<TDbName>.ExecuteDataReaderPipeAsync(sqlbuilders, CommandType.Text, cancellationToken)).OfType<int>();
 			if (timeout != 0)
 				RedisHelper.StartPipe(h =>
 				{

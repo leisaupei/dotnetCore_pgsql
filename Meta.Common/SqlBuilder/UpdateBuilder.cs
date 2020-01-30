@@ -10,6 +10,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace Meta.Common.SqlBuilder
 {
 	public class UpdateBuilder<TModel> : WhereBuilder<UpdateBuilder<TModel>, TModel> where TModel : IDbModel, new()
@@ -198,6 +201,13 @@ namespace Meta.Common.SqlBuilder
 		public new int ToRows() => base.ToRows();
 
 		/// <summary>
+		/// 返回修改行数
+		/// </summary>
+		/// <returns></returns>
+		public new ValueTask<int> ToRowsAsync(CancellationToken cancellationToken = default)
+			=> base.ToRowsAsync(cancellationToken);
+
+		/// <summary>
 		/// 返回修改行数, 并且ref实体类(一行)
 		/// </summary>
 		/// <returns></returns>
@@ -229,6 +239,49 @@ namespace Meta.Common.SqlBuilder
 		/// <returns></returns>
 		public UpdateBuilder<TModel> ToRowsPipe() => base.ToPipe<int>(PipeReturnType.Rows);
 
+		/// <summary>
+		/// 插入数据库并返回数据
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public new T ToOne<T>()
+		{
+			_isReturn = true;
+			return ToOne<T>();
+		}
+
+		/// <summary>
+		/// 插入数据库并返回数据
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public new Task<T> ToOneAsync<T>(CancellationToken cancellationToken = default)
+		{
+			_isReturn = true;
+			return base.ToOneAsync<T>(cancellationToken);
+		}
+
+		/// <summary>
+		/// 插入数据库并返回数据
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public new Task<List<T>> ToListAsync<T>(CancellationToken cancellationToken = default)
+		{
+			_isReturn = true;
+			return base.ToListAsync<T>(cancellationToken);
+		}
+
+		/// <summary>
+		/// 插入数据库并返回数据
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public new List<T> ToList<T>()
+		{
+			_isReturn = true;
+			return base.ToList<T>();
+		}
 		#region Override
 		public override string ToString() => base.ToString();
 

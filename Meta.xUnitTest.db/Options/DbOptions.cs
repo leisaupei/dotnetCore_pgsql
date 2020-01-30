@@ -36,9 +36,8 @@ namespace Meta.xUnitTest.Options
 				{
 					conn.TypeMapper.UseJsonNetForJtype();
 					conn.TypeMapper.UseCustomXml();
-					conn.TypeMapper.MapEnum<EtDataState>("public.et_data_state", _translator);
-					conn.TypeMapper.MapEnum<EDataState>("public.e_data_state", _translator);
-					conn.TypeMapper.MapComposite<Info>("public.info");
+					conn.TypeMapper.MapEnum<Model.EDataState>("public.e_data_state", _translator);
+					conn.TypeMapper.MapComposite<Model.Info>("public.info");
 				};
 			}
 		}

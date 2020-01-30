@@ -11,6 +11,9 @@ using System.Linq;
 using Newtonsoft.Json.Linq;
 using System.Xml;
 using System.Net;
+using System.Threading.Tasks;
+using System.Threading;
+using Meta.Common.Interface;
 
 namespace Meta.xUnitTest.DAL
 {
@@ -20,42 +23,75 @@ namespace Meta.xUnitTest.DAL
 		public const string CacheKey = "meta_xunittest_model_typetestmodel_{0}";
 		private TypeTest() { }
 		public static TypeTest Select => new TypeTest();
-		public static TypeTest SelectDiy(string fields) => new TypeTest { Fields = fields };
-		public static TypeTest SelectDiy(string fields, string alias) => new TypeTest { Fields = fields, MainAlias = alias };
 		public static UpdateBuilder<TypeTestModel> UpdateBuilder => new UpdateBuilder<TypeTestModel>();
 		public static DeleteBuilder<TypeTestModel> DeleteBuilder => new DeleteBuilder<TypeTestModel>();
 		public static InsertBuilder<TypeTestModel> InsertBuilder => new InsertBuilder<TypeTestModel>();
 		#endregion
 
 		#region Delete
-		public static int Delete(TypeTestModel model) => Delete(new[] { model.Id });
-		public static int Delete(Guid id) => Delete(new[] { id });
-		public static int Delete(IEnumerable<TypeTestModel> models) => Delete(models.Select(a => a.Id));
-		public static int Delete(IEnumerable<Guid> ids)
+		public static int Delete(params Guid[] ids)
+			=> DeleteAsync(false, CancellationToken.None, ids).ConfigureAwait(false).GetAwaiter().GetResult();
+
+		public static ValueTask<int> DeleteAsync(CancellationToken cancellationToken = default, params Guid[] ids)
+			=> DeleteAsync(true, cancellationToken, ids);
+
+		private static async ValueTask<int> DeleteAsync(bool async, CancellationToken cancellationToken, params Guid[] ids)
 		{
 			if (ids == null)
 				throw new ArgumentNullException(nameof(ids));
 			if (DbConfig.DbCacheTimeOut != 0)
-				RedisHelper.Del(ids.Select(f => string.Format(CacheKey, f)).ToArray());
+			{
+				var keys = ids.Select(f => string.Format(CacheKey, f)).ToArray();
+				if(async)
+					await RedisHelper.DelAsync(keys);
+				else
+					RedisHelper.Del(keys);
+			}
+			if(async)
+				return await DeleteBuilder.WhereAny(a => a.Id, ids).ToRowsAsync(cancellationToken);
 			return DeleteBuilder.WhereAny(a => a.Id, ids).ToRows();
 		}
 		#endregion
 
 		#region Insert
-		public static int Commit(TypeTestModel model) => SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows());
+		public static int Commit(TypeTestModel model) 
+			=> SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows());
+
 		public static TypeTestModel Insert(TypeTestModel model)
 		{
 			SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));
 			return model;
 		}
+
 		public static int Commit(IEnumerable<TypeTestModel> models, bool isExceptionCancel = true)
 		{
 			if (models == null)
 				throw new ArgumentNullException(nameof(models));
-			var sqlbuilders = isExceptionCancel ? models.Select(f => GetInsertBuilder(f).ToRowsPipe()) :
-				models.Select(f => GetInsertBuilder(f).WhereNotExists(Select.Where(a => a.Id == f.Id)).ToRowsPipe());
+			var sqlbuilders = GetSqlBuilder(models, isExceptionCancel);
 			return InsertMultiple<DbMaster>(models, sqlbuilders, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey, model.Id));
 		}
+
+		public static Task<TypeTestModel> InsertAsync(TypeTestModel model, CancellationToken cancellationToken = default)
+			=> SetRedisCacheAsync(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToOneAsync(cancellationToken));
+
+		public static ValueTask<int> CommitAsync(TypeTestModel model, CancellationToken cancellationToken = default)
+			=> SetRedisCacheAsync(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRowsAsync(cancellationToken), cancellationToken);
+
+		public static ValueTask<int> CommitAsync(IEnumerable<TypeTestModel> models, bool isExceptionCancel = true, CancellationToken cancellationToken = default)
+		{
+			if (models == null)
+				return new ValueTask<int>(Task.FromException<int>(new ArgumentNullException(nameof(models))));
+			var sqlbuilders = GetSqlBuilder(models, isExceptionCancel);
+			return InsertMultipleAsync<DbMaster>(models, sqlbuilders, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey, model.Id), cancellationToken);
+		}
+
+		private static IEnumerable<ISqlBuilder> GetSqlBuilder(IEnumerable<TypeTestModel> models, bool isExceptionCancel)
+		{
+			return isExceptionCancel
+				? models.Select(f => GetInsertBuilder(f).ToRowsPipe())
+				: models.Select(f => GetInsertBuilder(f).WhereNotExists(Select.Where(a => a.Id == f.Id)).ToRowsPipe());
+		}
+
 		private static InsertBuilder<TypeTestModel> GetInsertBuilder(TypeTestModel model)
 		{
 			if (model == null)
@@ -110,16 +146,23 @@ namespace Meta.xUnitTest.DAL
 		#endregion
 
 		#region Select
-		public static TypeTestModel GetItem(Guid id) => GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOne());
-		public static List<TypeTestModel> GetItems(IEnumerable<Guid> ids) => Select.WhereAny(a => a.Id, ids).ToList();
+
+		public static TypeTestModel GetItem(Guid id) 
+			=> GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOne());
+
+		public static Task<TypeTestModel> GetItemAsync(Guid id, CancellationToken cancellationToken = default) 
+			=> GetRedisCacheAsync(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOneAsync(cancellationToken), cancellationToken);
+
+		public static List<TypeTestModel> GetItems(IEnumerable<Guid> ids) 
+			=> Select.WhereAny(a => a.Id, ids).ToList();
+
+		public static Task<List<TypeTestModel>> GetItemsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default) 
+			=> Select.WhereAny(a => a.Id, ids).ToListAsync(cancellationToken);
 
 		#endregion
 
 		#region Update
-		public static UpdateBuilder<TypeTestModel> Update(TypeTestModel model) => Update(new[] { model.Id });
-		public static UpdateBuilder<TypeTestModel> Update(Guid id) => Update(new[] { id });
-		public static UpdateBuilder<TypeTestModel> Update(IEnumerable<TypeTestModel> models) => Update(models.Select(a => a.Id));
-		public static UpdateBuilder<TypeTestModel> Update(IEnumerable<Guid> ids)
+		public static UpdateBuilder<TypeTestModel> Update(params Guid[] ids)
 		{
 			if (ids == null)
 				throw new ArgumentNullException(nameof(ids));

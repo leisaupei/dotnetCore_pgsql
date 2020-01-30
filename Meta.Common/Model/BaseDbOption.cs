@@ -86,6 +86,7 @@ namespace Meta.Common.Model
 
 			if (connection == null)
 				throw new ArgumentNullException(nameof(connection));
+
 			if (async)
 				await connection.OpenAsync(cancellationToken);
 			else

@@ -32,9 +32,12 @@ namespace Meta.Postgres.Generator.CodeFactory.DAL
 		/// 数据库类别名称
 		/// </summary>
 		static string _typeName = string.Empty;
-
+		/// <summary>
+		/// 命名空间后缀
+		/// </summary>
+		static string NamespaceSuffix => _typeName == GenerateModel.MASTER_DATABASE_TYPE_NAME && LetsGo.FinalType == _typeName ? "" : "." + _typeName;
 		static readonly StringBuilder _sbConstTypeName = new StringBuilder();
-
+		static readonly StringBuilder _sbNamespace = new StringBuilder();
 		static readonly StringBuilder _sbConstTypeConstrutor = new StringBuilder();
 		/// <summary>
 		/// 生成枚举数据库枚举类型(覆盖生成)
@@ -65,12 +68,12 @@ WHERE a.typtype='e'
 ORDER BY oid asc  
 ";
 			var list = PgsqlHelper.ExecuteDataReaderList<EnumTypeInfo>(sql);
-			string fileName = Path.Combine(_modelPath, $"_{TypeName}Enums.cs");
+			string fileName = Path.Combine(_modelPath, $"_Enums.cs");
 			using (StreamWriter writer = new StreamWriter(File.Create(fileName), Encoding.UTF8))
 			{
 				writer.WriteLine("using System;");
 				writer.WriteLine();
-				writer.WriteLine($"namespace {_projectName}.Model");
+				writer.WriteLine($"namespace {_projectName}.Model{NamespaceSuffix}");
 				writer.WriteLine("{");
 				foreach (var item in list)
 				{
@@ -78,7 +81,7 @@ ORDER BY oid asc
 					var enums = PgsqlHelper.ExecuteDataReaderList<string>(sqlEnums, System.Data.CommandType.Text, new[] { new NpgsqlParameter("oid", item.Oid) });
 					if (enums.Count > 0)
 						enums[0] += " = 1";
-					writer.WriteLine($"\tpublic enum {TypeName}{Types.DeletePublic(item.Nspname, item.Typname)}");
+					writer.WriteLine($"\tpublic enum {Types.DeletePublic(item.Nspname, item.Typname)}");
 					writer.WriteLine("\t{");
 					writer.WriteLine($"\t\t{string.Join(", ", enums)}");
 					writer.WriteLine("\t}");
@@ -150,7 +153,7 @@ WHERE ns.nspname || '.' || a.typname not in ({Types.ConvertArrayToSql(notCreateC
 				writer.WriteLine("using System;");
 				writer.WriteLine("using Newtonsoft.Json;");
 				writer.WriteLine();
-				writer.WriteLine($"namespace {_projectName}.Model{NamespaceTypeName}");
+				writer.WriteLine($"namespace {_projectName}.Model{NamespaceSuffix}");
 				writer.WriteLine("{");
 				using (var e = dic.GetEnumerator())
 				{
@@ -182,6 +185,7 @@ WHERE ns.nspname || '.' || a.typname not in ({Types.ConvertArrayToSql(notCreateC
 		/// <param name="listComposite"></param>
 		public static void GenerateMapping(List<EnumTypeInfo> list, List<CompositeTypeInfo> listComposite)
 		{
+			_sbNamespace.AppendLine($"using {_projectName}.Model{NamespaceSuffix};");
 			_sbConstTypeName.AppendFormat("\t/// <summary>\n\t/// {0}主库\n\t/// </summary>\n", TypeName);
 			_sbConstTypeName.AppendFormat("\tpublic struct Db{0} : IDbName {{ }}\n", _typeName.ToUpperPascal());
 			_sbConstTypeName.AppendFormat("\t/// <summary>\n\t/// {0}从库\n\t/// </summary>\n", TypeName);
@@ -200,9 +204,9 @@ WHERE ns.nspname || '.' || a.typname not in ({Types.ConvertArrayToSql(notCreateC
 			if (GeometryTableTypeName.Contains(_typeName))
 				_sbConstTypeConstrutor.AppendLine("\t\t\t\t\tconn.TypeMapper.UseLegacyPostgis();");
 			foreach (var item in list)
-				_sbConstTypeConstrutor.AppendLine($"\t\t\t\t\tconn.TypeMapper.MapEnum<{TypeName}{Types.DeletePublic(item.Nspname, item.Typname)}>(\"{item.Nspname}.{item.Typname}\", _translator);");
+				_sbConstTypeConstrutor.AppendLine($"\t\t\t\t\tconn.TypeMapper.MapEnum<Model{NamespaceSuffix}.{Types.DeletePublic(item.Nspname, item.Typname)}>(\"{item.Nspname}.{item.Typname}\", _translator);");
 			foreach (var item in listComposite)
-				_sbConstTypeConstrutor.AppendLine($"\t\t\t\t\tconn.TypeMapper.MapComposite<{TypeName}{Types.DeletePublic(item.Nspname, item.Typname)}>(\"{item.Nspname}.{item.Typname}\");");
+				_sbConstTypeConstrutor.AppendLine($"\t\t\t\t\tconn.TypeMapper.MapComposite<Model{NamespaceSuffix}.{Types.DeletePublic(item.Nspname, item.Typname)}>(\"{item.Nspname}.{item.Typname}\");");
 			_sbConstTypeConstrutor.AppendLine("\t\t\t\t};");
 			_sbConstTypeConstrutor.AppendLine("\t\t\t}");
 			_sbConstTypeConstrutor.AppendLine("\t\t}");
@@ -215,7 +219,7 @@ WHERE ns.nspname || '.' || a.typname not in ({Types.ConvertArrayToSql(notCreateC
 					Directory.CreateDirectory(startupRoot);
 				var fileName = Path.Combine(startupRoot, $"DbOptions.cs");
 				using StreamWriter writer = new StreamWriter(File.Create(fileName), Encoding.UTF8);
-				writer.WriteLine($"using {_projectName}.Model;");
+				writer.Write(_sbNamespace);
 				writer.WriteLine("using System;");
 				writer.WriteLine("using Microsoft.Extensions.Logging;");
 				writer.WriteLine("using Meta.Common.Model;");
