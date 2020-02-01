@@ -14,7 +14,9 @@ using System.Threading.Tasks;
 
 namespace Meta.Common.SqlBuilder
 {
-	public abstract class SelectBuilder<TSQL, TModel> : WhereBuilder<TSQL, TModel> where TSQL : class where TModel : IDbModel, new()
+	public abstract class SelectBuilder<TSQL, TModel> : WhereBuilder<TSQL, TModel>
+		where TSQL : class, ISqlBuilder
+		where TModel : IDbModel, new()
 	{
 		#region Identity
 		readonly UnionCollection _unionCollection;
@@ -29,9 +31,8 @@ namespace Meta.Common.SqlBuilder
 		#endregion
 
 		#region Constructor
-		protected SelectBuilder()
+		protected SelectBuilder() : base()
 		{
-			MainTable = EntityHelper.GetTableName<TModel>();
 			_unionCollection = new UnionCollection(MainAlias);
 		}
 

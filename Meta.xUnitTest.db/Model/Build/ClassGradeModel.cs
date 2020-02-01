@@ -29,7 +29,7 @@ namespace Meta.xUnitTest.Model
 		#endregion
 
 		#region Update/Insert
-		public UpdateBuilder<ClassGradeModel> Update => DAL.ClassGrade.Update(this);
+		public UpdateBuilder<ClassGradeModel> Update => DAL.ClassGrade.Update(this.Id);
 
 		public int Commit() => DAL.ClassGrade.Commit(this);
 		public ClassGradeModel Insert() => DAL.ClassGrade.Insert(this);

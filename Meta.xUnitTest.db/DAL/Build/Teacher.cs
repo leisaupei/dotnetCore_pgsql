@@ -105,7 +105,6 @@ namespace Meta.xUnitTest.DAL
 		#endregion
 
 		#region Select
-
 		public static TeacherModel GetItem(Guid id) 
 			=> GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOne());
 
@@ -117,7 +116,6 @@ namespace Meta.xUnitTest.DAL
 
 		public static Task<List<TeacherModel>> GetItemsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default) 
 			=> Select.WhereAny(a => a.Id, ids).ToListAsync(cancellationToken);
-
 		#endregion
 
 		#region Update
@@ -130,6 +128,5 @@ namespace Meta.xUnitTest.DAL
 			return UpdateBuilder.WhereAny(a => a.Id, ids);
 		}
 		#endregion
-
 	}
 }

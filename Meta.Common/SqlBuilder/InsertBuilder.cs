@@ -13,7 +13,8 @@ using System.Threading.Tasks;
 
 namespace Meta.Common.SqlBuilder
 {
-	public class InsertBuilder<TModel> : WhereBuilder<InsertBuilder<TModel>, TModel> where TModel : IDbModel, new()
+	public class InsertBuilder<TModel> : WhereBuilder<InsertBuilder<TModel>, TModel> 
+		where TModel : IDbModel, new()
 	{
 		/// <summary>
 		/// 字段列表
@@ -24,7 +25,13 @@ namespace Meta.Common.SqlBuilder
 		/// 是否返回实体类
 		/// </summary>
 		bool _isReturn = false;
-		public InsertBuilder() => MainTable = EntityHelper.GetTableName<TModel>();
+		public InsertBuilder()
+		{
+			//create table his_process_data_201405 as
+			//(select * from his_process_data_201406 limit 0)
+			MainTable = EntityHelper.GetTableName<TModel>();
+
+		}
 
 		/// <summary>
 		/// 设置一个结果 调用Field方法定义

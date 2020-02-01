@@ -8,9 +8,10 @@ using Meta.Common.Interface;
 
 namespace Meta.Common.SqlBuilder
 {
-	public class DeleteBuilder<TModel> : WhereBuilder<DeleteBuilder<TModel>, TModel> where TModel : IDbModel, new()
+	public class DeleteBuilder<TModel> : WhereBuilder<DeleteBuilder<TModel>, TModel>
+		where TModel : IDbModel, new()
 	{
-		public DeleteBuilder() => MainTable = EntityHelper.GetTableName<TModel>();
+		public DeleteBuilder() : base() { }
 
 		/// <summary>
 		/// 返回修改行数
@@ -22,7 +23,7 @@ namespace Meta.Common.SqlBuilder
 		/// 返回修改行数
 		/// </summary>
 		/// <returns></returns>
-		public new ValueTask<int> ToRowsAsync(CancellationToken cancellationToken = default) 
+		public new ValueTask<int> ToRowsAsync(CancellationToken cancellationToken = default)
 			=> base.ToRowsAsync(cancellationToken);
 
 		#region Override

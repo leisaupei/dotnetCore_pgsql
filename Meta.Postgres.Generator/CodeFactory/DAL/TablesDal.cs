@@ -361,13 +361,13 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 				if (Types.NotCreateModelFieldDbType(item.DbType, item.Typcategory))
 				{
 					WriteComment(writer, item.Comment);
-					writer.WriteLine($"\t\t[JsonProperty] public {item.RelType} {item.Field.ToUpperPascal()} {{ get; set; }}");
+					writer.WriteLine($"\t\t[JsonProperty] public {item.RelType} {item.FieldUpCase} {{ get; set; }}");
 				}
 
 				if (item.DbType == "geometry")
 				{
 					WriteComment(writer, item.Comment);
-					writer.WriteLine($"\t\t[JsonProperty] public {item.RelType} {item.Field.ToUpperPascal()} {{ get; set; }}");
+					writer.WriteLine($"\t\t[JsonProperty] public {item.RelType} {item.FieldUpCase} {{ get; set; }}");
 				}
 			}
 			writer.WriteLine("\t\t#endregion");
@@ -419,7 +419,12 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 				}
 				writer.WriteLine("\t\t#region Update/Insert");
 				if (_pkList.Count > 0)
-					writer.WriteLine("\t\tpublic UpdateBuilder<{0}> Update => DAL{2}.{1}.Update(this);", ModelClassName, DalClassName, NamespaceSuffix);
+				{
+					if (_pkList.Count == 1)
+						writer.WriteLine("\t\tpublic UpdateBuilder<{0}> Update => DAL{2}.{1}.Update(this.{3});", ModelClassName, DalClassName, NamespaceSuffix, _pkList[0].FieldUpCase);
+					else
+						writer.WriteLine("\t\tpublic UpdateBuilder<{0}> Update => DAL{2}.{1}.Update(({3}));", ModelClassName, DalClassName, NamespaceSuffix, _pkList.Select(a => $"this.{a.FieldUpCase}").Join(", "));
+				}
 				writer.WriteLine();
 				writer.WriteLine("\t\tpublic int Commit() => DAL{1}.{0}.Commit(this);", DalClassName, NamespaceSuffix);
 				writer.WriteLine("\t\tpublic {0} Insert() => DAL{2}.{1}.Insert(this);", ModelClassName, DalClassName, NamespaceSuffix);
@@ -484,15 +489,15 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 				writer.WriteLine("\t\t#endregion");
 				writer.WriteLine();
 			}
-			writer.WriteLine("\t\t#region Select");
+			writer.Write("\t\t#region Select");
 			SelectGenerator(writer);
 			writer.WriteLine("\t\t#endregion");
 			writer.WriteLine();
 			if (_table.Type == "table")
 			{
-				writer.WriteLine("\t\t#region Update");
+				writer.Write("\t\t#region Update");
 				UpdateGenerator(writer);
-				writer.WriteLine("\t\t#endregion");
+				writer.Write("\t\t#endregion");
 				writer.WriteLine();
 			}
 
@@ -531,15 +536,14 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 		{
 			if (_pkList.Count > 0)
 			{
-				List<string> d_key = new List<string>(), s_key = new List<string>();
+				List<string> d_key = new List<string>();
 				string where = string.Empty, where1 = string.Empty, types = string.Empty;
 				for (int i = 0; i < _pkList.Count; i++)
 				{
 					FieldInfo fs = _fieldList.FirstOrDefault(f => f.Field == _pkList[i].Field);
-					s_key.Add(fs.Field);
 					types += fs.RelType;
 					d_key.Add(fs.RelType + " " + fs.Field);
-					where1 += $"model.{fs.Field.ToUpperPascal()}";
+					where1 += $"model.{fs.FieldUpCase}";
 					where += $"{fs.Field}";
 					if (i + 1 != _pkList.Count)
 					{
@@ -575,7 +579,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 				return await DeleteBuilder.WhereAny(a => a.{2}, {1}s).ToRowsAsync(cancellationToken);
 			return DeleteBuilder.WhereAny(a => a.{2}, {1}s).ToRows();
 		}}
-", types, s_key[0], s_key[0].ToUpperPascal());
+", types, _pkList[0].Field, _pkList[0].FieldUpCase);
 
 				}
 				else if (_pkList.Count > 1)
@@ -610,7 +614,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 				return await DeleteBuilder.Where({2}, values).ToRowsAsync(cancellationToken);
 			return DeleteBuilder.Where({2}, values).ToRows();
 		}}
-", types, string.Concat(_pkList.Select((f, index) => ", f.Item" + (index + 1))), s_key.Select(a => $"a => a.{a.ToUpperPascal()}").Join(", "), s_key.Select(a => $"{a}").Join(", "));
+", types, string.Concat(_pkList.Select((f, index) => ", f.Item" + (index + 1))), _pkList.Select(a => $"a => a.{a.FieldUpCase}").Join(", "), _pkList.Select(a => $"{a.Field}").Join(", "));
 
 				}
 			}
@@ -628,7 +632,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			for (var i = 0; i < _pkList.Count; i++)
 			{
 				FieldInfo fs = _fieldList.FirstOrDefault(f => f.Field == _pkList[i].Field);
-				where += $"a.{fs.Field.ToUpperPascal()} == f.{fs.Field.ToUpperPascal()}";
+				where += $"a.{fs.FieldUpCase} == f.{fs.FieldUpCase}";
 				if (i != _pkList.Count - 1)
 					where += " && ";
 			}
@@ -677,7 +681,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			if (model == null)
 				throw new ArgumentNullException(nameof(model));
 			return InsertBuilder{4}
-", ModelClassName, string.Concat(_pkList.Select(f => $", model.{f.Field.ToUpperPascal()}")), _dataBaseTypeName, where, _fieldList.Count == 0 ? ";" : "");
+", ModelClassName, string.Concat(_pkList.Select(f => $", model.{f.FieldUpCase}")), _dataBaseTypeName, where, _fieldList.Count == 0 ? ";" : "");
 
 			for (int i = 0; i < _fieldList.Count; i++)
 			{
@@ -685,11 +689,11 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 				string end = i + 1 == _fieldList.Count() ? ";" : "";
 				if (item.IsIdentity) continue;
 				if (Types.NotCreateModelFieldDbType(item.DbType, item.Typcategory))
-					writer.WriteLine($"\t\t\t\t.Set(a => a.{item.Field.ToUpperPascal()}, model.{item.Field.ToUpperPascal()}{SetInsertDefaultValue(item.Field, item.CSharpType, item.IsNotNull)}){end}");
+					writer.WriteLine($"\t\t\t\t.Set(a => a.{item.FieldUpCase}, model.{item.FieldUpCase}{SetInsertDefaultValue(item.Field, item.CSharpType, item.IsNotNull)}){end}");
 
 				if (item.DbType == "geometry")
 				{
-					writer.WriteLine($"\t\t\t\t.Set(a => a.{item.Field.ToUpperPascal()}, model.{item.Field.ToUpperPascal()}{SetInsertDefaultValue(item.Field, item.CSharpType, item.IsNotNull)}){end}");
+					writer.WriteLine($"\t\t\t\t.Set(a => a.{item.FieldUpCase}, model.{item.FieldUpCase}{SetInsertDefaultValue(item.Field, item.CSharpType, item.IsNotNull)}){end}");
 
 				}
 			}
@@ -706,30 +710,27 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			StringBuilder sbEx = new StringBuilder();
 			if (_pkList.Count > 0)
 			{
-				List<string> d_key = new List<string>(), s_key = new List<string>();
-				string where = ".Where(a => ", types = string.Empty;
+				List<string> d_key = new List<string>();
+				string where = string.Empty, types = string.Empty;
 				for (var i = 0; i < _pkList.Count; i++)
 				{
 					FieldInfo fs = _fieldList.FirstOrDefault(f => f.Field == _pkList[i].Field);
-					s_key.Add(fs.Field);
 					types += fs.RelType;
 
 					if (i + 1 != _pkList.Count)
 						types += ", ";
 
 					d_key.Add(fs.RelType + " " + fs.Field);
-					where += $"a.{fs.Field.ToUpperPascal()} == {fs.Field}";
+					where += $"a.{fs.FieldUpCase} == {fs.Field}";
 					if (i != _pkList.Count - 1)
 						where += " && ";
-					else
-						where += ")";
 				}
 				writer.Write(@"
 		public static {0} GetItem({1}) 
-			=> GetRedisCache(string.Format(CacheKey{2}), DbConfig.DbCacheTimeOut, () => Select{3}.ToOne());
+			=> GetRedisCache(string.Format(CacheKey{2}), DbConfig.DbCacheTimeOut, () => Select.Where(a =>{3}).ToOne());
 
 		public static Task<{0}> GetItemAsync({1}, CancellationToken cancellationToken = default) 
-			=> GetRedisCacheAsync(string.Format(CacheKey{2}), DbConfig.DbCacheTimeOut, () => Select{3}.ToOneAsync(cancellationToken), cancellationToken);
+			=> GetRedisCacheAsync(string.Format(CacheKey{2}), DbConfig.DbCacheTimeOut, () => Select.Where(a =>{3}).ToOneAsync(cancellationToken), cancellationToken);
 ", ModelClassName, string.Join(", ", d_key), string.Concat(_pkList.Select(f => $", {f.Field}")), where);
 
 				if (_pkList.Count == 1)
@@ -739,8 +740,8 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			=> Select.WhereAny(a => a.{3}, {2}s).ToList();
 
 		public static Task<List<{0}>> GetItemsAsync(IEnumerable<{1}> {2}s, CancellationToken cancellationToken = default) 
-			=> Select.WhereAny(a => a.{3}, {2}s).ToListAsync(cancellationToken);
-", ModelClassName, types, s_key[0], s_key[0].ToUpperPascal());
+			=> Select.WhereAny(a => a.{3}, {2}s).ToListAsync(cancellationToken);",
+			ModelClassName, types, _pkList[0].Field, _pkList[0].FieldUpCase);
 
 				}
 				else if (_pkList.Count > 1)
@@ -756,8 +757,8 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 		/// ({3})
 		/// </summary>
 		public static Task<List<{0}>> GetItemsAsync(IEnumerable<({1})> values, CancellationToken cancellationToken = default) 
-			=> Select.Where({2}, values).ToListAsync(cancellationToken);
-", ModelClassName, types, s_key.Select(a => $"a => a.{a.ToUpperPascal()}").Join(", "), s_key.Select(a => $"{a}").Join(", "));
+			=> Select.Where({2}, values).ToListAsync(cancellationToken);",
+		ModelClassName, types, _pkList.Select(a => $"a => a.{a.FieldUpCase}").Join(", "), _pkList.Select(a => $"{a.Field}").Join(", "));
 
 				}
 			}
@@ -788,12 +789,11 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 		{
 			if (_pkList.Count > 0)
 			{
-				List<string> d_key = new List<string>(), s_key = new List<string>();
+				List<string> d_key = new List<string>();
 				string types = string.Empty;
 				for (int i = 0; i < _pkList.Count; i++)
 				{
 					FieldInfo fs = _fieldList.FirstOrDefault(f => f.Field == _pkList[i].Field);
-					s_key.Add(fs.Field);
 					types += fs.RelType;
 					d_key.Add(fs.RelType + " " + fs.Field);
 					if (i + 1 != _pkList.Count)
@@ -803,28 +803,34 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 				}
 				if (_pkList.Count == 1)
 				{
-					writer.WriteLine($"\t\tpublic static UpdateBuilder<{ModelClassName}> Update(params {types}[] {s_key[0]}s)");
-					writer.WriteLine("\t\t{");
-					writer.WriteLine($"\t\t\tif ({s_key[0]}s == null)");
-					writer.WriteLine($"\t\t\t\tthrow new ArgumentNullException(nameof({s_key[0]}s));");
-					writer.WriteLine("\t\t\tif (DbConfig.DbCacheTimeOut != 0)");
-					writer.WriteLine($"\t\t\t\tRedisHelper.Del({s_key[0]}s.Select(f => string.Format(CacheKey, f)).ToArray());");
-					writer.WriteLine($"\t\t\treturn UpdateBuilder.WhereAny(a => a.{s_key[0].ToUpperPascal()}, {s_key[0]}s);");
-					writer.WriteLine("\t\t}");
+					writer.Write(@"
+		public static UpdateBuilder<{0}> Update(params {1}[] {2}s)
+		{{
+			if ({2}s == null)
+				throw new ArgumentNullException(nameof({2}s));
+			if (DbConfig.DbCacheTimeOut != 0)
+				RedisHelper.Del({2}s.Select(f => string.Format(CacheKey, f)).ToArray());
+			return UpdateBuilder.WhereAny(a => a.{3}, {2}s);
+		}}
+",
+		ModelClassName, types, _pkList[0].Field, _pkList[0].FieldUpCase);
 				}
 				else if (_pkList.Count > 1)
 				{
-					writer.WriteLine($"\t\t/// <summary>");
-					writer.WriteLine($"\t\t/// ({s_key.Select(a => $"{a}").Join(", ")})");
-					writer.WriteLine($"\t\t/// </summary>");
-					writer.WriteLine("\t\tpublic static UpdateBuilder<{0}> Update(params ({1})[] values)", ModelClassName, types);
-					writer.WriteLine("\t\t{");
-					writer.WriteLine("\t\t\tif (values == null)");
-					writer.WriteLine("\t\t\t\tthrow new ArgumentNullException(nameof(values));");
-					writer.WriteLine("\t\t\tif (DbConfig.DbCacheTimeOut != 0)");
-					writer.WriteLine("\t\t\t\tRedisHelper.Del(values.Select(f => string.Format(CacheKey{0})).ToArray());", string.Concat(_pkList.Select((f, index) => ", f.Item" + (index + 1))));
-					writer.WriteLine("\t\t\treturn UpdateBuilder.Where({0}, values);", s_key.Select(a => $"a => a.{a.ToUpperPascal()}").Join(", "));
-					writer.WriteLine("\t\t}");
+					writer.Write(@"
+		/// <summary>
+		/// ({0})
+		/// </summary>
+		public static UpdateBuilder<{1}> Update(params ({2})[] values)
+		{{
+			if (values == null)
+				throw new ArgumentNullException(nameof(values));
+			if (DbConfig.DbCacheTimeOut != 0)
+				RedisHelper.Del(values.Select(f => string.Format(CacheKey{3})).ToArray());
+			return UpdateBuilder.Where({4}, values);
+		}}
+",
+		_pkList.Select(a => $"{a.Field}").Join(", "), ModelClassName, types, string.Concat(_pkList.Select((f, index) => ", f.Item" + (index + 1))), _pkList.Select(a => $"a => a.{a.FieldUpCase}").Join(", "));
 				}
 			}
 

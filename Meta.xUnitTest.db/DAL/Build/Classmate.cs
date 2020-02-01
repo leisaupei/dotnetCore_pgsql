@@ -111,7 +111,6 @@ namespace Meta.xUnitTest.DAL
 		#endregion
 
 		#region Select
-
 		public static ClassmateModel GetItem(Guid teacher_id, Guid student_id, Guid grade_id) 
 			=> GetRedisCache(string.Format(CacheKey, teacher_id, student_id, grade_id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Teacher_id == teacher_id && a.Student_id == student_id && a.Grade_id == grade_id).ToOne());
 
@@ -129,7 +128,6 @@ namespace Meta.xUnitTest.DAL
 		/// </summary>
 		public static Task<List<ClassmateModel>> GetItemsAsync(IEnumerable<(Guid, Guid, Guid)> values, CancellationToken cancellationToken = default) 
 			=> Select.Where(a => a.Teacher_id, a => a.Student_id, a => a.Grade_id, values).ToListAsync(cancellationToken);
-
 		#endregion
 
 		#region Update
@@ -145,6 +143,5 @@ namespace Meta.xUnitTest.DAL
 			return UpdateBuilder.Where(a => a.Teacher_id, a => a.Student_id, a => a.Grade_id, values);
 		}
 		#endregion
-
 	}
 }

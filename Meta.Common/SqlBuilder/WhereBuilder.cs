@@ -16,7 +16,9 @@ using System.Text.RegularExpressions;
 
 namespace Meta.Common.SqlBuilder
 {
-	public abstract class WhereBuilder<TSQL, TModel> : SqlBuilder<TSQL> where TSQL : class where TModel : IDbModel, new()
+	public abstract class WhereBuilder<TSQL, TModel> : SqlBuilder<TSQL>
+		where TSQL : class, ISqlBuilder
+		where TModel : IDbModel, new()
 	{
 		/// <summary>
 		/// 
@@ -32,9 +34,11 @@ namespace Meta.Common.SqlBuilder
 		private readonly List<string> _orExpression = new List<string>();
 
 		#region Constructor
-		protected WhereBuilder(string table, string alias) : base(table, alias) { }
-		protected WhereBuilder(string table) : base(table) { }
-		protected WhereBuilder() { }
+		protected WhereBuilder()
+		{
+			if (string.IsNullOrEmpty(MainTable))
+				MainTable = EntityHelper.GetTableName<TModel>();
+		}
 		#endregion
 
 		/// <summary>

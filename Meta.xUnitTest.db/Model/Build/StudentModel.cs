@@ -39,7 +39,7 @@ namespace Meta.xUnitTest.Model
 		#endregion
 
 		#region Update/Insert
-		public UpdateBuilder<StudentModel> Update => DAL.Student.Update(this);
+		public UpdateBuilder<StudentModel> Update => DAL.Student.Update(this.Id);
 
 		public int Commit() => DAL.Student.Commit(this);
 		public StudentModel Insert() => DAL.Student.Insert(this);

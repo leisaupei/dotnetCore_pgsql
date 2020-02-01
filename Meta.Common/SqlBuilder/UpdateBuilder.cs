@@ -15,7 +15,8 @@ using System.Threading.Tasks;
 
 namespace Meta.Common.SqlBuilder
 {
-	public class UpdateBuilder<TModel> : WhereBuilder<UpdateBuilder<TModel>, TModel> where TModel : IDbModel, new()
+	public class UpdateBuilder<TModel> : WhereBuilder<UpdateBuilder<TModel>, TModel> 
+		where TModel : IDbModel, new()
 	{
 		/// <summary>
 		/// 设置列表
@@ -28,9 +29,7 @@ namespace Meta.Common.SqlBuilder
 		public int Count => _setList.Count;
 
 		#region Contructor
-		public UpdateBuilder(string fields) : base() => Fields = fields;
-		public UpdateBuilder(string table, string alias) : base(table, alias) { }
-		public UpdateBuilder() : base(EntityHelper.GetTableName<TModel>()) { }
+		public UpdateBuilder() : base() { }
 
 		#endregion
 		private UpdateBuilder<TModel> AddSetExpression(string exp)

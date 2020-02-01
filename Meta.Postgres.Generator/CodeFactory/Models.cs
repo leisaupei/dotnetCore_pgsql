@@ -1,4 +1,5 @@
-﻿using NpgsqlTypes;
+﻿using Meta.Postgres.Generator.CodeFactory.Extension;
+using NpgsqlTypes;
 
 namespace Meta.Postgres.Generator.CodeFactory
 {
@@ -55,9 +56,14 @@ namespace Meta.Postgres.Generator.CodeFactory
 		/// 字段名称
 		/// </summary>
 		public string Field { get; set; }
+
+		/// <summary>
+		/// 字段名称 
+		/// </summary>
+		public string FieldUpCase => Field.ToUpperPascal();
 		/// <summary>
 		/// 字段数据库长度
-		/// </summary>
+		/// </summary> 
 		public int Length { get; set; }
 		/// <summary>
 		/// 标识
@@ -124,14 +130,16 @@ namespace Meta.Postgres.Generator.CodeFactory
 	/// 
 	/// </summary>
 	public class PrimarykeyInfo
-	{/// <summary>
-	 /// 
-	 /// </summary>
+	{
+		/// <summary>
+		/// 
+		/// </summary>
 		public string Field { get; set; }
 		/// <summary>
 		/// 
 		/// </summary>
 		public string TypeName { get; set; }
+		public string FieldUpCase => Field.ToUpperPascal();
 	}
 	/// <summary>
 	/// 

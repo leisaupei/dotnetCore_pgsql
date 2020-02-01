@@ -68,7 +68,7 @@ namespace Meta.xUnitTest.Model
 		#endregion
 
 		#region Update/Insert
-		public UpdateBuilder<TypeTestModel> Update => DAL.TypeTest.Update(this);
+		public UpdateBuilder<TypeTestModel> Update => DAL.TypeTest.Update(this.Id);
 
 		public int Commit() => DAL.TypeTest.Commit(this);
 		public TypeTestModel Insert() => DAL.TypeTest.Insert(this);

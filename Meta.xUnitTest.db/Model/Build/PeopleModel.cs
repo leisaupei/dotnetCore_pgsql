@@ -46,7 +46,7 @@ namespace Meta.xUnitTest.Model
 		#endregion
 
 		#region Update/Insert
-		public UpdateBuilder<PeopleModel> Update => DAL.People.Update(this);
+		public UpdateBuilder<PeopleModel> Update => DAL.People.Update(this.Id);
 
 		public int Commit() => DAL.People.Commit(this);
 		public PeopleModel Insert() => DAL.People.Insert(this);

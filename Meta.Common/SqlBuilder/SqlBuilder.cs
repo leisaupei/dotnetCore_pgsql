@@ -14,7 +14,8 @@ using System.Threading.Tasks;
 
 namespace Meta.Common.SqlBuilder
 {
-	public abstract class SqlBuilder<TSQL> : ISqlBuilder where TSQL : class
+	public abstract class SqlBuilder<TSQL> : ISqlBuilder 
+		where TSQL : class, ISqlBuilder
 	{
 		#region Identity
 		/// <summary>
@@ -57,23 +58,6 @@ namespace Meta.Common.SqlBuilder
 
 		#region Constructor
 		/// <summary>
-		/// 初始化主表与别名
-		/// </summary>
-		/// <param name="table"></param>
-		/// <param name="alias"></param>
-		protected SqlBuilder(string table, string alias) : this(table)
-		{
-			MainAlias = alias;
-		}
-		/// <summary>
-		/// 初始化主表
-		/// </summary>
-		/// <param name="table"></param>
-		protected SqlBuilder(string table) : this()
-		{
-			MainTable = table;
-		}
-		/// <summary>
 		/// 默认构造函数
 		/// </summary>
 		protected SqlBuilder()
@@ -81,16 +65,6 @@ namespace Meta.Common.SqlBuilder
 		}
 		#endregion
 
-		/// <summary>
-		/// 选择数据库
-		/// </summary>
-		/// <param name="type"></param>
-		/// <returns></returns>
-		public TSQL Data(string type)
-		{
-			DbName = type;
-			return This;
-		}
 		public TSQL By<TDbName>() where TDbName : struct, IDbName
 		{
 			DbName = nameof(TDbName);

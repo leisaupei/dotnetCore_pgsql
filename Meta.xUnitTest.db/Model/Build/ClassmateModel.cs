@@ -35,7 +35,7 @@ namespace Meta.xUnitTest.Model
 		#endregion
 
 		#region Update/Insert
-		public UpdateBuilder<ClassmateModel> Update => DAL.Classmate.Update(this);
+		public UpdateBuilder<ClassmateModel> Update => DAL.Classmate.Update((this.Teacher_id, this.Student_id, this.Grade_id));
 
 		public int Commit() => DAL.Classmate.Commit(this);
 		public ClassmateModel Insert() => DAL.Classmate.Insert(this);
