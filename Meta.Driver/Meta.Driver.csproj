@@ -7,11 +7,11 @@
     <RepositoryUrl>https://github.com/leisaupei/meta</RepositoryUrl>
     <Company>tanweijie_zyysayr@163.com</Company>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <Description>.net core 3.0+pgsql数据库底层
-</Description>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <Description>.net core 3.0+pgsql数据库底层</Description>
     <PackageReleaseNotes>新发布</PackageReleaseNotes>
     <Copyright>MIT</Copyright>
+    <PackageLicenseUrl>https://github.com/leisaupei/meta/blob/master/LICENSE</PackageLicenseUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
