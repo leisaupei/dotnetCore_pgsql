@@ -5,9 +5,13 @@
     <Authors>leisaupei</Authors>
     <PackageProjectUrl>https://github.com/leisaupei/meta</PackageProjectUrl>
     <RepositoryUrl>https://github.com/leisaupei/meta</RepositoryUrl>
-    <Company>leisaupei</Company>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <Company>tanweijie_zyysayr@163.com</Company>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Description>.net core 3.0+pgsql数据库底层
+</Description>
+    <PackageReleaseNotes>新发布</PackageReleaseNotes>
+    <Copyright>MIT</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
