@@ -34,7 +34,7 @@ namespace Meta.Initiator
 			writer.WriteLine("\t</ItemGroup>");
 			writer.WriteLine();
 			writer.WriteLine("\t<ItemGroup>");
-			writer.WriteLine("\t\t<ProjectReference Include=\"..\\Meta.Common\\Meta.Common.csproj\" />");
+			writer.WriteLine("\t\t<ProjectReference Include=\"..\\Meta.Common\\Meta.Driver.csproj\" />");
 			writer.WriteLine("\t</ItemGroup>");
 			writer.WriteLine();
 			writer.WriteLine("</Project>");
@@ -115,7 +115,7 @@ namespace Meta.Initiator
 				writer.WriteLine($"EndProject");
 
 				Guid commonId = Guid.NewGuid();
-				writer.WriteLine($"Project(\"{Guid.NewGuid()}\") = \"Meta.Common\", \"Meta.Common\\Meta.Common.csproj\", \"{commonId}\"");
+				writer.WriteLine($"Project(\"{Guid.NewGuid()}\") = \"Meta.Common\", \"Meta.Common\\Meta.Driver.csproj\", \"{commonId}\"");
 				writer.WriteLine($"EndProject");
 
 				writer.WriteLine("Global");

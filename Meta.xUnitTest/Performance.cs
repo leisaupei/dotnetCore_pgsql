@@ -1,5 +1,5 @@
-﻿using Meta.Common.Interface;
-using Meta.Common.SqlBuilder;
+﻿using Meta.Driver.Interface;
+using Meta.Driver.SqlBuilder;
 using Meta.xUnitTest.DAL;
 using Meta.xUnitTest.Model;
 using Meta.xUnitTest.Options;
@@ -11,9 +11,9 @@ using System.Linq;
 using Xunit;
 using Xunit.Extensions.Ordering;
 using Meta.xUnitTest.Extensions;
-using Meta.Common.DbHelper;
+using Meta.Driver.DbHelper;
 using System.Threading.Tasks;
-using Meta.Common.Model;
+using Meta.Driver.Model;
 
 namespace Meta.xUnitTest
 {

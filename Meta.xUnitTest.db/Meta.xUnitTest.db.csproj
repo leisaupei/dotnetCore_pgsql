@@ -10,7 +10,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Meta.Common\Meta.Common.csproj" />
+		<ProjectReference Include="..\Meta.Driver\Meta.Driver.csproj" />
 	</ItemGroup>
 
 </Project>

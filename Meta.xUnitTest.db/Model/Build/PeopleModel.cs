@@ -1,4 +1,4 @@
-﻿using Meta.Common.Model;
+﻿using Meta.Driver.Model;
 using System;
 using System.Collections.Generic;
 using System.Collections;
@@ -6,12 +6,12 @@ using System.Net.NetworkInformation;
 using NpgsqlTypes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Meta.Common.Interface;
+using Meta.Driver.Interface;
 using System.Xml;
 using System.Net;
 using System.Threading.Tasks;
 using System.Threading;
-using Meta.Common.SqlBuilder;
+using Meta.Driver.SqlBuilder;
 using Meta.xUnitTest.DAL;
 
 namespace Meta.xUnitTest.Model

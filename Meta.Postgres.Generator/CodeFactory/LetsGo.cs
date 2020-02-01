@@ -1,7 +1,7 @@
-﻿using Meta.Common.DbHelper;
-using Meta.Common.Interface;
-using Meta.Common.Model;
-using Meta.Common.SqlBuilder;
+﻿using Meta.Driver.DbHelper;
+using Meta.Driver.Interface;
+using Meta.Driver.Model;
+using Meta.Driver.SqlBuilder;
 using Meta.Postgres.Generator.CodeFactory.DAL;
 using Meta.Postgres.Generator.CodeFactory.Extension;
 using Microsoft.Extensions.Logging;

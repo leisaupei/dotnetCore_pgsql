@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29503.13
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Meta.Common", "Meta.Common\Meta.Common.csproj", "{AB4361E2-CB03-421D-9EFB-A54C499A7620}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{7D3EA1C3-D54A-4326-825F-F7B93A2648E2}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "xUnitTest", "xUnitTest", "{D37E6CFB-E974-4BCA-B7A6-CE2E2F199936}"
@@ -20,7 +18,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sql", "sql", "{A97EA18D-15A
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Meta.Postgres.Generator", "Meta.Postgres.Generator\Meta.Postgres.Generator.csproj", "{42E789F7-C960-4F72-9AFB-BE07E0EE2ED9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Meta.Initiator", "Meta.Initiator\Meta.Initiator.csproj", "{23CF8763-2A15-42CC-B16D-99DFA7E9EEC1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Meta.Initiator", "Meta.Initiator\Meta.Initiator.csproj", "{23CF8763-2A15-42CC-B16D-99DFA7E9EEC1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Meta.Driver", "Meta.Driver\Meta.Driver.csproj", "{B51C42FA-79D7-451E-8300-75FE4C48089C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -28,10 +28,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{AB4361E2-CB03-421D-9EFB-A54C499A7620}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AB4361E2-CB03-421D-9EFB-A54C499A7620}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AB4361E2-CB03-421D-9EFB-A54C499A7620}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AB4361E2-CB03-421D-9EFB-A54C499A7620}.Release|Any CPU.Build.0 = Release|Any CPU
 		{78EC9F0F-04C9-4144-A9CA-2F93970FBBBE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{78EC9F0F-04C9-4144-A9CA-2F93970FBBBE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{78EC9F0F-04C9-4144-A9CA-2F93970FBBBE}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -48,16 +44,20 @@ Global
 		{23CF8763-2A15-42CC-B16D-99DFA7E9EEC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{23CF8763-2A15-42CC-B16D-99DFA7E9EEC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{23CF8763-2A15-42CC-B16D-99DFA7E9EEC1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B51C42FA-79D7-451E-8300-75FE4C48089C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B51C42FA-79D7-451E-8300-75FE4C48089C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B51C42FA-79D7-451E-8300-75FE4C48089C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B51C42FA-79D7-451E-8300-75FE4C48089C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{AB4361E2-CB03-421D-9EFB-A54C499A7620} = {7D3EA1C3-D54A-4326-825F-F7B93A2648E2}
 		{78EC9F0F-04C9-4144-A9CA-2F93970FBBBE} = {D37E6CFB-E974-4BCA-B7A6-CE2E2F199936}
 		{4C792390-5FC5-4A26-B7C8-1EC517C05252} = {D37E6CFB-E974-4BCA-B7A6-CE2E2F199936}
 		{42E789F7-C960-4F72-9AFB-BE07E0EE2ED9} = {7D3EA1C3-D54A-4326-825F-F7B93A2648E2}
 		{23CF8763-2A15-42CC-B16D-99DFA7E9EEC1} = {7D3EA1C3-D54A-4326-825F-F7B93A2648E2}
+		{B51C42FA-79D7-451E-8300-75FE4C48089C} = {7D3EA1C3-D54A-4326-825F-F7B93A2648E2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {AC8A76F0-ADF4-4D67-BF13-64CB7268D6C8}

@@ -1,6 +1,6 @@
-﻿using Meta.Common.DbHelper;
-using Meta.Common.Model;
-using Meta.Common.SqlBuilder;
+﻿using Meta.Driver.DbHelper;
+using Meta.Driver.Model;
+using Meta.Driver.SqlBuilder;
 using Meta.Postgres.Generator.CodeFactory.Extension;
 using NLog.LayoutRenderers;
 using System;
@@ -331,7 +331,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			string _filename = $"{_modelPath}/{ModelClassName}.cs";
 
 			using StreamWriter writer = new StreamWriter(File.Create(_filename), Encoding.UTF8);
-			writer.WriteLine("using Meta.Common.Model;");
+			writer.WriteLine("using Meta.Driver.Model;");
 			writer.WriteLine("using System;");
 			writer.WriteLine("using System.Collections.Generic;");
 			writer.WriteLine("using System.Collections;");
@@ -339,14 +339,14 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			writer.WriteLine("using NpgsqlTypes;");
 			writer.WriteLine("using Newtonsoft.Json;");
 			writer.WriteLine("using Newtonsoft.Json.Linq;");
-			writer.WriteLine("using Meta.Common.Interface;");
+			writer.WriteLine("using Meta.Driver.Interface;");
 			writer.WriteLine("using System.Xml;");
 			writer.WriteLine("using System.Net;");
 			writer.WriteLine("using System.Threading.Tasks;");
 			writer.WriteLine("using System.Threading;");
 			if (_isGeometryTable)
 				writer.WriteLine("using Npgsql.LegacyPostgis;");
-			writer.WriteLine("using Meta.Common.SqlBuilder;");
+			writer.WriteLine("using Meta.Driver.SqlBuilder;");
 			writer.WriteLine($"using {_projectName}.DAL{NamespaceSuffix};");
 			writer.WriteLine();
 			writer.WriteLine($"namespace {_projectName}.Model{NamespaceSuffix}");
@@ -448,8 +448,8 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			string _filename = $"{_dalPath}/{DalClassName}.cs";
 
 			using StreamWriter writer = new StreamWriter(File.Create(_filename), Encoding.UTF8);
-			writer.WriteLine("using Meta.Common.SqlBuilder;");
-			writer.WriteLine("using Meta.Common.Model;");
+			writer.WriteLine("using Meta.Driver.SqlBuilder;");
+			writer.WriteLine("using Meta.Driver.Model;");
 			writer.WriteLine($"using {_projectName}.{ModelSuffix}{NamespaceSuffix};");
 			writer.WriteLine($"using {_projectName}.Options;");
 			writer.WriteLine("using System.Collections;");
@@ -463,7 +463,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			writer.WriteLine("using System.Net;");
 			writer.WriteLine("using System.Threading.Tasks;");
 			writer.WriteLine("using System.Threading;");
-			writer.WriteLine("using Meta.Common.Interface;");
+			writer.WriteLine("using Meta.Driver.Interface;");
 			if (_isGeometryTable)
 				writer.WriteLine("using Npgsql;");
 			writer.WriteLine();

@@ -1,6 +1,6 @@
-﻿using Meta.Common.DbHelper;
-using Meta.Common.Model;
-using Meta.Common.SqlBuilder;
+﻿using Meta.Driver.DbHelper;
+using Meta.Driver.Model;
+using Meta.Driver.SqlBuilder;
 using Meta.Postgres.Generator.CodeFactory.Extension;
 using Npgsql;
 using System;
@@ -222,13 +222,13 @@ WHERE ns.nspname || '.' || a.typname not in ({Types.ConvertArrayToSql(notCreateC
 				writer.Write(_sbNamespace);
 				writer.WriteLine("using System;");
 				writer.WriteLine("using Microsoft.Extensions.Logging;");
-				writer.WriteLine("using Meta.Common.Model;");
-				writer.WriteLine("using Meta.Common.DbHelper;");
+				writer.WriteLine("using Meta.Driver.Model;");
+				writer.WriteLine("using Meta.Driver.DbHelper;");
 				writer.WriteLine("using Newtonsoft.Json.Linq;");
 				writer.WriteLine("using Npgsql.TypeMapping;");
-				writer.WriteLine("using Meta.Common.Extensions;");
+				writer.WriteLine("using Meta.Driver.Extensions;");
 				writer.WriteLine("using Npgsql;");
-				writer.WriteLine("using Meta.Common.Interface; ");
+				writer.WriteLine("using Meta.Driver.Interface; ");
 				writer.WriteLine();
 				writer.WriteLine($"namespace {_projectName}.Options");
 				writer.WriteLine("{");

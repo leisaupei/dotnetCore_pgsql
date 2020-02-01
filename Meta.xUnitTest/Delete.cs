@@ -1,5 +1,5 @@
-using Meta.Common.Interface;
-using Meta.Common.SqlBuilder;
+using Meta.Driver.Interface;
+using Meta.Driver.SqlBuilder;
 using Meta.xUnitTest.DAL;
 using Meta.xUnitTest.Model;
 using Meta.xUnitTest.Options;

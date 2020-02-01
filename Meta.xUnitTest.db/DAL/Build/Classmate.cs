@@ -1,5 +1,5 @@
-﻿using Meta.Common.SqlBuilder;
-using Meta.Common.Model;
+﻿using Meta.Driver.SqlBuilder;
+using Meta.Driver.Model;
 using Meta.xUnitTest.Model;
 using Meta.xUnitTest.Options;
 using System.Collections;
@@ -13,7 +13,7 @@ using System.Xml;
 using System.Net;
 using System.Threading.Tasks;
 using System.Threading;
-using Meta.Common.Interface;
+using Meta.Driver.Interface;
 
 namespace Meta.xUnitTest.DAL
 {
@@ -112,10 +112,10 @@ namespace Meta.xUnitTest.DAL
 
 		#region Select
 		public static ClassmateModel GetItem(Guid teacher_id, Guid student_id, Guid grade_id) 
-			=> GetRedisCache(string.Format(CacheKey, teacher_id, student_id, grade_id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Teacher_id == teacher_id && a.Student_id == student_id && a.Grade_id == grade_id).ToOne());
+			=> GetRedisCache(string.Format(CacheKey, teacher_id, student_id, grade_id), DbConfig.DbCacheTimeOut, () => Select.Where(a =>a.Teacher_id == teacher_id && a.Student_id == student_id && a.Grade_id == grade_id).ToOne());
 
 		public static Task<ClassmateModel> GetItemAsync(Guid teacher_id, Guid student_id, Guid grade_id, CancellationToken cancellationToken = default) 
-			=> GetRedisCacheAsync(string.Format(CacheKey, teacher_id, student_id, grade_id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Teacher_id == teacher_id && a.Student_id == student_id && a.Grade_id == grade_id).ToOneAsync(cancellationToken), cancellationToken);
+			=> GetRedisCacheAsync(string.Format(CacheKey, teacher_id, student_id, grade_id), DbConfig.DbCacheTimeOut, () => Select.Where(a =>a.Teacher_id == teacher_id && a.Student_id == student_id && a.Grade_id == grade_id).ToOneAsync(cancellationToken), cancellationToken);
 
 		/// <summary>
 		/// (teacher_id, student_id, grade_id)

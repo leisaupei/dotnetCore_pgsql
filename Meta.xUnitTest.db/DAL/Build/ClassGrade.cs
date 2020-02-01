@@ -1,5 +1,5 @@
-﻿using Meta.Common.SqlBuilder;
-using Meta.Common.Model;
+﻿using Meta.Driver.SqlBuilder;
+using Meta.Driver.Model;
 using Meta.xUnitTest.Model;
 using Meta.xUnitTest.Options;
 using System.Collections;
@@ -13,7 +13,7 @@ using System.Xml;
 using System.Net;
 using System.Threading.Tasks;
 using System.Threading;
-using Meta.Common.Interface;
+using Meta.Driver.Interface;
 
 namespace Meta.xUnitTest.DAL
 {
@@ -105,10 +105,10 @@ namespace Meta.xUnitTest.DAL
 
 		#region Select
 		public static ClassGradeModel GetItem(Guid id) 
-			=> GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOne());
+			=> GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a =>a.Id == id).ToOne());
 
 		public static Task<ClassGradeModel> GetItemAsync(Guid id, CancellationToken cancellationToken = default) 
-			=> GetRedisCacheAsync(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOneAsync(cancellationToken), cancellationToken);
+			=> GetRedisCacheAsync(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a =>a.Id == id).ToOneAsync(cancellationToken), cancellationToken);
 
 		public static List<ClassGradeModel> GetItems(IEnumerable<Guid> ids) 
 			=> Select.WhereAny(a => a.Id, ids).ToList();

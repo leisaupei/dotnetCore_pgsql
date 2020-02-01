@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Meta.Common.DbHelper;
-using Meta.Common.SqlBuilder;
+using Meta.Driver.DbHelper;
+using Meta.Driver.SqlBuilder;
 
 namespace Meta.Postgres.Generator.CodeFactory.DAL
 {
