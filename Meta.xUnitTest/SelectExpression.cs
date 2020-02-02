@@ -173,6 +173,15 @@ namespace Meta.xUnitTest
 				Assert.Equal(1, info.Array_type.FirstOrDefault());
 		}
 		[Fact]
+		public void WhereArrayEquals()
+		{
+			var info = TypeTest.Select
+				.Where(a => a.Uuid_array_type == new[] { Guid.Empty })
+				.ToOne();
+			if (info != null)
+				Assert.Equal(1, info.Array_type.FirstOrDefault());
+		}
+		[Fact]
 		public void WhereNewClass()
 		{
 			var info = People.Select
@@ -237,13 +246,13 @@ namespace Meta.xUnitTest
 		public void WhereContains()
 		{
 			TypeTestModel info = null;
-			//array_position(a.array_type,3) = 0
+			//a.int_type <> all(array[2,3])
 			info = TypeTest.Select.Where(a => !a.Array_type.Contains(3)).ToOne();
-			//array_position(a.array_type,3) > 0
+			//3 = any(a.array_type)
 			info = TypeTest.Select.Where(a => a.Array_type.Contains(3)).ToOne();
 			var ints = new int[] { 2, 3 }.Select(f => f).ToList();
 			//a.int_type = any(array[2,3])
-			info = TypeTest.Select.Where(a => ints.Contains(a.Int4_type.Value)).ToOne();
+			info = TypeTest.Select.Where(a => new int[] { 2, 3 }.Select(f => f).ToList().Contains(a.Int4_type.Value)).ToOne();
 
 			Assert.NotNull(info);
 		}

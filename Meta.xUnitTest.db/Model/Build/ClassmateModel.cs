@@ -27,11 +27,14 @@ namespace Meta.xUnitTest.Model
 		#endregion
 
 		#region Foreign Key
+		private TeacherModel _getTeacher = null;
+		public TeacherModel GetTeacher => _getTeacher ??= Teacher.GetItem(Teacher_id);
+
 		private ClassGradeModel _getClassGrade = null;
 		public ClassGradeModel GetClassGrade => _getClassGrade ??= ClassGrade.GetItem(Grade_id);
 
-		private TeacherModel _getTeacher = null;
-		public TeacherModel GetTeacher => _getTeacher ??= Teacher.GetItem(Teacher_id);
+		private StudentModel _getStudent = null;
+		public StudentModel GetStudent => _getStudent ??= Student.GetItem(Student_id);
 		#endregion
 
 		#region Update/Insert

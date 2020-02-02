@@ -558,10 +558,10 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 				{
 					writer.Write(@"
 		public static int Delete(params {0}[] {1}s)
-			=> DeleteAsync(false, CancellationToken.None, ids).ConfigureAwait(false).GetAwaiter().GetResult();
+			=> DeleteAsync(false, CancellationToken.None, {1}s).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		public static ValueTask<int> DeleteAsync(CancellationToken cancellationToken = default, params {0}[] {1}s)
-			=> DeleteAsync(true, cancellationToken, ids);
+			=> DeleteAsync(true, cancellationToken, {1}s);
 
 		private static async ValueTask<int> DeleteAsync(bool async, CancellationToken cancellationToken, params {0}[] {1}s)
 		{{
