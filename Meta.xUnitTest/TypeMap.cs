@@ -157,6 +157,7 @@ namespace Meta.xUnitTest
 		{
 			var affrows = TypeTest.Update(Guid.Empty).SetIncrement(a => a.Decimal_type, 1.2M).ToRows();
 			affrows = TypeTest.Update(Guid.Empty).Set(a => a.Decimal_type, 1.2M).ToRows();
+			var info = TypeTest.Select.Where(a => a.Id == Guid.Empty).Sum(a => a.Decimal_type.Value);
 			Assert.True(affrows > 0);
 		}
 

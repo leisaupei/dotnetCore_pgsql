@@ -39,7 +39,7 @@ namespace Meta.Driver.DbHelper
 		public static string[] GetFieldsFromStaticType(Type type)
 		{
 			InitStaticTypesFields(type);
-			return _typeFieldsDict[string.Concat(type.Name, _sysytemLoadSuffix)];
+			return _typeFieldsDict[string.Concat(type.FullName, _sysytemLoadSuffix)];
 		}
 
 		/// <summary>
@@ -57,10 +57,10 @@ namespace Meta.Driver.DbHelper
 			if (_typeFieldsDict != null) return;
 			if (!t.GetInterfaces().Any(f => f == typeof(IDbModel))) return;
 			_typeFieldsDict = new Dictionary<string, string[]>();
-			var types = t.Assembly.GetTypes().Where(f => !string.IsNullOrEmpty(f.Namespace) && f.Namespace.EndsWith(".Model") && f.GetCustomAttribute<DbTableAttribute>() != null);
+			var types = t.Assembly.GetTypes().Where(f => !string.IsNullOrEmpty(f.Namespace) && f.Namespace.Contains(".Model") && f.GetCustomAttribute<DbTableAttribute>() != null);
 			foreach (var type in types)
 			{
-				var key = string.Concat(type.Name, _sysytemLoadSuffix);
+				var key = string.Concat(type.FullName, _sysytemLoadSuffix);
 				if (!_typeFieldsDict.ContainsKey(key))
 					_typeFieldsDict[key] = GetAllFields("", type).ToArray();
 
@@ -123,7 +123,7 @@ namespace Meta.Driver.DbHelper
 		public static string GetModelTypeFieldsString(string alias, Type type)
 		{
 			InitStaticTypesFields(type);
-			return string.Join(", ", _typeFieldsDict[string.Concat(type.Name, _sysytemLoadSuffix)].Select(f => $"{alias}.{f}"));
+			return string.Join(", ", _typeFieldsDict[string.Concat(type.FullName, _sysytemLoadSuffix)].Select(f => $"{alias}.{f}"));
 		}
 
 		/// <summary>

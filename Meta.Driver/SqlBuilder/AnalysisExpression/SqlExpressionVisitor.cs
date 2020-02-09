@@ -16,7 +16,6 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 	public class SqlExpressionVisitor : ExpressionVisitor
 	{
 		private SqlExpressionVisitor() { }
-		private static SqlExpressionVisitor _instance;
 		/// <summary>
 		/// Visitor静态实例
 		/// </summary>
@@ -24,9 +23,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 		{
 			get
 			{
-				if (_instance == null)
-					_instance = new SqlExpressionVisitor();
-				return _instance;
+				return new SqlExpressionVisitor();
 			}
 		}
 		/// <summary>
@@ -147,9 +144,9 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 		{
 			if (node.NodeType == ExpressionType.ArrayIndex)
 			{
-				if (node.Left is MemberExpression exp)
+				if (node.Left is MemberExpression exp && IsDbMember(exp, out MemberExpression dbMember))
 				{
-					VisitMember(exp);
+					_exp.SqlText += dbMember.ToString().ToLower();
 					_exp.SqlText += string.Concat("[", GetExpressionInvokeResult<int>(node.Right) + 1, "]");
 				}
 				else
@@ -214,7 +211,10 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 					_exp.SqlText += node.Member.Name.ToLower();
 					break;
 				default:
-					_exp.SqlText += node.ToString().ToLower();
+					{
+						if (IsDbMember(node, out MemberExpression dbMember))
+							_exp.SqlText += dbMember.ToString().ToLower();
+					}
 					break;
 			}
 
@@ -427,19 +427,18 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 			void AddOperator() => _exp.SqlText += _currentLambdaNodeType == ExpressionType.Not ? " <> " : " = ";
 			bool AnalysisDbField(List<Expression> expression, int i)
 			{
-				if (expression[i] is MemberExpression me && me.Expression != null)
+				var expType = expression[i].Type;
+				if (expType.IsArray || expType.FullName.StartsWith("System.Collections.Generic.List`1"))
 				{
 					if (i == 0)
 					{
-						i++;
-						AnalysisDbField(expression, i);
+						AnalysisDbField(expression, i + 1);
 						AddOperator();
 					}
-					var isArray = me.Type.IsArray || me.Type.FullName.StartsWith("System.Collections.Generic.List`1");
-					if (isArray) _exp.SqlText += _currentLambdaNodeType == ExpressionType.Not ? "ALL(" : "ANY(";
-
-					VisitMember(me);
-					if (isArray) { _exp.SqlText += ")"; support++; };
+					_exp.SqlText += _currentLambdaNodeType == ExpressionType.Not ? "ALL(" : "ANY(";
+					base.Visit(expression[i]);
+					_exp.SqlText += ")";
+					support++;
 					return true;
 				}
 				base.Visit(expression[i]);
@@ -477,6 +476,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 
 				_methodStringContainsFormat = key;
 				base.Visit(node.Arguments[0]);
+				_methodStringContainsFormat = null;
 				return true;
 			}
 			return false;

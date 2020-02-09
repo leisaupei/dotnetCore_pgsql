@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace Meta.Driver.SqlBuilder
 {
-	public abstract class SqlBuilder<TSQL> : ISqlBuilder 
+	public abstract class SqlBuilder<TSQL> : ISqlBuilder
 		where TSQL : class, ISqlBuilder
 	{
 		#region Identity
@@ -67,7 +67,7 @@ namespace Meta.Driver.SqlBuilder
 
 		public TSQL By<TDbName>() where TDbName : struct, IDbName
 		{
-			DbName = nameof(TDbName);
+			DbName = typeof(TDbName).Name;
 			return This;
 		}
 		/// <summary>
