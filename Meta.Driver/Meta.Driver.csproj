@@ -12,9 +12,9 @@
     <PackageReleaseNotes>修复枚举Lamda表达式转化成int报错问题</PackageReleaseNotes>
     <Copyright>MIT</Copyright>
     <PackageLicenseUrl>https://github.com/leisaupei/meta/blob/master/LICENSE</PackageLicenseUrl>
-    <Version>1.0.2</Version>
-    <AssemblyVersion>1.0.2.0</AssemblyVersion>
-    <FileVersion>1.0.2.0</FileVersion>
+    <Version>1.0.3</Version>
+    <AssemblyVersion>1.0.3.0</AssemblyVersion>
+    <FileVersion>1.0.3.0</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

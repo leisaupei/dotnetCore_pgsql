@@ -198,7 +198,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 					else
 						otherExpression = item;
 				}
-				if (convertType.IsEnum)
+				if (convertType != null && convertType.IsEnum)
 				{
 					VisitLeftAndRight(node.NodeType, convertExpression,
 						Expression.Constant(Enum.ToObject(convertType, GetExpressionInvokeResultObject(otherExpression)), convertType));
