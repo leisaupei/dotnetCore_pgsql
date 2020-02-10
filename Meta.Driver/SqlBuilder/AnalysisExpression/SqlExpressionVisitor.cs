@@ -4,6 +4,7 @@ using Npgsql;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Data.Common;
 using System.Linq;
 using System.Linq.Expressions;
@@ -142,6 +143,8 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 		#region OverrideVisitMethod
 		protected override Expression VisitBinary(BinaryExpression node)
 		{
+			if (TransferEnum(node))
+				return node;
 			if (node.NodeType == ExpressionType.ArrayIndex)
 			{
 				if (node.Left is MemberExpression exp && IsDbMember(exp, out MemberExpression dbMember))
@@ -155,17 +158,61 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 				return node;
 			}
 			_currentLambdaNodeType = node.NodeType;
-			if (IsAddBrackets(node.NodeType))
+			VisitLeftAndRight(node.NodeType, node.Left, node.Right);
+			return node;
+		}
+
+		private void VisitLeftAndRight(ExpressionType nodeType, Expression left, Expression right)
+		{
+			if (IsAddBrackets(nodeType))
 				_exp.SqlText += "(";
-			base.Visit(node.Left);
-			if (_dictOperator.TryGetValue(node.NodeType, out string operat))
+			base.Visit(left);
+			if (_dictOperator.TryGetValue(nodeType, out string operat))
 				_exp.SqlText += operat;
 			else
-				_exp.SqlText += node.NodeType.ToString();
-			base.Visit(node.Right);
-			if (IsAddBrackets(node.NodeType))
+				_exp.SqlText += nodeType.ToString();
+			base.Visit(right);
+			if (IsAddBrackets(nodeType))
 				_exp.SqlText += ")";
-			return node;
+		}
+
+		private bool TransferEnum(BinaryExpression node)
+		{
+			var arr = new[] { node.Left, node.Right };
+			if (arr.Count(a => a.NodeType == ExpressionType.Convert) == 1)
+			{
+				Expression convertExpression = null;
+				Expression otherExpression = null;
+				Type convertType = null;
+				foreach (var item in arr)
+				{
+					if (item is UnaryExpression ue)
+					{
+						var type = GetOrgType(ue.Operand.Type);
+						if (type.IsEnum && GetOrgType(ue.Type) == typeof(int))
+						{
+							convertExpression = ue;
+							convertType = ue.Operand.Type;
+						}
+					}
+					else
+						otherExpression = item;
+				}
+				if (convertType.IsEnum)
+				{
+					VisitLeftAndRight(node.NodeType, convertExpression,
+						Expression.Constant(Enum.ToObject(convertType, GetExpressionInvokeResultObject(otherExpression)), convertType));
+					return true;
+				}
+			}
+			return false;
+		}
+
+		private static Type GetOrgType(Type type)
+		{
+			if (type.IsGenericType && type.GetGenericTypeDefinition().Equals(typeof(Nullable<>)))
+				type = new NullableConverter(type).UnderlyingType;
+			return type;
 		}
 
 		protected override Expression VisitConstant(ConstantExpression node)
@@ -289,6 +336,13 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 			}
 			if (node.NodeType == ExpressionType.Not)
 				_currentLambdaNodeType = node.NodeType;
+			//if (node.NodeType == ExpressionType.Convert)
+			//{
+			//	if (node.Operand.Type.IsEnum)
+			//	{
+
+			//	}
+			//}
 			return base.VisitUnary(node);
 		}
 

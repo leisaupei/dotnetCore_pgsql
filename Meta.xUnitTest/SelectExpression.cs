@@ -251,6 +251,13 @@ namespace Meta.xUnitTest
 			Assert.NotNull(info);
 		}
 		[Fact]
+		public void WhereEnum()
+		{
+			var en = EDataState.Õý³£;
+			var info = TypeTest.Select.Where(a => a.Enum_type == en).ToOne();
+			Assert.NotNull(info);
+		}
+		[Fact]
 		public void WhereContains()
 		{
 			TypeTestModel info = null;

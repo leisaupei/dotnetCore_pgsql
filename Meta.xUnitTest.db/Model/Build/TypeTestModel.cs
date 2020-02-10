@@ -60,7 +60,7 @@ namespace Meta.xUnitTest.Model
 		[JsonProperty] public string Varchar_type { get; set; }
 		[JsonProperty] public XmlDocument Xml_type { get; set; }
 		[JsonProperty] public Dictionary<string, string> Hstore_type { get; set; }
-		[JsonProperty] public EDataState? Enum_type { get; set; }
+		[JsonProperty] public EDataState Enum_type { get; set; }
 		[JsonProperty] public Info Composite_type { get; set; }
 		[JsonProperty] public BitArray Bit_length_type { get; set; }
 		[JsonProperty] public int[] Array_type { get; set; }
