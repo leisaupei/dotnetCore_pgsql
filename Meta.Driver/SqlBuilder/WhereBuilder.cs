@@ -252,7 +252,7 @@ namespace Meta.Driver.SqlBuilder
 		/// <param name="sqlBuilder"></param>
 		/// <exception cref="ArgumentNullException">value is null or empty</exception>
 		/// <returns></returns>
-		public TSQL WhereIn<TSource>(Expression<Func<TSource, object>> selector, ISqlBuilder sqlBuilder)
+		public TSQL WhereIn<TSource>(Expression<Func<TSource, object>> selector, ISqlBuilder sqlBuilder) where TSource : IDbModel, new()
 		{
 			if (sqlBuilder == null)
 				throw new ArgumentNullException(nameof(sqlBuilder));
@@ -261,7 +261,27 @@ namespace Meta.Driver.SqlBuilder
 		}
 
 		/// <summary>
-		/// where not exists 
+		/// where not in
+		/// </summary>
+		/// <param name="selector"></param>
+		/// <param name="sqlBuilder"></param>
+		/// <exception cref="ArgumentNullException">sql is null or empty</exception>
+		/// <returns></returns>
+		public TSQL WhereNotIn(Expression<Func<TModel, object>> selector, ISqlBuilder sqlBuilder)
+			=> WhereNotIn(selector, sqlBuilder);
+
+		/// <summary>
+		/// where in
+		/// </summary>
+		/// <param name="selector"></param>
+		/// <param name="sqlBuilder"></param>
+		/// <exception cref="ArgumentNullException">value is null or empty</exception>
+		/// <returns></returns>
+		public TSQL WhereIn(Expression<Func<TModel, object>> selector, ISqlBuilder sqlBuilder)
+			=> WhereIn(selector, sqlBuilder);
+
+		/// <summary>
+		/// where exists 
 		/// </summary>
 		/// <param name="sqlBuilder"></param>
 		/// <exception cref="ArgumentNullException">sqlBuilder is null</exception>
@@ -273,6 +293,16 @@ namespace Meta.Driver.SqlBuilder
 			AddParameters(sqlBuilder.Params);
 			sqlBuilder.Fields = "1";
 			return Where($"EXISTS ({sqlBuilder.CommandText})");
+		}
+
+		/// <summary>
+		/// where exists 
+		/// </summary>
+		/// <param name="sqlBuilderSelector"></param>
+		/// <returns></returns>
+		private TSQL WhereExists(Expression<Func<TModel, ISqlBuilder>> sqlBuilderSelector)
+		{
+			return This;
 		}
 
 		/// <summary>
@@ -288,6 +318,16 @@ namespace Meta.Driver.SqlBuilder
 			AddParameters(sqlBuilder.Params);
 			sqlBuilder.Fields = "1";
 			return Where($"NOT EXISTS ({sqlBuilder.CommandText})");
+		}
+
+		/// <summary>
+		/// where not exists 
+		/// </summary>
+		/// <param name="sqlBuilderSelector"></param>
+		/// <returns></returns>
+		private TSQL WhereNotExists(Expression<Func<TModel, ISqlBuilder>> sqlBuilderSelector)
+		{
+			return This;
 		}
 
 		/// <summary>

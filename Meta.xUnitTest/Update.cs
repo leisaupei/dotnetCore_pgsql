@@ -23,7 +23,7 @@ namespace Meta.xUnitTest
 		public void SetEnumToInt()
 		{
 			//var info = TypeTest.GetItem(Guid.Empty);
-			var affrows = TypeTest.Update(Guid.Empty).Set(a => a.Enum_type, EDataState.正常).ToRows();
+			var affrows = TypeTest.UpdateBuilder.Set(a => a.Enum_type, EDataState.正常).Where(a => a.Int4_type > Math.Abs(-3)).ToRows();
 		}
 
 	}

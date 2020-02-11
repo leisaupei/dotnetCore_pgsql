@@ -46,6 +46,9 @@ namespace Meta.xUnitTest.Model
 		[JsonProperty] public NpgsqlPath? Path_type { get; set; }
 		[JsonProperty] public NpgsqlPoint? Point_type { get; set; }
 		[JsonProperty] public NpgsqlPolygon? Polygon_type { get; set; }
+		[JsonProperty] public short Serial2_type { get; set; }
+		[JsonProperty] public int Serial4_type { get; set; }
+		[JsonProperty] public long Serial8_type { get; set; }
 		[JsonProperty] public string Text_type { get; set; }
 		[JsonProperty] public TimeSpan? Time_type { get; set; }
 		[JsonProperty] public DateTime? Timestamp_type { get; set; }
@@ -57,13 +60,10 @@ namespace Meta.xUnitTest.Model
 		[JsonProperty] public string Varchar_type { get; set; }
 		[JsonProperty] public XmlDocument Xml_type { get; set; }
 		[JsonProperty] public Dictionary<string, string> Hstore_type { get; set; }
-		[JsonProperty] public EDataState? Enum_type { get; set; }
+		[JsonProperty] public EDataState Enum_type { get; set; }
 		[JsonProperty] public Info Composite_type { get; set; }
 		[JsonProperty] public BitArray Bit_length_type { get; set; }
 		[JsonProperty] public int[] Array_type { get; set; }
-		[JsonProperty] public short Serial2_type { get; set; }
-		[JsonProperty] public int Serial4_type { get; set; }
-		[JsonProperty] public long Serial8_type { get; set; }
 		[JsonProperty] public Guid[] Uuid_array_type { get; set; }
 		#endregion
 

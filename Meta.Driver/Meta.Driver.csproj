@@ -9,9 +9,12 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <Description>.net core 3.0+pgsql数据库底层</Description>
-    <PackageReleaseNotes>新发布</PackageReleaseNotes>
+    <PackageReleaseNotes>修复枚举Lamda表达式转化成int报错问题</PackageReleaseNotes>
     <Copyright>MIT</Copyright>
     <PackageLicenseUrl>https://github.com/leisaupei/meta/blob/master/LICENSE</PackageLicenseUrl>
+    <Version>1.0.3</Version>
+    <AssemblyVersion>1.0.3.0</AssemblyVersion>
+    <FileVersion>1.0.3.0</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

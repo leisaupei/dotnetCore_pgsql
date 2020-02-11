@@ -53,6 +53,22 @@ namespace Meta.Driver.SqlBuilder
 			return This;
 		}
 
+		/// <summary>
+		/// 设置单个字段 常用于IN系列与EXISTS系列 会采用key selector别名为表别名
+		/// </summary>
+		/// <returns>ISqlBuilder</returns>
+		public TSQL Field(string field)
+		{
+			if (field.Contains('.'))
+			{
+				var arr = field.Split('.');
+				Fields = arr[1];
+				MainAlias = arr[0];
+			}
+			else Fields = field;
+			return This;
+		}
+
 		#region KeyWord
 		/// <summary>
 		/// sql语句group by
@@ -967,7 +983,7 @@ namespace Meta.Driver.SqlBuilder
 
 			if (!string.IsNullOrEmpty(_union))
 				sqlText.AppendLine(string.Concat("UNION ", _union));
-			return sqlText.ToString();
+			return sqlText.ToString().TrimEnd();
 		}
 		#endregion
 

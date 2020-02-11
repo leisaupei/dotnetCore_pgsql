@@ -26,6 +26,7 @@ namespace Meta.Driver.SqlBuilder
 		/// 是否返回实体类
 		/// </summary>
 		bool _isReturn = false;
+
 		public int Count => _setList.Count;
 
 		#region Contructor

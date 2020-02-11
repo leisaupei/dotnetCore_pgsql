@@ -153,6 +153,14 @@ namespace Meta.xUnitTest
 			Assert.Equal("leisaupei", info.Name);
 		}
 		[Fact]
+		public void WhereDifficultMethod()
+		{
+			var info = People.Select
+				  .Where(a => a.Create_time < DateTime.Now.AddDays(-1))
+				  .ToOne();
+			Assert.Equal("leisaupei", info.Name);
+		}
+		[Fact]
 		public void WhereMethod()
 		{
 			var info = People.Select
@@ -167,6 +175,15 @@ namespace Meta.xUnitTest
 				.Where(a => a.Array_type == new[] { 1 })
 				.ToOne();
 			var info1 = TypeTest.Select
+				.Where(a => a.Uuid_array_type == new[] { Guid.Empty })
+				.ToOne();
+			if (info != null)
+				Assert.Equal(1, info.Array_type.FirstOrDefault());
+		}
+		[Fact]
+		public void WhereArrayEquals()
+		{
+			var info = TypeTest.Select
 				.Where(a => a.Uuid_array_type == new[] { Guid.Empty })
 				.ToOne();
 			if (info != null)
@@ -235,16 +252,24 @@ namespace Meta.xUnitTest
 			Assert.NotNull(info);
 		}
 		[Fact]
+		public void WhereEnum()
+		{
+			var en = EDataState.Õý³£;
+			var info = TypeTest.Select.Where(a => a.Enum_type == en).ToOne();
+			Assert.NotNull(info);
+		}
+		[Fact]
 		public void WhereContains()
 		{
 			TypeTestModel info = null;
-			//array_position(a.array_type,3) = 0
-			info = TypeTest.Select.Where(a => !a.Array_type.Contains(3)).ToOne();
-			//array_position(a.array_type,3) > 0
-			info = TypeTest.Select.Where(a => a.Array_type.Contains(3)).ToOne();
-			var ints = new int[] { 2, 3 }.Select(f => f).ToList();
+			//info = TypeTest.Select.Where(a => new[] { 1, 3, 4 }.Contains(a.Int4_type.Value)).ToOne();
+			//a.int_type <> all(array[2,3])
+			//	info = TypeTest.Select.Where(a => !a.Array_type.Contains(3)).ToOne();
+			//3 = any(a.array_type)
+			//info = TypeTest.Select.Where(a => a.Array_type.Contains(3)).ToOne();
+			//var ints = new int[] { 2, 3 }.Select(f => f).ToList();
 			//a.int_type = any(array[2,3])
-			info = TypeTest.Select.Where(a => ints.Contains(a.Int4_type.Value)).ToOne();
+			info = TypeTest.Select.Where(a => new int[] { 2, 3 }.Select(f => f).ToArray().Contains(a.Int4_type.Value)).ToOne();
 
 			Assert.NotNull(info);
 		}
@@ -303,6 +328,24 @@ namespace Meta.xUnitTest
 			var judge = 0;
 			info = TypeTest.Select.Where(a => a.Varchar_type == (judge == 0 ? "xxxx" : "")).ToOne();
 			Assert.NotNull(info);
+		}
+		[Fact]
+		public void WhereEqualFieldWithNamespace()
+		{
+			var info = Student.Select
+					.Where(a => a.People_id == Meta.xUnitTest.BaseTest.StuPeopleId1)
+					.ToOne();
+
+			Assert.Equal(info.People_id, Meta.xUnitTest.BaseTest.StuPeopleId1);
+		}
+		[Fact]
+		public void WhereCompareSelf()
+		{
+			var info = Student.Select
+					.Where(a => a.People_id == a.Id)
+					.ToOne();
+
+			Assert.Equal(info.People_id, Meta.xUnitTest.BaseTest.StuPeopleId1);
 		}
 		[Fact]
 		public void Test()
