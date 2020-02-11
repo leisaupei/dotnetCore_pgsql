@@ -227,7 +227,7 @@ namespace Meta.Driver.SqlBuilder
 				return Where(string.Concat(key, $" <> @{index1}"));
 			}
 			AddParameterT(values.ToArray(), out string index);
-			return Where(string.Concat(key, $" <> any(@{index})"));
+			return Where(string.Concat(key, $" <> all(@{index})"));
 		}
 
 		/// <summary>
