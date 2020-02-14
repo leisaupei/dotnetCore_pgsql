@@ -43,7 +43,10 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 		/// 当前lambda表达式的操作符
 		/// </summary>
 		private ExpressionType? _currentLambdaNodeType;
-
+		/// <summary>
+		/// 是否直接获取转换表达式的值
+		/// </summary>
+		private bool _isGetConvertException = false;
 		/// <summary>
 		/// String.Contains
 		/// </summary>
@@ -204,6 +207,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 						Expression.Constant(Enum.ToObject(convertType, GetExpressionInvokeResultObject(otherExpression)), convertType));
 					return true;
 				}
+				else _isGetConvertException = true;
 			}
 			return false;
 		}
@@ -336,13 +340,12 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 			}
 			if (node.NodeType == ExpressionType.Not)
 				_currentLambdaNodeType = node.NodeType;
-			//if (node.NodeType == ExpressionType.Convert)
-			//{
-			//	if (node.Operand.Type.IsEnum)
-			//	{
-
-			//	}
-			//}
+			if (node.NodeType == ExpressionType.Convert && _isGetConvertException)
+			{
+				_isGetConvertException = false;
+				SetMemberValue(node, node.Type);
+				return node;
+			}
 			return base.VisitUnary(node);
 		}
 
@@ -558,7 +561,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 		{
 			var obj = GetExpressionInvokeResultObject(expression);
 			if (ChecktAndSetNullValue(obj)) return;
-			var value = Convert.ChangeType(obj, convertType);
+			var value = Convert.ChangeType(obj, GetOrgType(convertType));
 			SetParameter(value);
 		}
 		/// <summary>

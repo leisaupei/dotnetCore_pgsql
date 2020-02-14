@@ -256,6 +256,7 @@ namespace Meta.xUnitTest
 		{
 			var en = EDataState.Õý³£;
 			var info = TypeTest.Select.Where(a => a.Enum_type == en).ToOne();
+			info = TypeTest.Select.Where(a => a.Int4_type == (int)en).ToOne();
 			Assert.NotNull(info);
 		}
 		[Fact]
