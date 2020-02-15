@@ -201,7 +201,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 					else
 						otherExpression = item;
 				}
-				if (convertType != null && convertType.IsEnum)
+				if (convertType != null && convertType.IsEnum && !IsDbMember(otherExpression, out MemberExpression _))
 				{
 					VisitLeftAndRight(node.NodeType, convertExpression,
 						Expression.Constant(Enum.ToObject(convertType, GetExpressionInvokeResultObject(otherExpression)), convertType));
@@ -616,6 +616,23 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 		{
 			dbMember = MemberVisitor(node);
 			return dbMember.Expression != null && dbMember.Expression.NodeType == ExpressionType.Parameter;
+		}/// <summary>
+		 /// 是否数据库成员
+		 /// </summary>
+		 /// <param name="node"></param>
+		 /// <param name="dbMember">a.xxx成员</param>
+		 /// <returns></returns>
+		private bool IsDbMember(Expression node, out MemberExpression dbMember)
+		{
+			if (node is MemberExpression mbe)
+			{
+				return IsDbMember(mbe, out dbMember);
+			}
+			else
+			{
+				dbMember = null;
+				return false;
+			}
 		}
 		#endregion
 	}
