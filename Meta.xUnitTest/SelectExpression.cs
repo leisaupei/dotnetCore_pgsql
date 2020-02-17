@@ -262,14 +262,19 @@ namespace Meta.xUnitTest
 		[Fact]
 		public void WhereContains()
 		{
+			var xx = new PeopleModel();
+			xx.Id = Guid.Empty;
+			var b = new PeopleModel();
+			b.Id = Guid.Empty;
+			var c = TypeTest.Select.Where(a => new[] { xx.Id, b.Id }.Contains(a.Id)).ToOne();
 			TypeTestModel info = null;
-			//info = TypeTest.Select.Where(a => new[] { 1, 3, 4 }.Contains(a.Int4_type.Value)).ToOne();
-			//a.int_type <> all(array[2,3])
-			//	info = TypeTest.Select.Where(a => !a.Array_type.Contains(3)).ToOne();
-			//3 = any(a.array_type)
-			//info = TypeTest.Select.Where(a => a.Array_type.Contains(3)).ToOne();
-			//var ints = new int[] { 2, 3 }.Select(f => f).ToList();
-			//a.int_type = any(array[2,3])
+			info = TypeTest.Select.Where(a => new[] { 1, 3, 4 }.Contains(a.Int4_type.Value)).ToOne();
+			////a.int_type <> all(array[2,3])
+			info = TypeTest.Select.Where(a => !a.Array_type.Contains(3)).ToOne();
+			////3 = any(a.array_type)
+			info = TypeTest.Select.Where(a => a.Array_type.Contains(3)).ToOne();
+			////var ints = new int[] { 2, 3 }.Select(f => f).ToList();
+			////a.int_type = any(array[2,3])
 			info = TypeTest.Select.Where(a => new int[] { 2, 3 }.Select(f => f).ToArray().Contains(a.Int4_type.Value)).ToOne();
 
 			Assert.NotNull(info);

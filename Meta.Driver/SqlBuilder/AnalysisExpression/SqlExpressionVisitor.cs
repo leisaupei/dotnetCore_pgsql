@@ -207,7 +207,8 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 						Expression.Constant(Enum.ToObject(convertType, GetExpressionInvokeResultObject(otherExpression)), convertType));
 					return true;
 				}
-				else _isGetConvertException = true;
+				else
+					_isGetConvertException = true;
 			}
 			return false;
 		}
@@ -310,10 +311,11 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 
 		protected override Expression VisitNewArray(NewArrayExpression node)
 		{
+			if (node.Expressions.Any(a => a.NodeType != ExpressionType.Constant))
+				node = Expression.NewArrayInit(node.Type.GetElementType(), node.Expressions.Select(a => Expression.Constant(GetExpressionInvokeResultObject(a), a.Type)));
 			SetMemberValue(node, node.Type);
 			return node;
 		}
-
 		protected override Expression VisitParameter(ParameterExpression node)
 		{
 			switch (_type)
@@ -340,10 +342,13 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 			}
 			if (node.NodeType == ExpressionType.Not)
 				_currentLambdaNodeType = node.NodeType;
-			if (node.NodeType == ExpressionType.Convert && _isGetConvertException)
+			if (node.NodeType == ExpressionType.Convert && _isGetConvertException && !IsDbMember(node.Operand, out MemberExpression _))
 			{
 				_isGetConvertException = false;
-				SetMemberValue(node, node.Type);
+				if (node.Operand is ConstantExpression ce)
+					SetMemberValue(ce, ce.Type);
+				else
+					SetMemberValue(node, node.Type);
 				return node;
 			}
 			return base.VisitUnary(node);
