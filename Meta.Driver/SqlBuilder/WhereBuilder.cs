@@ -46,9 +46,11 @@ namespace Meta.Driver.SqlBuilder
 		/// </summary>
 		/// <typeparam name="TSource"></typeparam>
 		/// <param name="selector"></param>
+		/// <param name="isAdd">是否添加此表达式</param>
 		/// <returns></returns>
-		public TSQL Where<TSource>(Expression<Func<TSource, bool>> selector) where TSource : IDbModel, new()
+		public TSQL Where<TSource>(Expression<Func<TSource, bool>> selector, bool isAdd = true) where TSource : IDbModel, new()
 		{
+			if (!isAdd) return This;
 			var info = SqlExpressionVisitor.Instance.VisitCondition(selector);
 			AddParameters(info.Paras);
 			return Where(info.SqlText);
@@ -58,28 +60,10 @@ namespace Meta.Driver.SqlBuilder
 		/// 主模型重载
 		/// </summary>
 		/// <param name="selector"></param>
+		/// <param name="isAdd">是否添加此表达式</param>
 		/// <returns></returns>
-		public TSQL Where(Expression<Func<TModel, bool>> selector)
+		public TSQL Where(Expression<Func<TModel, bool>> selector, bool isAdd = true)
 			=> Where<TModel>(selector);
-
-		/// <summary>
-		/// 子模型where
-		/// </summary>
-		/// <typeparam name="TSource"></typeparam>
-		/// <param name="selector"></param>
-		/// <param name="isAdd">是否添加条件</param>
-		/// <returns></returns>
-		public TSQL Where<TSource>(bool isAdd, Expression<Func<TSource, bool>> selector) where TSource : IDbModel, new()
-			=> isAdd ? Where(selector) : This;
-
-		/// <summary>
-		/// 主模型重载
-		/// </summary>
-		/// <param name="selector"></param>
-		/// <param name="isAdd">是否添加条件</param>
-		/// <returns></returns>
-		public TSQL Where(bool isAdd, Expression<Func<TModel, bool>> selector)
-			=> isAdd ? Where<TModel>(selector) : This;
 
 		/// <summary>
 		/// 开始Or where表达式

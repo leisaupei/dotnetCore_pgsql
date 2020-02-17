@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace Meta.Driver.SqlBuilder
 {
-	public class UpdateBuilder<TModel> : WhereBuilder<UpdateBuilder<TModel>, TModel> 
+	public class UpdateBuilder<TModel> : WhereBuilder<UpdateBuilder<TModel>, TModel>
 		where TModel : IDbModel, new()
 	{
 		/// <summary>
@@ -53,34 +53,16 @@ namespace Meta.Driver.SqlBuilder
 		}
 
 		/// <summary>
-		/// 设置一个字段值(非空类型) *可选重载
-		/// </summary>
-		/// <typeparam name="TKey">字段类型</typeparam>
-		/// <param name="isSet">是否设置</param>
-		/// <param name="selector">字段key selector</param>
-		/// <param name="value">value</param>
-		/// <returns></returns>
-		public UpdateBuilder<TModel> Set<TKey>(bool isSet, Expression<Func<TModel, TKey>> selector, TKey value) => isSet ? Set(selector, value) : this;
-
-		/// <summary>
-		/// 设置一个字段值(可空类型) *可选重载
-		/// </summary>
-		/// <typeparam name="TKey">字段类型</typeparam>
-		/// <param name="isSet">是否设置</param>
-		/// <param name="selector">字段key selector</param>
-		/// <param name="value">value</param>
-		/// <returns></returns>
-		public UpdateBuilder<TModel> Set<TKey>(bool isSet, Expression<Func<TModel, TKey?>> selector, TKey? value) where TKey : struct => isSet ? Set(selector, value) : this;
-
-		/// <summary>
 		/// 设置一个字段值(非空类型)
 		/// </summary>
 		/// <typeparam name="TKey">字段类型</typeparam>
 		/// <param name="selector">字段key selector</param>
 		/// <param name="value">value</param>
+		/// <param name="isSet">是否设置</param>
 		/// <returns></returns>
-		public UpdateBuilder<TModel> Set<TKey>(Expression<Func<TModel, TKey>> selector, TKey value)
+		public UpdateBuilder<TModel> Set<TKey>(Expression<Func<TModel, TKey>> selector, TKey value, bool isSet = true)
 		{
+			if (!isSet) return this;
 			var field = SqlExpressionVisitor.Instance.VisitSingleForNoAlias(selector).SqlText;
 			if (value == null)
 				return AddSetExpression(string.Format("{0} = null", field));
@@ -120,9 +102,11 @@ namespace Meta.Driver.SqlBuilder
 		/// <typeparam name="TKey">字段类型</typeparam>
 		/// <param name="selector">字段key selector</param>
 		/// <param name="value">value</param>
+		/// <param name="isSet"></param>
 		/// <returns></returns>
-		public UpdateBuilder<TModel> Set<TKey>(Expression<Func<TModel, TKey?>> selector, TKey? value) where TKey : struct
+		public UpdateBuilder<TModel> Set<TKey>(Expression<Func<TModel, TKey?>> selector, TKey? value, bool isSet = true) where TKey : struct
 		{
+			if (!isSet) return this;
 			var field = SqlExpressionVisitor.Instance.VisitSingleForNoAlias(selector).SqlText;
 			if (value == null)
 				return AddSetExpression(string.Format("{0} = null", field));

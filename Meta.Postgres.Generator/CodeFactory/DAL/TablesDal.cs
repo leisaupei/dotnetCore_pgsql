@@ -669,14 +669,14 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			return InsertMultipleAsync<Db{2}>(models, sqlbuilders, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey{1}), cancellationToken);
 		}}
 
-		private static IEnumerable<ISqlBuilder> GetSqlBuilder(IEnumerable<{0}> models, bool isExceptionCancel)
+		public static IEnumerable<ISqlBuilder> GetSqlBuilder(IEnumerable<{0}> models, bool isExceptionCancel)
 		{{
 			return isExceptionCancel
 				? models.Select(f => GetInsertBuilder(f).ToRowsPipe())
 				: models.Select(f => GetInsertBuilder(f).WhereNotExists(Select{3}).ToRowsPipe());
 		}}
 
-		private static InsertBuilder<{0}> GetInsertBuilder({0} model)
+		public static InsertBuilder<{0}> GetInsertBuilder({0} model)
 		{{
 			if (model == null)
 				throw new ArgumentNullException(nameof(model));
