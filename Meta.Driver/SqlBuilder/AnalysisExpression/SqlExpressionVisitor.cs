@@ -17,36 +17,37 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 	public class SqlExpressionVisitor : ExpressionVisitor
 	{
 		private SqlExpressionVisitor() { }
+
 		/// <summary>
 		/// Visitor静态实例
 		/// </summary>
-		public static SqlExpressionVisitor Instance
-		{
-			get
-			{
-				return new SqlExpressionVisitor();
-			}
-		}
+		public static SqlExpressionVisitor Instance => new SqlExpressionVisitor();
+
 		/// <summary>
 		/// 输出对象
 		/// </summary>
 		private SqlExpressionModel _exp;
+
 		/// <summary>
 		/// 关联表已拥有别名
 		/// </summary>
 		private string[] _currentAlias;
+
 		/// <summary>
 		/// 输入解析类型
 		/// </summary>
 		private ExpressionExcutionType _type = ExpressionExcutionType.None;
+
 		/// <summary>
 		/// 当前lambda表达式的操作符
 		/// </summary>
 		private ExpressionType? _currentLambdaNodeType;
+
 		/// <summary>
 		/// 是否直接获取转换表达式的值
 		/// </summary>
 		private bool _isGetConvertException = false;
+
 		/// <summary>
 		/// String.Contains
 		/// </summary>
@@ -74,13 +75,6 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 			{ ExpressionType.Not," NOT "}
 
 		};
-		/// <summary>
-		/// 判断是否需要添加括号
-		/// </summary>
-		/// <param name="nodeType"></param>
-		/// <returns></returns>
-		private bool IsAddBrackets(ExpressionType nodeType) => nodeType == ExpressionType.AndAlso || nodeType == ExpressionType.OrElse;
-
 		/// <summary>
 		/// 访问单个无别名字段
 		/// </summary>
@@ -165,61 +159,6 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 			return node;
 		}
 
-		private void VisitLeftAndRight(ExpressionType nodeType, Expression left, Expression right)
-		{
-			if (IsAddBrackets(nodeType))
-				_exp.SqlText += "(";
-			base.Visit(left);
-			if (_dictOperator.TryGetValue(nodeType, out string operat))
-				_exp.SqlText += operat;
-			else
-				_exp.SqlText += nodeType.ToString();
-			base.Visit(right);
-			if (IsAddBrackets(nodeType))
-				_exp.SqlText += ")";
-		}
-
-		private bool TransferEnum(BinaryExpression node)
-		{
-			var arr = new[] { node.Left, node.Right };
-			if (arr.Count(a => a.NodeType == ExpressionType.Convert) == 1)
-			{
-				Expression convertExpression = null;
-				Expression otherExpression = null;
-				Type convertType = null;
-				foreach (var item in arr)
-				{
-					if (item is UnaryExpression ue)
-					{
-						var type = GetOrgType(ue.Operand.Type);
-						if (type.IsEnum && GetOrgType(ue.Type) == typeof(int))
-						{
-							convertExpression = ue;
-							convertType = ue.Operand.Type;
-						}
-					}
-					else
-						otherExpression = item;
-				}
-				if (convertType != null && convertType.IsEnum && !IsDbMember(otherExpression, out MemberExpression _))
-				{
-					VisitLeftAndRight(node.NodeType, convertExpression,
-						Expression.Constant(Enum.ToObject(convertType, GetExpressionInvokeResultObject(otherExpression)), convertType));
-					return true;
-				}
-				else
-					_isGetConvertException = true;
-			}
-			return false;
-		}
-
-		private static Type GetOrgType(Type type)
-		{
-			if (type.IsGenericType && type.GetGenericTypeDefinition().Equals(typeof(Nullable<>)))
-				type = new NullableConverter(type).UnderlyingType;
-			return type;
-		}
-
 		protected override Expression VisitConstant(ConstantExpression node)
 		{
 			if (!ChecktAndSetNullValue(node.Value))
@@ -296,12 +235,12 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 			}
 			return node;
 		}
+
 		protected override Expression VisitConditional(ConditionalExpression node)
 		{
 			SetExpressionInvokeResultParameter(node);
 			return node;
 		}
-
 
 		protected override Expression VisitNew(NewExpression node)
 		{
@@ -316,6 +255,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 			SetMemberValue(node, node.Type);
 			return node;
 		}
+
 		protected override Expression VisitParameter(ParameterExpression node)
 		{
 			switch (_type)
@@ -477,12 +417,75 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 		#endregion
 
 		#region Private Method
+		/// <summary>
+		/// 判断是否需要添加括号
+		/// </summary>
+		/// <param name="nodeType"></param>
+		/// <returns></returns>
+		private bool IsAddBrackets(ExpressionType nodeType) => nodeType == ExpressionType.AndAlso || nodeType == ExpressionType.OrElse;
+
+		private void VisitLeftAndRight(ExpressionType nodeType, Expression left, Expression right)
+		{
+			if (IsAddBrackets(nodeType))
+				_exp.SqlText += "(";
+			base.Visit(left);
+			if (_dictOperator.TryGetValue(nodeType, out string operat))
+				_exp.SqlText += operat;
+			else
+				_exp.SqlText += nodeType.ToString();
+			base.Visit(right);
+			if (IsAddBrackets(nodeType))
+				_exp.SqlText += ")";
+		}
+
+		private bool TransferEnum(BinaryExpression node)
+		{
+			var arr = new[] { node.Left, node.Right };
+			if (arr.Count(a => a.NodeType == ExpressionType.Convert) == 1)
+			{
+				Expression convertExpression = null;
+				Expression otherExpression = null;
+				Type convertType = null;
+				foreach (var item in arr)
+				{
+					if (item is UnaryExpression ue)
+					{
+						var type = GetOrgType(ue.Operand.Type);
+						if (type.IsEnum && GetOrgType(ue.Type) == typeof(int))
+						{
+							convertExpression = ue;
+							convertType = ue.Operand.Type;
+						}
+					}
+					else
+						otherExpression = item;
+				}
+				if (convertType != null && convertType.IsEnum && !IsDbMember(otherExpression, out MemberExpression _))
+				{
+					VisitLeftAndRight(node.NodeType, convertExpression,
+						Expression.Constant(Enum.ToObject(convertType, GetExpressionInvokeResultObject(otherExpression)), convertType));
+					return true;
+				}
+				else
+					_isGetConvertException = true;
+			}
+			return false;
+		}
+
+		private static Type GetOrgType(Type type)
+		{
+			if (type.IsGenericType && type.GetGenericTypeDefinition().Equals(typeof(Nullable<>)))
+				type = new NullableConverter(type).UnderlyingType;
+			return type;
+		}
+
 		private void SetExpressionInvokeResultParameter(Expression node)
 		{
 			var value = GetExpressionInvokeResultObject(node);
 			if (!ChecktAndSetNullValue(value))
 				SetParameter(value);
 		}
+
 		private void MethodContaionsHandler(MethodCallExpression node)
 		{
 			int support = 0;
@@ -518,6 +521,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 				throw new NotSupportedException("Contains method property only supported 'new T[]' and 'list<T>'");
 
 		}
+
 		/// <summary>
 		/// string.contains/startswith/endswith
 		/// </summary>
@@ -543,6 +547,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 			}
 			return false;
 		}
+
 		/// <summary>
 		/// 检查并设置null值
 		/// </summary>
@@ -557,6 +562,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 				_exp.SqlText = string.Concat(_exp.SqlText.Trim().TrimEnd('='), "IS NOT NULL");
 			return true;
 		}
+
 		/// <summary>
 		/// 设置成员的值
 		/// </summary>
@@ -569,6 +575,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 			var value = Convert.ChangeType(obj, GetOrgType(convertType));
 			SetParameter(value);
 		}
+
 		/// <summary>
 		/// 输出表达式的值
 		/// </summary>
@@ -578,6 +585,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 		{
 			return Expression.Lambda(expression).Compile().DynamicInvoke();
 		}
+
 		/// <summary>
 		/// 输出表达式的值
 		/// </summary>
@@ -588,6 +596,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 		{
 			return Expression.Lambda<Func<T>>(Expression.Convert(expression, typeof(T))).Compile().Invoke();
 		}
+
 		/// <summary>
 		/// 设置参数
 		/// </summary>
@@ -600,6 +609,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 			_exp.Paras.Add(new NpgsqlParameter(index, value));
 			_exp.SqlText += string.Concat("@", index);
 		}
+
 		/// <summary>
 		/// 递归member表达式, 针对optional字段, 从 a.xxx.Value->a.xxx
 		/// </summary>
@@ -611,6 +621,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 				return MemberVisitor(me);
 			return node;
 		}
+
 		/// <summary>
 		/// 是否数据库成员
 		/// </summary>
@@ -621,12 +632,14 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 		{
 			dbMember = MemberVisitor(node);
 			return dbMember.Expression != null && dbMember.Expression.NodeType == ExpressionType.Parameter;
-		}/// <summary>
-		 /// 是否数据库成员
-		 /// </summary>
-		 /// <param name="node"></param>
-		 /// <param name="dbMember">a.xxx成员</param>
-		 /// <returns></returns>
+		}
+
+		/// <summary>
+		/// 是否数据库成员
+		/// </summary>
+		/// <param name="node"></param>
+		/// <param name="dbMember">a.xxx成员</param>
+		/// <returns></returns>
 		private bool IsDbMember(Expression node, out MemberExpression dbMember)
 		{
 			if (node is MemberExpression mbe)
