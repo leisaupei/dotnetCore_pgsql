@@ -63,7 +63,7 @@ namespace Meta.Driver.SqlBuilder
 		/// <param name="isAdd">是否添加此表达式</param>
 		/// <returns></returns>
 		public TSQL Where(Expression<Func<TModel, bool>> selector, bool isAdd = true)
-			=> Where<TModel>(selector);
+			=> isAdd ? Where<TModel>(selector) : This;
 
 		/// <summary>
 		/// 开始Or where表达式
