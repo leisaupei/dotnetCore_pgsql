@@ -42,8 +42,12 @@ namespace Meta.Driver.DbHelper
 			get
 			{
 				int tid = Thread.CurrentThread.ManagedThreadId;
-				if (_transPool.ContainsKey(tid) && _transPool[tid] != null)
-					return _transPool[tid];
+				if (_transPool.ContainsKey(tid))
+				{
+					if (_transPool[tid] != null && _transPool[tid].Connection != null)
+						return _transPool[tid];
+					_transPool.Remove(tid);
+				}
 				return null;
 			}
 		}
@@ -428,7 +432,7 @@ namespace Meta.Driver.DbHelper
 		/// 确认事务
 		/// </summary>
 		internal Task CommitTransactionAsync(CancellationToken cancellationToken)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : CommitTransactionAsync(false, CancellationToken.None).AsTask();
+			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : CommitTransactionAsync(true, cancellationToken).AsTask();
 
 		/// <summary>
 		/// 回滚事务
@@ -439,26 +443,28 @@ namespace Meta.Driver.DbHelper
 		/// 回滚事务
 		/// </summary>
 		internal Task RollBackTransactionAsync(CancellationToken cancellationToken)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : RollBackTransactionAsync(false, CancellationToken.None).AsTask();
+			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : RollBackTransactionAsync(true, cancellationToken).AsTask();
 
 		async ValueTask CommitTransactionAsync(bool async, CancellationToken cancellationToken)
 		{
-			var tran = GetTransaction();
+			using var tran = GetTransaction();
 			using var conn = tran?.Connection;
 			if (async)
 				await tran.CommitAsync(cancellationToken);
 			else
 				tran.Commit();
+			RemoveCurrentTransaction();
 		}
 
 		async ValueTask RollBackTransactionAsync(bool async, CancellationToken cancellationToken)
 		{
-			var tran = GetTransaction();
+			using var tran = GetTransaction();
 			using var conn = tran?.Connection;
 			if (async)
 				await tran.RollbackAsync(cancellationToken);
 			else
 				tran.Rollback();
+			RemoveCurrentTransaction();
 		}
 
 		private DbTransaction GetTransaction()
@@ -466,11 +472,16 @@ namespace Meta.Driver.DbHelper
 			var tran = CurrentTransaction;
 			if (tran == null)
 			{
-				var tid = Thread.CurrentThread.ManagedThreadId;
-				_transPool.Remove(tid);
+				RemoveCurrentTransaction();
+				tran = null;
 			}
-
 			return tran;
+		}
+
+		private void RemoveCurrentTransaction()
+		{
+			var tid = Thread.CurrentThread.ManagedThreadId;
+			_transPool.Remove(tid);
 		}
 		#endregion
 
