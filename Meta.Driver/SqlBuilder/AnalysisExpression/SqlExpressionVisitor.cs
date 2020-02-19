@@ -559,7 +559,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 			if (_currentLambdaNodeType == ExpressionType.Equal)
 				_exp.SqlText = string.Concat(_exp.SqlText.Trim().TrimEnd('='), "IS NULL");
 			else if (_currentLambdaNodeType == ExpressionType.NotEqual)
-				_exp.SqlText = string.Concat(_exp.SqlText.Trim().TrimEnd('=', '!'), "IS NOT NULL");
+				_exp.SqlText = string.Concat(_exp.SqlText.Trim().TrimEnd('>', '<'), "IS NOT NULL");
 			return true;
 		}
 
