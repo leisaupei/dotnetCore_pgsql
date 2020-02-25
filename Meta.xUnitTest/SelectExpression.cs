@@ -254,10 +254,10 @@ namespace Meta.xUnitTest
 		[Fact]
 		public void WhereEnum()
 		{
-			var en = EDataState.正常;
-			var info = TypeTest.Select.Where(a => a.Enum_type == en).ToOne();
-			 info = TypeTest.Select.Where(a => a.Enum_type == EDataState.正常).ToOne();
-			info = TypeTest.Select.Where(a => a.Int4_type == (int)en).ToOne();
+			EDataState value = EDataState.正常;
+			var info = TypeTest.Select.Where(a => a.Enum_type == value).ToOne();
+			info = TypeTest.Select.Where(a => a.Enum_type == EDataState.正常).ToOne();
+			info = TypeTest.Select.Where(a => a.Int4_type == (int)value).ToOne();
 			info = TypeTest.Select.Where(a => a.Int4_type == (int)EDataState.正常).ToOne();
 			Assert.NotNull(info);
 		}
@@ -338,6 +338,24 @@ namespace Meta.xUnitTest
 			Assert.NotNull(info);
 		}
 		[Fact]
+		public void WhereArrayEqual()
+		{
+			TypeTestModel info = null;
+			info = TypeTest.Select.Where(a => a.Array_type == new[] { 0, 1 }).ToOne();
+			info = TypeTest.Select.Where(a => a.Uuid_array_type == new[] { Guid.Empty }).ToOne();
+			info = TypeTest.Select.Where(a => a.Varchar_array_type == new[] { "广东" }).ToOne();
+			info = TypeTest.Select.Where(a => a.Varchar_array_type == new[] { "广东,广州" }).ToOne();
+			Assert.NotNull(info);
+		}
+		[Fact]
+		public void WhereCoalesce()
+		{
+			TypeTestModel info = null;
+			var sum = TypeTest.Select.Sum(a => a.Int8_type ?? 0);
+			info = TypeTest.Select.Where(a => (a.Int4_type ?? 3) == 3).ToOne();
+			Assert.NotNull(info);
+		}
+		[Fact]
 		public void WhereEqualFieldWithNamespace()
 		{
 			var info = Student.Select
@@ -358,13 +376,16 @@ namespace Meta.xUnitTest
 		[Fact]
 		public void Test()
 		{
+			Guid? id = Guid.Empty;
+			object a = Guid.Empty;
+			var b = Convert.ChangeType(a, typeof(Guid?));
 			//	ParentPreantTestModel model = new ParentPreantTestModel { Name = "xxx" };
 			//	var info = TypeTest.Select.Where(a => !a.Varchar_type.Contains(model.Name, StringComparison.OrdinalIgnoreCase)).ToOne();
-			Expression<Func<ClassmateModel, Guid>> expression = f => f.Grade_id;
-			MemberExpression body = expression.Body as MemberExpression;
-			var equ = Expression.Equal(body, Expression.Constant(Guid.Empty, typeof(Guid)));
-			var lambda = Expression.Lambda<Func<ClassmateModel, bool>>(equ, body.Expression as ParameterExpression);
-			SqlExpressionVisitor.Instance.VisitCondition(lambda);
+			//Expression<Func<ClassmateModel, Guid>> expression = f => f.Grade_id;
+			//MemberExpression body = expression.Body as MemberExpression;
+			//var equ = Expression.Equal(body, Expression.Constant(Guid.Empty, typeof(Guid)));
+			//var lambda = Expression.Lambda<Func<ClassmateModel, bool>>(equ, body.Expression as ParameterExpression);
+			//SqlExpressionVisitor.Instance.VisitCondition(lambda);
 
 		}
 		public class ParentPreantTestModel

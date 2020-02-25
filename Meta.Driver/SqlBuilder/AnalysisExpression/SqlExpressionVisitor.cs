@@ -11,6 +11,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Meta.Driver.SqlBuilder.AnalysisExpression
 {
@@ -52,7 +53,10 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 		/// String.Contains
 		/// </summary>
 		private string _methodStringContainsFormat = null;
-
+		/// <summary>
+		/// 获取string数组比较时 倒数第二个空格转化成::text[]
+		/// </summary>
+		private static readonly Regex _getStringArrayLastSpaceRegex = new Regex(@"\s(?=(<>|\=)\s$)");
 		/// <summary>
 		/// 表达式操作符转换集
 		/// </summary>
@@ -140,8 +144,15 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 		#region OverrideVisitMethod
 		protected override Expression VisitBinary(BinaryExpression node)
 		{
-			if (TransferEnum(node))
+			if (node.NodeType == ExpressionType.Coalesce)
+			{
+				_exp.SqlText += "COALESCE(";
+				base.Visit(node.Right);
+				_exp.SqlText += ",";
+				base.Visit(node.Left);
+				_exp.SqlText += ")";
 				return node;
+			}
 			if (node.NodeType == ExpressionType.ArrayIndex)
 			{
 				if (node.Left is MemberExpression exp && IsDbMember(exp, out MemberExpression dbMember))
@@ -154,6 +165,8 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 
 				return node;
 			}
+			if (TransferEnum(node))
+				return node;
 			_currentLambdaNodeType = node.NodeType;
 			VisitLeftAndRight(node.NodeType, node.Left, node.Right);
 			return node;
@@ -250,8 +263,11 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 
 		protected override Expression VisitNewArray(NewArrayExpression node)
 		{
+			var nodeType = node.Type.GetElementType();
 			if (node.Expressions.Any(a => a.NodeType != ExpressionType.Constant))
-				node = Expression.NewArrayInit(node.Type.GetElementType(), node.Expressions.Select(a => Expression.Constant(GetExpressionInvokeResultObject(a), a.Type)));
+				node = Expression.NewArrayInit(nodeType, node.Expressions.Select(a => Expression.Constant(GetExpressionInvokeResultObject(a), a.Type)));
+			if (nodeType == typeof(string))
+				_exp.SqlText = _getStringArrayLastSpaceRegex.Replace(_exp.SqlText, "::text[]");
 			SetMemberValue(node, node.Type);
 			return node;
 		}
@@ -443,27 +459,24 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 			var arr = new[] { node.Left, node.Right };
 			if (arr.Count(a => a.NodeType == ExpressionType.Convert) == 1)
 			{
-				Expression convertExpression = null;
+				UnaryExpression convertExpression = null;
 				Expression otherExpression = null;
-				Type convertType = null;
 				foreach (var item in arr)
 				{
 					if (item is UnaryExpression ue)
 					{
 						var type = GetOrgType(ue.Operand.Type);
 						if (type.IsEnum && GetOrgType(ue.Type) == typeof(int))
-						{
 							convertExpression = ue;
-							convertType = ue.Operand.Type;
-						}
 					}
 					else
 						otherExpression = item;
 				}
-				if (convertType != null && convertType.IsEnum && !IsDbMember(otherExpression, out MemberExpression _))
+				if (convertExpression != null
+					&& !IsDbMember(otherExpression, out MemberExpression _))
 				{
 					VisitLeftAndRight(node.NodeType, convertExpression,
-						Expression.Constant(Enum.ToObject(convertType, GetExpressionInvokeResultObject(otherExpression)), convertType));
+						Expression.Constant(Enum.ToObject(convertExpression.Operand.Type, GetExpressionInvokeResultObject(otherExpression)), convertExpression.Operand.Type));
 					return true;
 				}
 				else
@@ -475,7 +488,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 		private static Type GetOrgType(Type type)
 		{
 			if (type.IsGenericType && type.GetGenericTypeDefinition().Equals(typeof(Nullable<>)))
-				type = new NullableConverter(type).UnderlyingType;
+				type = Nullable.GetUnderlyingType(type);
 			return type;
 		}
 
@@ -642,15 +655,9 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 		/// <returns></returns>
 		private bool IsDbMember(Expression node, out MemberExpression dbMember)
 		{
-			if (node is MemberExpression mbe)
-			{
-				return IsDbMember(mbe, out dbMember);
-			}
-			else
-			{
-				dbMember = null;
-				return false;
-			}
+			dbMember = null;
+			if (node == null) return false;
+			return node is MemberExpression mbe ? IsDbMember(mbe, out dbMember) : false;
 		}
 		#endregion
 	}

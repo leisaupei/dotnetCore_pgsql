@@ -91,14 +91,14 @@ namespace Meta.xUnitTest.DAL
 			return InsertMultipleAsync<DbMaster>(models, sqlbuilders, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey, model.Teacher_id, model.Student_id, model.Grade_id), cancellationToken);
 		}
 
-		private static IEnumerable<ISqlBuilder> GetSqlBuilder(IEnumerable<ClassmateModel> models, bool isExceptionCancel)
+		public static IEnumerable<ISqlBuilder> GetSqlBuilder(IEnumerable<ClassmateModel> models, bool isExceptionCancel)
 		{
 			return isExceptionCancel
 				? models.Select(f => GetInsertBuilder(f).ToRowsPipe())
 				: models.Select(f => GetInsertBuilder(f).WhereNotExists(Select.Where(a => a.Teacher_id == f.Teacher_id && a.Student_id == f.Student_id && a.Grade_id == f.Grade_id)).ToRowsPipe());
 		}
 
-		private static InsertBuilder<ClassmateModel> GetInsertBuilder(ClassmateModel model)
+		public static InsertBuilder<ClassmateModel> GetInsertBuilder(ClassmateModel model)
 		{
 			if (model == null)
 				throw new ArgumentNullException(nameof(model));
@@ -112,10 +112,10 @@ namespace Meta.xUnitTest.DAL
 
 		#region Select
 		public static ClassmateModel GetItem(Guid teacher_id, Guid student_id, Guid grade_id) 
-			=> GetRedisCache(string.Format(CacheKey, teacher_id, student_id, grade_id), DbConfig.DbCacheTimeOut, () => Select.Where(a =>a.Teacher_id == teacher_id && a.Student_id == student_id && a.Grade_id == grade_id).ToOne());
+			=> GetRedisCache(string.Format(CacheKey, teacher_id, student_id, grade_id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Teacher_id == teacher_id && a.Student_id == student_id && a.Grade_id == grade_id).ToOne());
 
 		public static Task<ClassmateModel> GetItemAsync(Guid teacher_id, Guid student_id, Guid grade_id, CancellationToken cancellationToken = default) 
-			=> GetRedisCacheAsync(string.Format(CacheKey, teacher_id, student_id, grade_id), DbConfig.DbCacheTimeOut, () => Select.Where(a =>a.Teacher_id == teacher_id && a.Student_id == student_id && a.Grade_id == grade_id).ToOneAsync(cancellationToken), cancellationToken);
+			=> GetRedisCacheAsync(string.Format(CacheKey, teacher_id, student_id, grade_id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Teacher_id == teacher_id && a.Student_id == student_id && a.Grade_id == grade_id).ToOneAsync(cancellationToken), cancellationToken);
 
 		/// <summary>
 		/// (teacher_id, student_id, grade_id)

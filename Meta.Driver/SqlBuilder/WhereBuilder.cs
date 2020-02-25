@@ -397,10 +397,7 @@ namespace Meta.Driver.SqlBuilder
 			var t2 = SqlExpressionVisitor.Instance.VisitSingle(selectorT2).SqlText;
 			for (int i = 0; i < _values.Count(); i++)
 			{
-				WhereStartOr();
-				Where(string.Concat(t1, "={0}"), _values[i].Item1);
-				Where(string.Concat(t2, "={0}"), _values[i].Item2);
-				WhereEndOr();
+				Where(string.Concat(t1, "={0} or ", t2, "={1}"), _values[i].Item1, _values[i].Item2);
 			}
 			return This;
 		}
@@ -428,11 +425,7 @@ namespace Meta.Driver.SqlBuilder
 			var t3 = SqlExpressionVisitor.Instance.VisitSingle(selectorT3).SqlText;
 			for (int i = 0; i < _values.Count(); i++)
 			{
-				WhereStartOr();
-				Where(string.Concat(t1, "={0}"), _values[i].Item1);
-				Where(string.Concat(t2, "={0}"), _values[i].Item2);
-				Where(string.Concat(t3, "={0}"), _values[i].Item3);
-				WhereEndOr();
+				Where(string.Concat(t1, "={0} or ", t2, "={1} or ", t3, "={2}"), _values[i].Item1, _values[i].Item2, _values[i].Item3);
 			}
 			return This;
 		}
@@ -464,12 +457,7 @@ namespace Meta.Driver.SqlBuilder
 			var t4 = SqlExpressionVisitor.Instance.VisitSingle(selectorT4).SqlText;
 			for (int i = 0; i < _values.Count(); i++)
 			{
-				WhereStartOr();
-				Where(string.Concat(t1, "={0}"), _values[i].Item1);
-				Where(string.Concat(t2, "={0}"), _values[i].Item2);
-				Where(string.Concat(t3, "={0}"), _values[i].Item3);
-				Where(string.Concat(t4, "={0}"), _values[i].Item4);
-				WhereEndOr();
+				Where(string.Concat(t1, "={0} or ", t2, "={1} or ", t3, "={2} or ", t4, "={3}"), _values[i].Item1, _values[i].Item2, _values[i].Item3, _values[i].Item4);
 			}
 			return This;
 		}

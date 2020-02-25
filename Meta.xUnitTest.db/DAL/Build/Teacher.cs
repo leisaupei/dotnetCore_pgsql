@@ -85,14 +85,14 @@ namespace Meta.xUnitTest.DAL
 			return InsertMultipleAsync<DbMaster>(models, sqlbuilders, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey, model.Id), cancellationToken);
 		}
 
-		private static IEnumerable<ISqlBuilder> GetSqlBuilder(IEnumerable<TeacherModel> models, bool isExceptionCancel)
+		public static IEnumerable<ISqlBuilder> GetSqlBuilder(IEnumerable<TeacherModel> models, bool isExceptionCancel)
 		{
 			return isExceptionCancel
 				? models.Select(f => GetInsertBuilder(f).ToRowsPipe())
 				: models.Select(f => GetInsertBuilder(f).WhereNotExists(Select.Where(a => a.Id == f.Id)).ToRowsPipe());
 		}
 
-		private static InsertBuilder<TeacherModel> GetInsertBuilder(TeacherModel model)
+		public static InsertBuilder<TeacherModel> GetInsertBuilder(TeacherModel model)
 		{
 			if (model == null)
 				throw new ArgumentNullException(nameof(model));
@@ -106,10 +106,10 @@ namespace Meta.xUnitTest.DAL
 
 		#region Select
 		public static TeacherModel GetItem(Guid id) 
-			=> GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a =>a.Id == id).ToOne());
+			=> GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOne());
 
 		public static Task<TeacherModel> GetItemAsync(Guid id, CancellationToken cancellationToken = default) 
-			=> GetRedisCacheAsync(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a =>a.Id == id).ToOneAsync(cancellationToken), cancellationToken);
+			=> GetRedisCacheAsync(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOneAsync(cancellationToken), cancellationToken);
 
 		public static List<TeacherModel> GetItems(IEnumerable<Guid> ids) 
 			=> Select.WhereAny(a => a.Id, ids).ToList();

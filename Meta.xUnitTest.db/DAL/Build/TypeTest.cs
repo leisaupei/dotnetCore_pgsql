@@ -85,14 +85,14 @@ namespace Meta.xUnitTest.DAL
 			return InsertMultipleAsync<DbMaster>(models, sqlbuilders, DbConfig.DbCacheTimeOut, (model) => string.Format(CacheKey, model.Id), cancellationToken);
 		}
 
-		private static IEnumerable<ISqlBuilder> GetSqlBuilder(IEnumerable<TypeTestModel> models, bool isExceptionCancel)
+		public static IEnumerable<ISqlBuilder> GetSqlBuilder(IEnumerable<TypeTestModel> models, bool isExceptionCancel)
 		{
 			return isExceptionCancel
 				? models.Select(f => GetInsertBuilder(f).ToRowsPipe())
 				: models.Select(f => GetInsertBuilder(f).WhereNotExists(Select.Where(a => a.Id == f.Id)).ToRowsPipe());
 		}
 
-		private static InsertBuilder<TypeTestModel> GetInsertBuilder(TypeTestModel model)
+		public static InsertBuilder<TypeTestModel> GetInsertBuilder(TypeTestModel model)
 		{
 			if (model == null)
 				throw new ArgumentNullException(nameof(model));
@@ -141,16 +141,17 @@ namespace Meta.xUnitTest.DAL
 				.Set(a => a.Composite_type, model.Composite_type)
 				.Set(a => a.Bit_length_type, model.Bit_length_type)
 				.Set(a => a.Array_type, model.Array_type)
-				.Set(a => a.Uuid_array_type, model.Uuid_array_type);
+				.Set(a => a.Uuid_array_type, model.Uuid_array_type)
+				.Set(a => a.Varchar_array_type, model.Varchar_array_type);
 		}
 		#endregion
 
 		#region Select
 		public static TypeTestModel GetItem(Guid id) 
-			=> GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a =>a.Id == id).ToOne());
+			=> GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOne());
 
 		public static Task<TypeTestModel> GetItemAsync(Guid id, CancellationToken cancellationToken = default) 
-			=> GetRedisCacheAsync(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a =>a.Id == id).ToOneAsync(cancellationToken), cancellationToken);
+			=> GetRedisCacheAsync(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOneAsync(cancellationToken), cancellationToken);
 
 		public static List<TypeTestModel> GetItems(IEnumerable<Guid> ids) 
 			=> Select.WhereAny(a => a.Id, ids).ToList();

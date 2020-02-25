@@ -367,10 +367,9 @@ namespace Meta.Driver.SqlBuilder
 		/// <typeparam name="TSource">model类型</typeparam>
 		/// <typeparam name="TKey">返回值类型</typeparam>
 		/// <param name="selector">key selector</param>
-		/// <param name="defaultValue">默认值</param>
 		/// <returns></returns>
-		public TKey Max<TSource, TKey>(Expression<Func<TSource, TKey>> selector, TKey defaultValue = default) where TSource : IDbModel, new()
-			=> ScalarTransfer(selector, defaultValue, "MAX");
+		public TKey Max<TSource, TKey>(Expression<Func<TSource, TKey>> selector) where TSource : IDbModel, new()
+			=> ScalarTransfer(selector, "MAX");
 
 		/// <summary>
 		/// 取最小值
@@ -378,10 +377,9 @@ namespace Meta.Driver.SqlBuilder
 		/// <typeparam name="TSource">model type</typeparam>
 		/// <typeparam name="TKey">return value type</typeparam>
 		/// <param name="selector">key selector</param>
-		/// <param name="defaultValue">default value</param>
 		/// <returns></returns>
-		public TKey Min<TSource, TKey>(Expression<Func<TSource, TKey>> selector, TKey defaultValue = default) where TSource : IDbModel, new()
-			=> ScalarTransfer(selector, defaultValue, "MIN");
+		public TKey Min<TSource, TKey>(Expression<Func<TSource, TKey>> selector) where TSource : IDbModel, new()
+			=> ScalarTransfer(selector, "MIN");
 
 		/// <summary>
 		/// 取总和
@@ -389,10 +387,9 @@ namespace Meta.Driver.SqlBuilder
 		/// <typeparam name="TSource">model type</typeparam>
 		/// <typeparam name="TKey">return value type</typeparam>
 		/// <param name="selector">key selector</param>
-		/// <param name="defaultValue">default value</param>
 		/// <returns></returns>
-		public TKey Sum<TSource, TKey>(Expression<Func<TSource, TKey>> selector, TKey defaultValue = default) where TSource : IDbModel, new()
-			=> ScalarTransfer(selector, defaultValue, "SUM");
+		public TKey Sum<TSource, TKey>(Expression<Func<TSource, TKey>> selector) where TSource : IDbModel, new()
+			=> ScalarTransfer(selector, "SUM");
 
 		/// <summary>
 		/// 取平均值
@@ -400,50 +397,45 @@ namespace Meta.Driver.SqlBuilder
 		/// <typeparam name="TSource">model type</typeparam>
 		/// <typeparam name="TKey">return value type</typeparam>
 		/// <param name="selector">key selector</param>
-		/// <param name="defaultValue">default value</param>
 		/// <returns></returns>
-		public TKey Avg<TSource, TKey>(Expression<Func<TSource, TKey>> selector, TKey defaultValue = default) where TSource : IDbModel, new()
-			=> ScalarTransfer(selector, defaultValue, "AVG");
+		public TKey Avg<TSource, TKey>(Expression<Func<TSource, TKey>> selector) where TSource : IDbModel, new()
+			=> ScalarTransfer(selector, "AVG");
 
 		/// <summary>
 		/// 取最大值
 		/// </summary>
 		/// <typeparam name="TKey">return value type</typeparam>
 		/// <param name="selector">key selector</param>
-		/// <param name="defaultValue">default value</param>
 		/// <returns></returns>
-		public TKey Max<TKey>(Expression<Func<TModel, TKey>> selector, TKey defaultValue = default) => Max<TModel, TKey>(selector, defaultValue);
+		public TKey Max<TKey>(Expression<Func<TModel, TKey>> selector) => Max<TModel, TKey>(selector);
 
 		/// <summary>
 		/// 取最小值
 		/// </summary>
 		/// <typeparam name="TKey">return value type</typeparam>
 		/// <param name="selector">key selector</param>
-		/// <param name="defaultValue">default value</param>
 		/// <returns></returns>
-		public TKey Min<TKey>(Expression<Func<TModel, TKey>> selector, TKey defaultValue = default) => Min<TModel, TKey>(selector, defaultValue);
+		public TKey Min<TKey>(Expression<Func<TModel, TKey>> selector) => Min<TModel, TKey>(selector);
 
 		/// <summary>
 		/// 取总和
 		/// </summary>
 		/// <typeparam name="TKey">return value type</typeparam>
 		/// <param name="selector">key selector</param>
-		/// <param name="defaultValue">default value</param>
 		/// <returns></returns>
-		public TKey Sum<TKey>(Expression<Func<TModel, TKey>> selector, TKey defaultValue = default) => Sum<TModel, TKey>(selector, defaultValue);
+		public TKey Sum<TKey>(Expression<Func<TModel, TKey>> selector) => Sum<TModel, TKey>(selector);
 
 		/// <summary>
 		/// 去平均值
 		/// </summary>
 		/// <typeparam name="TKey">return value type</typeparam>
 		/// <param name="selector">key selector</param>
-		/// <param name="defaultValue">default value</param>
 		/// <returns></returns>
-		public TKey Avg<TKey>(Expression<Func<TModel, TKey>> selector, TKey defaultValue = default) => Avg<TModel, TKey>(selector, defaultValue);
-
+		public TKey Avg<TKey>(Expression<Func<TModel, TKey>> selector) => Avg<TModel, TKey>(selector);
 		#endregion
 
 		#region Async
+
 		#region ToList
 		/// <summary>
 		/// 返回列表
@@ -625,6 +617,101 @@ namespace Meta.Driver.SqlBuilder
 		public Task<List<(TModel, T1, T2, T3)>> ToListUnionAsync<T1, T2, T3>(CancellationToken cancellationToken = default) where T1 : IDbModel, new() where T2 : IDbModel, new() where T3 : IDbModel, new()
 			=> this.ToListAsync<(TModel, T1, T2, T3)>(cancellationToken);
 		#endregion
+
+		#region SingleMethod
+
+		/// <summary>
+		/// 返回行数
+		/// </summary>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public ValueTask<long> CountAsync(CancellationToken cancellationToken = default) => ToScalarAsync<long>("COUNT(1)", cancellationToken);
+
+		/// <summary>
+		/// 取最大值
+		/// </summary>
+		/// <typeparam name="TSource">model类型</typeparam>
+		/// <typeparam name="TKey">返回值类型</typeparam>
+		/// <param name="selector">key selector</param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public ValueTask<TKey> MaxAsync<TSource, TKey>(Expression<Func<TSource, TKey>> selector, CancellationToken cancellationToken = default) where TSource : IDbModel, new()
+			=> ScalarTransferAsync(selector, "MAX", cancellationToken);
+
+		/// <summary>
+		/// 取最小值
+		/// </summary>
+		/// <typeparam name="TSource">model type</typeparam>
+		/// <typeparam name="TKey">return value type</typeparam>
+		/// <param name="selector">key selector</param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public ValueTask<TKey> MinAsync<TSource, TKey>(Expression<Func<TSource, TKey>> selector, CancellationToken cancellationToken = default) where TSource : IDbModel, new()
+			=> ScalarTransferAsync(selector, "MIN", cancellationToken);
+
+		/// <summary>
+		/// 取总和
+		/// </summary>
+		/// <typeparam name="TSource">model type</typeparam>
+		/// <typeparam name="TKey">return value type</typeparam>
+		/// <param name="selector">key selector</param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public ValueTask<TKey> SumAsync<TSource, TKey>(Expression<Func<TSource, TKey>> selector, CancellationToken cancellationToken = default) where TSource : IDbModel, new()
+			=> ScalarTransferAsync(selector, "SUM", cancellationToken);
+
+		/// <summary>
+		/// 取平均值
+		/// </summary>
+		/// <typeparam name="TSource">model type</typeparam>
+		/// <typeparam name="TKey">return value type</typeparam>
+		/// <param name="selector">key selector</param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public ValueTask<TKey> AvgAsync<TSource, TKey>(Expression<Func<TSource, TKey>> selector, CancellationToken cancellationToken = default) where TSource : IDbModel, new()
+			=> ScalarTransferAsync(selector, "AVG", cancellationToken);
+
+		/// <summary>
+		/// 取最大值
+		/// </summary>
+		/// <typeparam name="TKey">return value type</typeparam>
+		/// <param name="selector">key selector</param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public ValueTask<TKey> MaxAsync<TKey>(Expression<Func<TModel, TKey>> selector, CancellationToken cancellationToken = default)
+			=> MaxAsync<TModel, TKey>(selector, cancellationToken);
+
+		/// <summary>
+		/// 取最小值
+		/// </summary>
+		/// <typeparam name="TKey">return value type</typeparam>
+		/// <param name="selector">key selector</param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public ValueTask<TKey> MinAsync<TKey>(Expression<Func<TModel, TKey>> selector, CancellationToken cancellationToken = default)
+			=> MinAsync<TModel, TKey>(selector, cancellationToken);
+
+		/// <summary>
+		/// 取总和
+		/// </summary>
+		/// <typeparam name="TKey">return value type</typeparam>
+		/// <param name="selector">key selector</param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public ValueTask<TKey> SumAsync<TKey>(Expression<Func<TModel, TKey>> selector, CancellationToken cancellationToken = default)
+			=> SumAsync<TModel, TKey>(selector, cancellationToken);
+
+		/// <summary>
+		/// 去平均值
+		/// </summary>
+		/// <typeparam name="TKey">return value type</typeparam>
+		/// <param name="selector">key selector</param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		public ValueTask<TKey> AvgAsync<TKey>(Expression<Func<TModel, TKey>> selector, CancellationToken cancellationToken = default)
+			=> AvgAsync<TModel, TKey>(selector, cancellationToken);
+		#endregion
+
 		#endregion
 
 		#region Pipe
@@ -988,8 +1075,18 @@ namespace Meta.Driver.SqlBuilder
 		#endregion
 
 		#region Protected Method
-		private TKey ScalarTransfer<TSource, TKey>(Expression<Func<TSource, TKey>> selector, TKey defaultValue, string method) where TSource : IDbModel, new()
-		=> ToScalar<TKey>($"COALESCE({method}({SqlExpressionVisitor.Instance.VisitSingle(selector).SqlText}),{defaultValue})");
+		private TKey ScalarTransfer<TSource, TKey>(Expression<Func<TSource, TKey>> selector, string method) where TSource : IDbModel, new()
+		{
+			var visit = SqlExpressionVisitor.Instance.VisitSingle(selector);
+			AddParameters(visit.Paras);
+			return ToScalar<TKey>($"{method}({visit.SqlText})");
+		}
+		private ValueTask<TKey> ScalarTransferAsync<TSource, TKey>(Expression<Func<TSource, TKey>> selector, string method, CancellationToken cancellationToken) where TSource : IDbModel, new()
+		{
+			var visit = SqlExpressionVisitor.Instance.VisitSingle(selector);
+			AddParameters(visit.Paras);
+			return ToScalarAsync<TKey>($"{method}({visit.SqlText})", cancellationToken);
+		}
 
 		/// <summary>
 		/// 设置redis cache
