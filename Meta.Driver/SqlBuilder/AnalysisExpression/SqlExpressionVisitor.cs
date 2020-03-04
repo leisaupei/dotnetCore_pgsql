@@ -1,4 +1,5 @@
 ﻿using Meta.Driver.DbHelper;
+using Meta.Driver.Extensions;
 using Meta.Driver.Model;
 using Npgsql;
 using System;
@@ -53,6 +54,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 		/// String.Contains
 		/// </summary>
 		private string _methodStringContainsFormat = null;
+		private bool _isAddCastText = false;
 		/// <summary>
 		/// 获取string数组比较时 倒数第二个空格转化成::text[]
 		/// </summary>
@@ -147,9 +149,9 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 			if (node.NodeType == ExpressionType.Coalesce)
 			{
 				_exp.SqlText += "COALESCE(";
-				base.Visit(node.Right);
-				_exp.SqlText += ",";
 				base.Visit(node.Left);
+				_exp.SqlText += ",";
+				base.Visit(node.Right);
 				_exp.SqlText += ")";
 				return node;
 			}
@@ -203,7 +205,14 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 							break;
 						case PropertyInfo propertyInfo:
 							if (IsDbMember(node, out MemberExpression dbMember))
+							{
 								_exp.SqlText += dbMember.ToString().ToLower();
+								if (_isAddCastText)
+								{
+									_isAddCastText = false;
+									_exp.SqlText += "::text[]";
+								}
+							}
 							else SetMemberValue(node, propertyInfo.PropertyType);
 							break;
 						default:
@@ -267,7 +276,12 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 			if (node.Expressions.Any(a => a.NodeType != ExpressionType.Constant))
 				node = Expression.NewArrayInit(nodeType, node.Expressions.Select(a => Expression.Constant(GetExpressionInvokeResultObject(a), a.Type)));
 			if (nodeType == typeof(string))
-				_exp.SqlText = _getStringArrayLastSpaceRegex.Replace(_exp.SqlText, "::text[]");
+			{
+				if (!string.IsNullOrEmpty(_exp.SqlText) && _getStringArrayLastSpaceRegex.IsMatch(_exp.SqlText))
+					_exp.SqlText = _getStringArrayLastSpaceRegex.Replace(_exp.SqlText, "::text[]");
+				else
+					_isAddCastText = true;
+			}
 			SetMemberValue(node, node.Type);
 			return node;
 		}
@@ -465,8 +479,8 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 				{
 					if (item is UnaryExpression ue)
 					{
-						var type = GetOrgType(ue.Operand.Type);
-						if (type.IsEnum && GetOrgType(ue.Type) == typeof(int))
+						var type = ue.Operand.Type.GetOriginalType();
+						if (type.IsEnum && ue.Type.GetOriginalType() == typeof(int))
 							convertExpression = ue;
 					}
 					else
@@ -483,13 +497,6 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 					_isGetConvertException = true;
 			}
 			return false;
-		}
-
-		private static Type GetOrgType(Type type)
-		{
-			if (type.IsGenericType && type.GetGenericTypeDefinition().Equals(typeof(Nullable<>)))
-				type = Nullable.GetUnderlyingType(type);
-			return type;
 		}
 
 		private void SetExpressionInvokeResultParameter(Expression node)
@@ -585,7 +592,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 		{
 			var obj = GetExpressionInvokeResultObject(expression);
 			if (ChecktAndSetNullValue(obj)) return;
-			var value = Convert.ChangeType(obj, GetOrgType(convertType));
+			var value = Convert.ChangeType(obj, convertType.GetOriginalType());
 			SetParameter(value);
 		}
 

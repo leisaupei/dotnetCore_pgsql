@@ -24,6 +24,7 @@ namespace Meta.Driver.Extensions
 		/// 判断数组为空
 		/// </summary>
 		public static bool IsNullOrEmpty<T>(this IEnumerable<T> value) => value == null || value.Count() == 0;
+
 		public static bool ExistsJsonPropertyAttribute(this PropertyInfo info)
 		{
 			return info.GetCustomAttribute<JsonPropertyAttribute>() != null;
@@ -35,6 +36,7 @@ namespace Meta.Driver.Extensions
 		/// <param name="s"></param>
 		/// <returns></returns>
 		public static string ToLowerPascal(this string s) => string.IsNullOrEmpty(s) ? s : $"{s.Substring(0, 1).ToLower()}{s.Substring(1)}";
+
 		#region IDataReader.To
 		/// <summary>
 		/// 返回实体模型
@@ -75,6 +77,7 @@ namespace Meta.Driver.Extensions
 			}
 			return model;
 		}
+
 		/// <summary>
 		/// 泛型重写
 		/// </summary>
@@ -85,16 +88,19 @@ namespace Meta.Driver.Extensions
 		{
 			return (TResult)objReader.ReaderToModel(typeof(TResult));
 		}
+
 		/// <summary>
 		/// 类型是否元组
 		/// </summary>
 		/// <param name="tupleType"></param>
 		/// <returns></returns>
 		public static bool IsTuple(this Type tupleType) => tupleType.Namespace == "System" && tupleType.Name.StartsWith("ValueTuple`", StringComparison.Ordinal);
+
 		/// <summary>
 		/// json的类型需要转化
 		/// </summary>
 		static readonly Type[] _jTypes = new[] { typeof(JToken), typeof(JObject), typeof(JArray) };
+
 		/// <summary>
 		/// 遍历元组类型
 		/// </summary>
@@ -152,6 +158,14 @@ namespace Meta.Driver.Extensions
 		}
 
 		static bool IsNullOrDBNull(this object obj) => obj is DBNull || obj == null;
+
+		/// <summary>
+		/// get type if nullable type
+		/// </summary>
+		/// <param name="type"></param>
+		/// <returns></returns>
+		public static Type GetOriginalType(this Type type) => type.IsGenericType && type.GetGenericTypeDefinition().Equals(typeof(Nullable<>)) ? Nullable.GetUnderlyingType(type) : type;
+
 		/// <summary>
 		/// 对可空类型转化
 		/// </summary>
@@ -161,8 +175,7 @@ namespace Meta.Driver.Extensions
 		static object CheckType(object value, Type valueType)
 		{
 			if (value.IsNullOrDBNull()) return null;
-			if (valueType.IsGenericType && valueType.GetGenericTypeDefinition().Equals(typeof(Nullable<>)))
-				valueType = new NullableConverter(valueType).UnderlyingType;
+			valueType = valueType.GetOriginalType();
 
 			try
 			{
@@ -184,7 +197,6 @@ namespace Meta.Driver.Extensions
 			{
 				throw ex;
 			}
-
 		}
 		#endregion
 	}

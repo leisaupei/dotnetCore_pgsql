@@ -22,21 +22,14 @@ namespace Meta.xUnitTest
 		[Fact]
 		public void InertTenThousandData()
 		{
-			for (int i = 0; i < 10000; i++)
+			//for (int i = 0; i < 10000; i++)
+			//{
+			PgsqlHelper.Transaction(() =>
 			{
-				PgsqlHelper.Transaction(() =>
-				{
-					new PeopleModel
-					{
-						Address = "address" + i,
-						Id = Guid.NewGuid(),
-						Age = i,
-						Create_time = DateTime.Now,
-						Name = "性能测试" + i,
-						Sex = true,
-					}.Insert();
-				});
-			}
+				var total = TypeTest.Select.Sum(a => a.Int8_type, 0);
+			});
+
+			//}
 		}
 		[Fact]
 		public void TestAsync()

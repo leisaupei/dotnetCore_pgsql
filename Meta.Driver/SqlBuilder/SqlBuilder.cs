@@ -160,13 +160,27 @@ namespace Meta.Driver.SqlBuilder
 		/// <returns></returns>
 		protected ValueTask<object> ToScalarAsync(CancellationToken cancellationToken)
 			=> PgsqlHelper.GetExecute(DbName).ExecuteScalarAsync(CommandText, CommandType.Text, Params.ToArray(), cancellationToken);
+		/// <summary>
+		/// 返回第一个元素
+		/// </summary>
+		/// <returns></returns>
+		protected TKey ToScalar<TKey>()
+			=> ToScalarAsync<TKey>(false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		/// <summary>
 		/// 返回第一个元素
 		/// </summary>
 		/// <returns></returns>
-		protected async ValueTask<TKey> ToScalarAsync<TKey>(CancellationToken cancellationToken)
-			=> (TKey)await PgsqlHelper.GetExecute(DbName).ExecuteScalarAsync(CommandText, CommandType.Text, Params.ToArray(), cancellationToken);
+		protected ValueTask<TKey> ToScalarAsync<TKey>(CancellationToken cancellationToken)
+		=> ToScalarAsync<TKey>(true, cancellationToken);
+
+		async ValueTask<TKey> ToScalarAsync<TKey>(bool async, CancellationToken cancellationToken)
+		{
+			var value = async 
+				? await PgsqlHelper.GetExecute(DbName).ExecuteScalarAsync(CommandText, CommandType.Text, Params.ToArray(), cancellationToken)
+				: PgsqlHelper.GetExecute(DbName).ExecuteScalar(CommandText, CommandType.Text, Params.ToArray());
+			return value == null ? default : (TKey)Convert.ChangeType(value, typeof(TKey).GetOriginalType());
+		}
 
 		/// <summary>
 		/// 返回list 

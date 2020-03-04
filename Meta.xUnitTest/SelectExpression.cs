@@ -180,15 +180,7 @@ namespace Meta.xUnitTest
 			if (info != null)
 				Assert.Equal(1, info.Array_type.FirstOrDefault());
 		}
-		[Fact]
-		public void WhereArrayEquals()
-		{
-			var info = TypeTest.Select
-				.Where(a => a.Uuid_array_type == new[] { Guid.Empty })
-				.ToOne();
-			if (info != null)
-				Assert.Equal(1, info.Array_type.FirstOrDefault());
-		}
+
 		[Fact]
 		public void WhereNewClass()
 		{
@@ -278,6 +270,7 @@ namespace Meta.xUnitTest
 			////var ints = new int[] { 2, 3 }.Select(f => f).ToList();
 			////a.int_type = any(array[2,3])
 			info = TypeTest.Select.Where(a => new int[] { 2, 3 }.Select(f => f).ToArray().Contains(a.Int4_type.Value)).ToOne();
+			info = TypeTest.Select.Where(a => new[] { (int)EDataState.已删除, (int)EDataState.正常 }.Contains(a.Int4_type.Value)).ToOne();
 
 			Assert.NotNull(info);
 		}
@@ -343,7 +336,7 @@ namespace Meta.xUnitTest
 			TypeTestModel info = null;
 			info = TypeTest.Select.Where(a => a.Array_type == new[] { 0, 1 }).ToOne();
 			info = TypeTest.Select.Where(a => a.Uuid_array_type == new[] { Guid.Empty }).ToOne();
-			info = TypeTest.Select.Where(a => a.Varchar_array_type == new[] { "广东" }).ToOne();
+			info = TypeTest.Select.Where(a => new[] { "广东" } == a.Varchar_array_type).ToOne();
 			info = TypeTest.Select.Where(a => a.Varchar_array_type == new[] { "广东,广州" }).ToOne();
 			Assert.NotNull(info);
 		}
@@ -351,9 +344,10 @@ namespace Meta.xUnitTest
 		public void WhereCoalesce()
 		{
 			TypeTestModel info = null;
-			var sum = TypeTest.Select.Sum(a => a.Int8_type ?? 0);
+			var sum = TypeTest.Select.Sum(a => a.Int8_type ?? 0, 0);
 			info = TypeTest.Select.Where(a => (a.Int4_type ?? 3) == 3).ToOne();
 			Assert.NotNull(info);
+
 		}
 		[Fact]
 		public void WhereEqualFieldWithNamespace()
@@ -368,7 +362,7 @@ namespace Meta.xUnitTest
 		public void WhereCompareSelf()
 		{
 			var info = Student.Select
-					.Where(a => a.People_id == a.Id)
+					.Where(a => a.People_id == a.Id || a.People_id == StuPeopleId1)
 					.ToOne();
 
 			Assert.Equal(info.People_id, Meta.xUnitTest.BaseTest.StuPeopleId1);
@@ -376,9 +370,6 @@ namespace Meta.xUnitTest
 		[Fact]
 		public void Test()
 		{
-			Guid? id = Guid.Empty;
-			object a = Guid.Empty;
-			var b = Convert.ChangeType(a, typeof(Guid?));
 			//	ParentPreantTestModel model = new ParentPreantTestModel { Name = "xxx" };
 			//	var info = TypeTest.Select.Where(a => !a.Varchar_type.Contains(model.Name, StringComparison.OrdinalIgnoreCase)).ToOne();
 			//Expression<Func<ClassmateModel, Guid>> expression = f => f.Grade_id;
