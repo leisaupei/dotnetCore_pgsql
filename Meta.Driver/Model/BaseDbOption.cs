@@ -14,6 +14,11 @@ using System.Threading.Tasks;
 
 namespace Meta.Driver.Model
 {
+	/// <summary>
+	/// db配置
+	/// </summary>
+	/// <typeparam name="TDbMaterName">主库名称</typeparam>
+	/// <typeparam name="TDbSlaveName">从库名称</typeparam>
 	public class BaseDbOption<TDbMaterName, TDbSlaveName> : IDbOption
 		where TDbMaterName : struct, IDbName
 		where TDbSlaveName : struct, IDbName
@@ -22,6 +27,9 @@ namespace Meta.Driver.Model
 		private readonly string[] _slaveConnectionStrings;
 		private readonly ILogger _logger;
 
+		/// <summary>
+		/// 数据库连接配置
+		/// </summary>
 		public DbConnectionOptions Options { get; private set; } = new DbConnectionOptions();
 
 		public BaseDbOption(string masterConnectionString, string[] slaveConnectionStrings, ILogger logger)
@@ -31,12 +39,26 @@ namespace Meta.Driver.Model
 			_logger = logger;
 		}
 
+		/// <summary>
+		/// 主库对象
+		/// </summary>
 		DbConnectionModel IDbOption.Master => new DbConnectionModel(_masterConnectionString, _logger, DatabaseType.Postgres, typeof(TDbMaterName).Name, Options);
 
+		/// <summary>
+		/// 从库数组对象
+		/// </summary>
 		DbConnectionModel[] IDbOption.Slave => _slaveConnectionStrings?.Select(f => new DbConnectionModel(f, _logger, DatabaseType.Postgres, typeof(TDbSlaveName).Name, Options)).ToArray();
 	}
 	internal class DbConnectionModel
 	{
+		/// <summary>
+		/// 初始化
+		/// </summary>
+		/// <param name="connectionString">数据库连接</param>
+		/// <param name="logger">logger</param>
+		/// <param name="type">数据库类型</param>
+		/// <param name="dbName">数据库别名</param>
+		/// <param name="options">配置</param>
 		public DbConnectionModel(string connectionString, ILogger logger, DatabaseType type, string dbName, DbConnectionOptions options)
 		{
 			Logger = logger;
@@ -105,7 +127,7 @@ namespace Meta.Driver.Model
 	public class DbConnectionOptions
 	{
 		/// <summary>
-		/// CLR映射
+		/// Postgres SQL CLR映射
 		/// </summary>
 		public Action<NpgsqlConnection> MapAction { get; set; }
 	}

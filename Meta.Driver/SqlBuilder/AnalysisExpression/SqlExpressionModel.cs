@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Meta.Driver.SqlBuilder.AnalysisExpression
 {
-	public class SqlExpressionModel
+	internal class SqlExpressionModel
 	{
 		/// <summary>
 		/// 转换成的sql语句 all

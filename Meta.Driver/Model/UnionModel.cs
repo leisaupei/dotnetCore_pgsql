@@ -20,12 +20,24 @@ namespace Meta.Driver.Model
 	{
 		public List<UnionModel> List { get; } = new List<UnionModel>();
 		private readonly string _mainAlias;
-		public UnionCollection(string mainAlias)
-		{
-			_mainAlias = mainAlias;
-		}
+
+		/// <summary>
+		/// 初始化
+		/// </summary>
+		/// <param name="mainAlias">主表别名</param>
+		public UnionCollection(string mainAlias) => _mainAlias = mainAlias;
+
 		public UnionCollection() { }
 
+		/// <summary>
+		/// 添加联表
+		/// </summary>
+		/// <typeparam name="TSource">原表</typeparam>
+		/// <typeparam name="TTarget">目标表</typeparam>
+		/// <param name="predicate">lambda表达式</param>
+		/// <param name="unionType">联表类型</param>
+		/// <param name="isReturn">是否需要返回目标表字段</param>
+		/// <returns></returns>
 		public List<DbParameter> Add<TSource, TTarget>(Expression<Func<TSource, TTarget, bool>> predicate, UnionEnum unionType, bool isReturn)
 			where TSource : IDbModel, new() where TTarget : IDbModel, new()
 		{
@@ -36,6 +48,15 @@ namespace Meta.Driver.Model
 			List.Add(info);
 			return model.Paras;
 		}
+
+		/// <summary>
+		/// 添加联表
+		/// </summary>
+		/// <typeparam name="TTarget">目标表</typeparam>
+		/// <param name="unionType">联表类型</param>
+		/// <param name="aliasName">表别名</param>
+		/// <param name="on">on 字符串</param>
+		/// <param name="isReturn">是否返回目标表字段</param>
 		public void Add<TTarget>(UnionEnum unionType, string aliasName, string on, bool isReturn = false) where TTarget : IDbModel, new()
 		{
 			var info = new UnionModel(aliasName, EntityHelper.GetTableName<TTarget>(), on, unionType, isReturn);
@@ -47,16 +68,23 @@ namespace Meta.Driver.Model
 
 	internal class UnionModel
 	{
-		public UnionModel(string aliasName, string table, string expression, UnionEnum unionType, bool isReturn) : this(aliasName, table, expression, unionType, isReturn, aliasName + ".*") { }
-		public UnionModel(string aliasName, string table, string expression, UnionEnum unionType, bool isReturn, string fields)
+		/// <summary>
+		/// 初始化
+		/// </summary>
+		/// <param name="aliasName">表别名</param>
+		/// <param name="table">表名</param>
+		/// <param name="expression">on 表达式</param>
+		/// <param name="unionType">联表类型</param>
+		/// <param name="isReturn">是否返回关联表字段, 如果是请给Field赋值</param>
+		public UnionModel(string aliasName, string table, string expression, UnionEnum unionType, bool isReturn)
 		{
 			AliasName = aliasName;
 			Table = table;
 			Expression = expression;
 			UnionType = unionType;
 			IsReturn = isReturn;
-			if (IsReturn) { Fields = fields; }
 		}
+
 		/// <summary> 
 		/// 别名
 		/// </summary>
@@ -81,7 +109,7 @@ namespace Meta.Driver.Model
 		/// <summary>
 		/// 字段
 		/// </summary>
-		public string Fields { get; set; }
+		public string Fields { get; set; } 
 	}
 
 

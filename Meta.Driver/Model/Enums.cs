@@ -13,7 +13,7 @@ namespace Meta.Driver.Model
 	{
 		One = 1, List, Rows
 	}
-	public enum ExpressionExcutionType
+	internal enum ExpressionExcutionType
 	{
 		None = 0, Single, Union, Condition, SingleForNoAlias
 	}

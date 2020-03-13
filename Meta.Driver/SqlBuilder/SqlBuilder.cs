@@ -54,22 +54,30 @@ namespace Meta.Driver.SqlBuilder
 		/// 查询字段
 		/// </summary>
 		public string Fields { get; set; }
+		/// <summary>
+		/// where条件数量
+		/// </summary>
+		public int Count => WhereList.Count;
 		#endregion
 
 		#region Constructor
 		/// <summary>
 		/// 默认构造函数
 		/// </summary>
-		protected SqlBuilder()
-		{
-		}
+		protected SqlBuilder() { }
 		#endregion
 
+		/// <summary>
+		/// 查询指定数据库
+		/// </summary>
+		/// <typeparam name="TDbName">数据库名称</typeparam>
+		/// <returns></returns>
 		public TSQL By<TDbName>() where TDbName : struct, IDbName
 		{
 			DbName = typeof(TDbName).Name;
 			return This;
 		}
+
 		/// <summary>
 		/// 添加参数
 		/// </summary>
@@ -160,6 +168,7 @@ namespace Meta.Driver.SqlBuilder
 		/// <returns></returns>
 		protected ValueTask<object> ToScalarAsync(CancellationToken cancellationToken)
 			=> PgsqlHelper.GetExecute(DbName).ExecuteScalarAsync(CommandText, CommandType.Text, Params.ToArray(), cancellationToken);
+
 		/// <summary>
 		/// 返回第一个元素
 		/// </summary>
@@ -176,7 +185,7 @@ namespace Meta.Driver.SqlBuilder
 
 		async ValueTask<TKey> ToScalarAsync<TKey>(bool async, CancellationToken cancellationToken)
 		{
-			var value = async 
+			var value = async
 				? await PgsqlHelper.GetExecute(DbName).ExecuteScalarAsync(CommandText, CommandType.Text, Params.ToArray(), cancellationToken)
 				: PgsqlHelper.GetExecute(DbName).ExecuteScalar(CommandText, CommandType.Text, Params.ToArray());
 			return value == null ? default : (TKey)Convert.ChangeType(value, typeof(TKey).GetOriginalType());

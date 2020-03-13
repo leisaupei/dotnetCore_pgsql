@@ -107,6 +107,7 @@ namespace Meta.Driver.DbHelper
 				throw new ArgumentNullException(nameof(DbTableAttribute));
 			return mapping.TableName;
 		}
+
 		public static string GetDbName<T>()
 		{
 			var mapping = typeof(T).GetCustomAttribute<DbNameAttribute>();
@@ -114,6 +115,7 @@ namespace Meta.Driver.DbHelper
 				throw new ArgumentNullException(nameof(DbNameAttribute));
 			return mapping.DbName;
 		}
+
 		/// <summary>
 		/// 获取当前类字段的字符串
 		/// </summary>

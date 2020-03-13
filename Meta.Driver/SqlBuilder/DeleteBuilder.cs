@@ -8,6 +8,10 @@ using Meta.Driver.Interface;
 
 namespace Meta.Driver.SqlBuilder
 {
+	/// <summary>
+	/// delete语句实例
+	/// </summary>
+	/// <typeparam name="TModel"></typeparam>
 	public class DeleteBuilder<TModel> : WhereBuilder<DeleteBuilder<TModel>, TModel>
 		where TModel : IDbModel, new()
 	{

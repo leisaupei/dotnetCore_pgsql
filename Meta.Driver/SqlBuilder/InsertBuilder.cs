@@ -13,6 +13,10 @@ using System.Threading.Tasks;
 
 namespace Meta.Driver.SqlBuilder
 {
+	/// <summary>
+	/// insert 语句实例
+	/// </summary>
+	/// <typeparam name="TModel"></typeparam>
 	public class InsertBuilder<TModel> : WhereBuilder<InsertBuilder<TModel>, TModel> 
 		where TModel : IDbModel, new()
 	{

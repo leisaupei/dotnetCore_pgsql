@@ -221,6 +221,7 @@ namespace Meta.Driver.DbHelper
 		/// 随机从库
 		/// </summary>
 		static readonly Random _ran;
+
 		/// <summary>
 		/// 当没有从库的时候自动使用主库
 		/// </summary>
@@ -230,6 +231,7 @@ namespace Meta.Driver.DbHelper
 		/// 默认数据库名称
 		/// </summary>
 		static string _defaultDbName;
+
 		/// <summary>
 		/// 实现Pgsql
 		/// </summary>
@@ -282,8 +284,8 @@ namespace Meta.Driver.DbHelper
 		/// </summary>
 		/// <param name="options">数据库连接</param>
 		/// <param name="useMasterIfSlaveIsEmpty">如果没有从库自动使用主库而不会抛出错误, 默认抛出, 从库后缀默认:"slave"</param>
-		/// <exception cref="ArgumentNullException"></exception>
-		/// <exception cref="ArgumentOutOfRangeException"></exception>
+		/// <exception cref="ArgumentNullException">options is null</exception>
+		/// <exception cref="ArgumentOutOfRangeException">options长度为0</exception>
 		public static void InitDBConnectionOption<TDefaultDbName>(IDbOption[] options, bool useMasterIfSlaveIsEmpty = false) where TDefaultDbName : struct, IDbName
 		{
 			_defaultDbName = typeof(TDefaultDbName).Name;
@@ -487,6 +489,7 @@ namespace Meta.Driver.DbHelper
 		/// </summary>
 		public static void RollBackTransaction()
 			=> GetExecute(_defaultDbName).RollBackTransaction();
+
 		/// <summary>
 		/// 回滚事务
 		/// </summary>

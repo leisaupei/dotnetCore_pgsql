@@ -16,7 +16,7 @@ using System.Text.RegularExpressions;
 
 namespace Meta.Driver.SqlBuilder.AnalysisExpression
 {
-	public class SqlExpressionVisitor : ExpressionVisitor
+	internal class SqlExpressionVisitor : ExpressionVisitor
 	{
 		private SqlExpressionVisitor() { }
 

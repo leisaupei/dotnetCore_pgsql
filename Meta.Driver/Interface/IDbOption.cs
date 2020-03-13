@@ -12,6 +12,7 @@ namespace Meta.Driver.Interface
 		/// 主库
 		/// </summary>
 		internal DbConnectionModel Master { get; }
+
 		/// <summary>
 		/// 从库
 		/// </summary>

@@ -32,7 +32,7 @@ namespace Meta.Driver.Extensions
 		}
 	}
 	/// <summary>
-	/// 
+	/// NpgsqlTsVector
 	/// </summary>
 	public class NpgsqlTsVectorConverter : JsonConverter<NpgsqlTsVector>
 	{
@@ -46,6 +46,9 @@ namespace Meta.Driver.Extensions
 			writer.WriteValue(value.ToString());
 		}
 	}
+	/// <summary>
+	/// NpgsqlTsQuery
+	/// </summary>
 	public class NpgsqlTsQueryConverter : JsonConverter<NpgsqlTsQuery>
 	{
 		public override NpgsqlTsQuery ReadJson(JsonReader reader, Type objectType, [AllowNull] NpgsqlTsQuery existingValue, bool hasExistingValue, JsonSerializer serializer)
@@ -117,6 +120,9 @@ namespace Meta.Driver.Extensions
 			writer.WriteEndArray();
 		}
 	}
+	/// <summary>
+	/// BitArray
+	/// </summary>
 	public class BitArrayConverter : JsonConverter<BitArray>
 	{
 		public override BitArray ReadJson(JsonReader reader, Type objectType, [AllowNull] BitArray existingValue, bool hasExistingValue, JsonSerializer serializer)
@@ -135,6 +141,9 @@ namespace Meta.Driver.Extensions
 		}
 
 	}
+	/// <summary>
+	/// PhysicalAddress
+	/// </summary>
 	public class PhysicalAddressConverter : JsonConverter<PhysicalAddress>
 	{
 		public override PhysicalAddress ReadJson(JsonReader reader, Type objectType, [AllowNull] PhysicalAddress existingValue, bool hasExistingValue, JsonSerializer serializer)
@@ -150,6 +159,9 @@ namespace Meta.Driver.Extensions
 			writer.WriteValue(value?.ToString());
 		}
 	}
+	/// <summary>
+	/// PostgisGeometry
+	/// </summary>
 	public class PostgisGeometryConverter : JsonConverter<PostgisGeometry>
 	{
 		public override PostgisGeometry ReadJson(JsonReader reader, Type objectType, PostgisGeometry existingValue, bool hasExistingValue, JsonSerializer serializer)

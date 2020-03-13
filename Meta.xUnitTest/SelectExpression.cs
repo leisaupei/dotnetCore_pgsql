@@ -368,6 +368,15 @@ namespace Meta.xUnitTest
 			Assert.Equal(info.People_id, Meta.xUnitTest.BaseTest.StuPeopleId1);
 		}
 		[Fact]
+		public void WhereIn()
+		{
+			var info = Student.Select
+					.WhereIn(a => a.People_id, Student.Select.Field(a => a.People_id).Where(a => a.People_id == StuPeopleId1))
+					.ToOne();
+
+			Assert.Equal(info.People_id, Meta.xUnitTest.BaseTest.StuPeopleId1);
+		}
+		[Fact]
 		public void Test()
 		{
 			//	ParentPreantTestModel model = new ParentPreantTestModel { Name = "xxx" };

@@ -14,6 +14,11 @@ using System.Threading.Tasks;
 
 namespace Meta.Driver.SqlBuilder
 {
+	/// <summary>
+	/// select 语句实例
+	/// </summary>
+	/// <typeparam name="TSQL"></typeparam>
+	/// <typeparam name="TModel"></typeparam>
 	public abstract class SelectBuilder<TSQL, TModel> : WhereBuilder<TSQL, TModel>
 		where TSQL : class, ISqlBuilder
 		where TModel : IDbModel, new()

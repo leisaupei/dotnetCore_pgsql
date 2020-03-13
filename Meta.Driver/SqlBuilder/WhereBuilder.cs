@@ -24,10 +24,12 @@ namespace Meta.Driver.SqlBuilder
 		/// 
 		/// </summary>
 		TSQL This => this as TSQL;
+
 		/// <summary>
 		/// 是否or状态
 		/// </summary>
 		private bool _isOrState = false;
+
 		/// <summary>
 		/// or表达式
 		/// </summary>
@@ -262,7 +264,7 @@ namespace Meta.Driver.SqlBuilder
 		/// <exception cref="ArgumentNullException">value is null or empty</exception>
 		/// <returns></returns>
 		public TSQL WhereIn(Expression<Func<TModel, object>> selector, ISqlBuilder sqlBuilder)
-			=> WhereIn(selector, sqlBuilder);
+			=> WhereIn<TModel>(selector, sqlBuilder);
 
 		/// <summary>
 		/// where exists 

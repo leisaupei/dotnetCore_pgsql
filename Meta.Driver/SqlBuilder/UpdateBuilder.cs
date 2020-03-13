@@ -15,6 +15,10 @@ using System.Threading.Tasks;
 
 namespace Meta.Driver.SqlBuilder
 {
+	/// <summary>
+	/// update 语句实例
+	/// </summary>
+	/// <typeparam name="TModel"></typeparam>
 	public class UpdateBuilder<TModel> : WhereBuilder<UpdateBuilder<TModel>, TModel>
 		where TModel : IDbModel, new()
 	{
@@ -22,17 +26,19 @@ namespace Meta.Driver.SqlBuilder
 		/// 设置列表
 		/// </summary>
 		readonly List<string> _setList = new List<string>();
+
 		/// <summary>
 		/// 是否返回实体类
 		/// </summary>
 		bool _isReturn = false;
 
-		public int Count => _setList.Count;
+		/// <summary>
+		/// set 数量
+		/// </summary>
+		public int SetCount => _setList.Count;
 
-		#region Contructor
 		public UpdateBuilder() : base() { }
 
-		#endregion
 		private UpdateBuilder<TModel> AddSetExpression(string exp)
 		{
 			_setList.Add(exp);
@@ -266,6 +272,7 @@ namespace Meta.Driver.SqlBuilder
 			_isReturn = true;
 			return base.ToList<T>();
 		}
+
 		#region Override
 		public override string ToString() => base.ToString();
 

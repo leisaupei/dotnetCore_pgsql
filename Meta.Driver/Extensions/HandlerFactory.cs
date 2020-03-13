@@ -42,8 +42,9 @@ WHERE
   a.typname = 'xml' and a.typtype = 'b'
 ORDER BY typname;
 ";
+
 		/// <summary>
-		/// 使用自定义xml映射
+		/// 使用自定义xml映射, 使用XmlDocument接收
 		/// </summary>
 		/// <param name="map"></param>
 		public static void UseCustomXml(this INpgsqlTypeMapper map)

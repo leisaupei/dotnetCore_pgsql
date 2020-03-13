@@ -7,6 +7,13 @@ using System.Text;
 
 namespace Meta.Driver.Model
 {
+	/// <summary>
+	/// 数据库分表对象
+	/// </summary>
+	/// <typeparam name="TDbName">数据库名称</typeparam>
+	/// <typeparam name="TSplitTable">需要分表的对象</typeparam>
+	/// <typeparam name="TReferenceTable">参照表</typeparam>
+	/// <typeparam name="TReferenceField">参照表字段</typeparam>
 	public class DbSplitStrategy<TDbName, TSplitTable, TReferenceTable, TReferenceField> : DbSplitStrategy
 		where TDbName : struct, IDbName
 		where TSplitTable : class, IDbModel, new()
