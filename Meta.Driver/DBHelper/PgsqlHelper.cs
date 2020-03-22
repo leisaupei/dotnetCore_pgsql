@@ -45,6 +45,27 @@ namespace Meta.Driver.DbHelper
 			=> GetExecute(GetDbName).ExecuteScalarAsync(cmdText, cmdType, cmdParams, cancellationToken);
 
 		/// <summary>
+		/// 查询单个元素
+		/// </summary>
+		/// <param name="cmdType">命令类型</param>
+		/// <param name="cmdText">sql语句</param>
+		/// <param name="cmdParams">sql参数</param>
+		/// <returns>返回(0,0)值</returns>
+		public new static object ExecuteScalar<T>(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null)
+			=> GetExecute(GetDbName).ExecuteScalar<T>(cmdText, cmdType, cmdParams);
+
+		/// <summary>
+		/// 查询单个元素
+		/// </summary>
+		/// <param name="cmdType">命令类型</param>
+		/// <param name="cmdText">sql语句</param>
+		/// <param name="cmdParams">sql参数</param>
+		/// <param name="cancellationToken"></param>
+		/// <returns>返回(0,0)值</returns>
+		public new static ValueTask<T> ExecuteScalarAsync<T>(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, CancellationToken cancellationToken = default)
+			=> GetExecute(GetDbName).ExecuteScalarAsync<T>(cmdText, cmdType, cmdParams, cancellationToken);
+
+		/// <summary>
 		/// 执行NonQuery
 		/// </summary>
 		/// <param name="cmdType">命令类型</param>
@@ -95,7 +116,7 @@ namespace Meta.Driver.DbHelper
 		/// <param name="cmdParams">sql参数</param>
 		/// <returns>列表</returns>
 		public new static List<T> ExecuteDataReaderList<T>(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null)
-			=> GetExecute(GetDbName).ExecuteDataReaderListAsync<T>(cmdText, cmdType, cmdParams, false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+			=> GetExecute(GetDbName).ExecuteDataReaderListAsync<T>(false, cmdText, cmdType, cmdParams, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		/// <summary>
 		/// 查询多行
@@ -107,7 +128,9 @@ namespace Meta.Driver.DbHelper
 		/// <param name="cancellationToken"></param>
 		/// <returns>列表</returns>
 		public new static Task<List<T>> ExecuteDataReaderListAsync<T>(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, CancellationToken cancellationToken = default)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<List<T>>(cancellationToken) : GetExecute(GetDbName).ExecuteDataReaderListAsync<T>(cmdText, cmdType, cmdParams, true, cancellationToken);
+			=> cancellationToken.IsCancellationRequested
+			? Task.FromCanceled<List<T>>(cancellationToken)
+			: GetExecute(GetDbName).ExecuteDataReaderListAsync<T>(true, cmdText, cmdType, cmdParams, cancellationToken);
 
 		/// <summary>
 		/// 查询一行
@@ -118,7 +141,7 @@ namespace Meta.Driver.DbHelper
 		/// <param name="cmdParams">sql参数</param>
 		/// <returns>实体</returns>
 		public new static T ExecuteDataReaderModel<T>(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null)
-			=> GetExecute(GetDbName).ExecuteDataReaderModelAsync<T>(cmdText, cmdType, cmdParams, false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+			=> GetExecute(GetDbName).ExecuteDataReaderModelAsync<T>(false, cmdText, cmdType, cmdParams, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		/// <summary>
 		/// 查询一行
@@ -130,7 +153,9 @@ namespace Meta.Driver.DbHelper
 		/// <param name="cancellationToken"></param>
 		/// <returns>实体</returns>
 		public new static Task<T> ExecuteDataReaderModelAsync<T>(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, CancellationToken cancellationToken = default)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<T>(cancellationToken) : GetExecute(GetDbName).ExecuteDataReaderModelAsync<T>(cmdText, cmdType, cmdParams, true, cancellationToken);
+			=> cancellationToken.IsCancellationRequested
+			? Task.FromCanceled<T>(cancellationToken)
+			: GetExecute(GetDbName).ExecuteDataReaderModelAsync<T>(true, cmdText, cmdType, cmdParams, cancellationToken);
 
 		/// <summary>
 		/// DataReader pipe
@@ -140,7 +165,7 @@ namespace Meta.Driver.DbHelper
 		/// <exception cref="ArgumentNullException">builders is null or empty</exception>
 		/// <returns>实体</returns>
 		public new static object[] ExecuteDataReaderPipe(IEnumerable<ISqlBuilder> builders, CommandType cmdType = CommandType.Text)
-			=> GetExecute(GetDbName).ExecuteDataReaderPipeAsync(builders, cmdType, false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+			=> GetExecute(GetDbName).ExecuteDataReaderPipeAsync(false, builders, cmdType, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		/// <summary>
 		/// DataReader pipe
@@ -151,7 +176,9 @@ namespace Meta.Driver.DbHelper
 		/// <exception cref="ArgumentNullException">builders is null or empty</exception>
 		/// <returns>实体</returns>
 		public new static Task<object[]> ExecuteDataReaderPipeAsync(IEnumerable<ISqlBuilder> builders, CommandType cmdType = CommandType.Text, CancellationToken cancellationToken = default)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<object[]>(cancellationToken) : GetExecute(GetDbName).ExecuteDataReaderPipeAsync(builders, cmdType, true, cancellationToken).AsTask();
+			=> cancellationToken.IsCancellationRequested
+			? Task.FromCanceled<object[]>(cancellationToken)
+			: GetExecute(GetDbName).ExecuteDataReaderPipeAsync(true, builders, cmdType, cancellationToken).AsTask();
 
 		/// <summary>
 		/// 事务 (暂不支持分布式事务)
@@ -159,7 +186,7 @@ namespace Meta.Driver.DbHelper
 		/// <param name="action">Action委托</param>
 		/// <exception cref="ArgumentNullException">委托是null</exception>
 		public new static void Transaction(Action action)
-			=> GetExecute(GetDbName).TransactionAsync(action, false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+			=> GetExecute(GetDbName).TransactionAsync(false, action, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		/// <summary>
 		/// 事务 (暂不支持分布式事务)
@@ -168,7 +195,9 @@ namespace Meta.Driver.DbHelper
 		/// <param name="cancellationToken"></param>
 		/// <exception cref="ArgumentNullException">委托是null</exception>
 		public new static Task TransactionAsync(Action action, CancellationToken cancellationToken = default)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : GetExecute(GetDbName).TransactionAsync(action, true, cancellationToken).AsTask();
+			=> cancellationToken.IsCancellationRequested
+			? Task.FromCanceled(cancellationToken)
+			: GetExecute(GetDbName).TransactionAsync(true, action, cancellationToken).AsTask();
 
 		/// <summary>
 		/// 开启事务
@@ -335,6 +364,27 @@ namespace Meta.Driver.DbHelper
 			=> GetExecute(_defaultDbName).ExecuteScalarAsync(cmdText, cmdType, cmdParams, cancellationToken);
 
 		/// <summary>
+		/// 查询单个元素
+		/// </summary>
+		/// <param name="cmdType">命令类型</param>
+		/// <param name="cmdText">sql语句</param>
+		/// <param name="cmdParams">sql参数</param>
+		/// <returns>返回(0,0)值</returns>
+		public static object ExecuteScalar<T>(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null)
+			=> GetExecute(_defaultDbName).ExecuteScalar<T>(cmdText, cmdType, cmdParams);
+
+		/// <summary>
+		/// 查询单个元素
+		/// </summary>
+		/// <param name="cmdType">命令类型</param>
+		/// <param name="cmdText">sql语句</param>
+		/// <param name="cmdParams">sql参数</param>
+		/// <param name="cancellationToken"></param>
+		/// <returns>返回(0,0)值</returns>
+		public static ValueTask<T> ExecuteScalarAsync<T>(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, CancellationToken cancellationToken = default)
+			=> GetExecute(_defaultDbName).ExecuteScalarAsync<T>(cmdText, cmdType, cmdParams, cancellationToken);
+
+		/// <summary>
 		/// 执行NonQuery
 		/// </summary>
 		/// <param name="cmdType">命令类型</param>
@@ -374,7 +424,9 @@ namespace Meta.Driver.DbHelper
 		/// <param name="cmdParams">sql参数</param>
 		/// <param name="cancellationToken"></param>
 		public static Task ExecuteDataReaderAsync(Action<DbDataReader> action, string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, CancellationToken cancellationToken = default)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : GetExecute(_defaultDbName).ExecuteDataReaderAsync(action, cmdText, cmdType, cmdParams, cancellationToken);
+			=> cancellationToken.IsCancellationRequested
+			? Task.FromCanceled(cancellationToken)
+			: GetExecute(_defaultDbName).ExecuteDataReaderAsync(action, cmdText, cmdType, cmdParams, cancellationToken);
 
 		/// <summary>
 		/// 查询多行
@@ -385,7 +437,7 @@ namespace Meta.Driver.DbHelper
 		/// <param name="cmdParams">sql参数</param>
 		/// <returns>列表</returns>
 		public static List<T> ExecuteDataReaderList<T>(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null)
-			=> GetExecute(_defaultDbName).ExecuteDataReaderListAsync<T>(cmdText, cmdType, cmdParams, false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+			=> GetExecute(_defaultDbName).ExecuteDataReaderListAsync<T>(false, cmdText, cmdType, cmdParams, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		/// <summary>
 		/// 查询多行
@@ -397,7 +449,9 @@ namespace Meta.Driver.DbHelper
 		/// <param name="cancellationToken"></param>
 		/// <returns>列表</returns>
 		public static Task<List<T>> ExecuteDataReaderListAsync<T>(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, CancellationToken cancellationToken = default)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<List<T>>(cancellationToken) : GetExecute(_defaultDbName).ExecuteDataReaderListAsync<T>(cmdText, cmdType, cmdParams, true, cancellationToken);
+			=> cancellationToken.IsCancellationRequested
+			? Task.FromCanceled<List<T>>(cancellationToken)
+			: GetExecute(_defaultDbName).ExecuteDataReaderListAsync<T>(true, cmdText, cmdType, cmdParams, cancellationToken);
 
 		/// <summary>
 		/// 查询一行
@@ -408,7 +462,7 @@ namespace Meta.Driver.DbHelper
 		/// <param name="cmdParams">sql参数</param>
 		/// <returns>实体</returns>
 		public static T ExecuteDataReaderModel<T>(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null)
-			=> GetExecute(_defaultDbName).ExecuteDataReaderModelAsync<T>(cmdText, cmdType, cmdParams, false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+			=> GetExecute(_defaultDbName).ExecuteDataReaderModelAsync<T>(false, cmdText, cmdType, cmdParams, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		/// <summary>
 		/// 查询一行
@@ -420,7 +474,7 @@ namespace Meta.Driver.DbHelper
 		/// <param name="cancellationToken"></param>
 		/// <returns>实体</returns>
 		public static Task<T> ExecuteDataReaderModelAsync<T>(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null, CancellationToken cancellationToken = default)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<T>(cancellationToken) : GetExecute(_defaultDbName).ExecuteDataReaderModelAsync<T>(cmdText, cmdType, cmdParams, true, cancellationToken);
+			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<T>(cancellationToken) : GetExecute(_defaultDbName).ExecuteDataReaderModelAsync<T>(true, cmdText, cmdType, cmdParams, cancellationToken);
 
 		/// <summary>
 		/// DataReader pipe
@@ -430,7 +484,7 @@ namespace Meta.Driver.DbHelper
 		/// <exception cref="ArgumentNullException">builders is null or empty</exception>
 		/// <returns>实体</returns>
 		public static object[] ExecuteDataReaderPipe(IEnumerable<ISqlBuilder> builders, CommandType cmdType = CommandType.Text)
-			=> GetExecute(_defaultDbName).ExecuteDataReaderPipeAsync(builders, cmdType, false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+			=> GetExecute(_defaultDbName).ExecuteDataReaderPipeAsync(false, builders, cmdType, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		/// <summary>
 		/// DataReader pipe
@@ -441,7 +495,9 @@ namespace Meta.Driver.DbHelper
 		/// <exception cref="ArgumentNullException">builders is null or empty</exception>
 		/// <returns>实体</returns>
 		public static Task<object[]> ExecuteDataReaderPipeAsync(IEnumerable<ISqlBuilder> builders, CommandType cmdType = CommandType.Text, CancellationToken cancellationToken = default)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled<object[]>(cancellationToken) : GetExecute(_defaultDbName).ExecuteDataReaderPipeAsync(builders, cmdType, true, cancellationToken).AsTask();
+			=> cancellationToken.IsCancellationRequested
+			? Task.FromCanceled<object[]>(cancellationToken)
+			: GetExecute(_defaultDbName).ExecuteDataReaderPipeAsync(true, builders, cmdType, cancellationToken).AsTask();
 
 		/// <summary>
 		/// 事务 (暂不支持分布式事务)
@@ -449,7 +505,7 @@ namespace Meta.Driver.DbHelper
 		/// <param name="action">Action委托</param>
 		/// <exception cref="ArgumentNullException">委托是null</exception>
 		public static void Transaction(Action action)
-			=> GetExecute(_defaultDbName).TransactionAsync(action, false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+			=> GetExecute(_defaultDbName).TransactionAsync(false, action, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		/// <summary>
 		/// 事务 (暂不支持分布式事务)
@@ -458,7 +514,7 @@ namespace Meta.Driver.DbHelper
 		/// <param name="cancellationToken"></param>
 		/// <exception cref="ArgumentNullException">委托是null</exception>
 		public static ValueTask TransactionAsync(Action action, CancellationToken cancellationToken = default)
-			=> GetExecute(_defaultDbName).TransactionAsync(action, true, cancellationToken);
+			=> GetExecute(_defaultDbName).TransactionAsync(true, action, cancellationToken);
 
 		/// <summary>
 		/// 开启事务

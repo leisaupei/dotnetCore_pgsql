@@ -1,3 +1,4 @@
+using Meta.Driver.DbHelper;
 using Meta.Driver.Interface;
 using Meta.Driver.SqlBuilder;
 using Meta.xUnitTest.DAL;
@@ -19,7 +20,7 @@ namespace Meta.xUnitTest
 		[Fact]
 		public void Union()
 		{
-
+			var a = Guid.NewGuid().GetHashCode();
 		}
 
 

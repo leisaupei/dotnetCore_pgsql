@@ -56,25 +56,43 @@ namespace Meta.Driver.DbHelper
 		/// 返回一行数据
 		/// </summary>
 		internal object ExecuteScalar(string cmdText, CommandType cmdType, DbParameter[] cmdParams)
-			=> ExecuteScalarAsync(cmdText, cmdType, cmdParams, false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+			=> ExecuteScalarAsync(false, cmdText, cmdType, cmdParams, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		/// <summary>
 		/// 返回一行数据
 		/// </summary>
 		internal ValueTask<object> ExecuteScalarAsync(string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
-			=> cancellationToken.IsCancellationRequested ? new ValueTask<object>(Task.FromCanceled<object>(cancellationToken)) : ExecuteScalarAsync(cmdText, cmdType, cmdParams, true, cancellationToken);
+			=> cancellationToken.IsCancellationRequested
+			? new ValueTask<object>(Task.FromCanceled<object>(cancellationToken))
+			: ExecuteScalarAsync(true, cmdText, cmdType, cmdParams, cancellationToken);
+
+		/// <summary>
+		/// 返回一行数据
+		/// </summary>
+		internal T ExecuteScalar<T>(string cmdText, CommandType cmdType, DbParameter[] cmdParams)
+			=> ExecuteScalarAsync<T>(false, cmdText, cmdType, cmdParams, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+
+		/// <summary>
+		/// 返回一行数据
+		/// </summary>
+		internal ValueTask<T> ExecuteScalarAsync<T>(string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
+			=> cancellationToken.IsCancellationRequested
+			? new ValueTask<T>(Task.FromCanceled<T>(cancellationToken))
+			: ExecuteScalarAsync<T>(true, cmdText, cmdType, cmdParams, cancellationToken);
 
 		/// <summary>
 		/// 执行sql语句
 		/// </summary>
 		internal int ExecuteNonQuery(string cmdText, CommandType cmdType, DbParameter[] cmdParams)
-			=> ExecuteNonQueryAsync(cmdText, cmdType, cmdParams, false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+			=> ExecuteNonQueryAsync(false, cmdText, cmdType, cmdParams, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		/// <summary>
 		/// 执行sql语句
 		/// </summary>
 		internal ValueTask<int> ExecuteNonQueryAsync(string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
-			=> cancellationToken.IsCancellationRequested ? new ValueTask<int>(Task.FromCanceled<int>(cancellationToken)) : ExecuteNonQueryAsync(cmdText, cmdType, cmdParams, true, cancellationToken);
+			=> cancellationToken.IsCancellationRequested
+			? new ValueTask<int>(Task.FromCanceled<int>(cancellationToken))
+			: ExecuteNonQueryAsync(true, cmdText, cmdType, cmdParams, cancellationToken);
 
 		/// <summary>
 		/// 读取数据库reader
@@ -91,7 +109,8 @@ namespace Meta.Driver.DbHelper
 		/// 读取数据库reader
 		/// </summary>
 		internal Task ExecuteDataReaderAsync(Action<DbDataReader> action, string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
-			=> cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken)
+			=> cancellationToken.IsCancellationRequested
+			? Task.FromCanceled(cancellationToken)
 			: ExecuteDataReaderBaseAsync(async dr =>
 			{
 				while (await dr.ReadAsync(cancellationToken))
@@ -117,7 +136,7 @@ namespace Meta.Driver.DbHelper
 			DbCommand cmd = null;
 			try
 			{
-				cmd = await PrepareCommandAsync(cmdText, cmdType, cmdParams, async, cancellationToken);
+				cmd = await PrepareCommandAsync(async, cmdText, cmdType, cmdParams, cancellationToken);
 				dr = async ? await cmd.ExecuteReaderAsync(cancellationToken) : cmd.ExecuteReader();
 				using (dr)
 					action?.Invoke(dr);
@@ -129,7 +148,7 @@ namespace Meta.Driver.DbHelper
 			}
 			finally
 			{
-				await CloseCommandAsync(cmd, async);
+				await CloseCommandAsync(async, cmd);
 				if (dr != null && !dr.IsClosed)
 				{
 					if (async)
@@ -140,13 +159,13 @@ namespace Meta.Driver.DbHelper
 			}
 		}
 
-		async ValueTask<int> ExecuteNonQueryAsync(string cmdText, CommandType cmdType, DbParameter[] cmdParams, bool async, CancellationToken cancellationToken)
+		async ValueTask<int> ExecuteNonQueryAsync(bool async, string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
 		{
 			int affrows = 0;
 			DbCommand cmd = null;
 			try
 			{
-				cmd = await PrepareCommandAsync(cmdText, cmdType, cmdParams, async, cancellationToken);
+				cmd = await PrepareCommandAsync(async, cmdText, cmdType, cmdParams, cancellationToken);
 				affrows = async ? await cmd.ExecuteNonQueryAsync(cancellationToken) : cmd.ExecuteNonQuery();
 			}
 			catch (Exception ex)
@@ -156,18 +175,18 @@ namespace Meta.Driver.DbHelper
 			}
 			finally
 			{
-				await CloseCommandAsync(cmd, async);
+				await CloseCommandAsync(async, cmd);
 			}
 			return affrows;
 		}
 
-		async ValueTask<object> ExecuteScalarAsync(string cmdText, CommandType cmdType, DbParameter[] cmdParams, bool async, CancellationToken cancellationToken)
+		async ValueTask<object> ExecuteScalarAsync(bool async, string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
 		{
 			DbCommand cmd = null;
 			object ret = null;
 			try
 			{
-				cmd = await PrepareCommandAsync(cmdText, cmdType, cmdParams, async, cancellationToken);
+				cmd = await PrepareCommandAsync(async, cmdText, cmdType, cmdParams, cancellationToken);
 				ret = async ? await cmd.ExecuteScalarAsync(cancellationToken) : cmd.ExecuteScalar();
 			}
 			catch (Exception ex)
@@ -177,12 +196,20 @@ namespace Meta.Driver.DbHelper
 			}
 			finally
 			{
-				await CloseCommandAsync(cmd, async);
+				await CloseCommandAsync(async, cmd);
 			}
 			return ret;
 		}
 
-		async ValueTask<DbCommand> PrepareCommandAsync(string cmdText, CommandType cmdType, DbParameter[] cmdParams, bool async, CancellationToken cancellationToken)
+		async ValueTask<T> ExecuteScalarAsync<T>(bool async, string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
+		{
+			var value = async
+				? await ExecuteScalarAsync(cmdText, cmdType, cmdParams, cancellationToken)
+				: ExecuteScalar(cmdText, cmdType, cmdParams);
+			return value == null ? default : (T)Convert.ChangeType(value, typeof(T).GetOriginalType());
+		}
+
+		async ValueTask<DbCommand> PrepareCommandAsync(bool async, string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
 		{
 
 			if (string.IsNullOrEmpty(cmdText))
@@ -215,33 +242,13 @@ namespace Meta.Driver.DbHelper
 			return cmd;
 		}
 
-		/// <summary>
-		/// 查询一行(helper类包装)
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="cmdText"></param>
-		/// <param name="cmdType"></param>
-		/// <param name="cmdParams"></param>
-		/// <param name="async"></param>
-		/// <param name="cancellationToken"></param>
-		/// <returns></returns>
-		internal async Task<T> ExecuteDataReaderModelAsync<T>(string cmdText, CommandType cmdType, DbParameter[] cmdParams, bool async, CancellationToken cancellationToken)
+		internal async Task<T> ExecuteDataReaderModelAsync<T>(bool async, string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
 		{
-			var list = await ExecuteDataReaderListAsync<T>(cmdText, cmdType, cmdParams, async, cancellationToken);
+			var list = await ExecuteDataReaderListAsync<T>(async, cmdText, cmdType, cmdParams, cancellationToken);
 			return list.Count > 0 ? list[0] : default;
 		}
 
-		/// <summary>
-		/// 查询多行(helper类包装)
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="cmdText"></param>
-		/// <param name="cmdType"></param>
-		/// <param name="cmdParams"></param>
-		/// <param name="async"></param>
-		/// <param name="cancellationToken"></param>
-		/// <returns></returns>
-		internal async Task<List<T>> ExecuteDataReaderListAsync<T>(string cmdText, CommandType cmdType, DbParameter[] cmdParams, bool async, CancellationToken cancellationToken)
+		internal async Task<List<T>> ExecuteDataReaderListAsync<T>(bool async, string cmdText, CommandType cmdType, DbParameter[] cmdParams, CancellationToken cancellationToken)
 		{
 			var list = new List<T>();
 			if (async)
@@ -257,14 +264,7 @@ namespace Meta.Driver.DbHelper
 			return list;
 		}
 
-		/// <summary>
-		/// 事务(helper类包装)
-		/// </summary>
-		/// <param name="action"></param>
-		/// <param name="async"></param>
-		/// <param name="cancellationToken"></param>
-		/// <returns></returns>
-		internal async ValueTask TransactionAsync(Action action, bool async, CancellationToken cancellationToken)
+		internal async ValueTask TransactionAsync(bool async, Action action, CancellationToken cancellationToken)
 		{
 			if (action == null)
 				throw new ArgumentNullException(nameof(action));
@@ -287,15 +287,7 @@ namespace Meta.Driver.DbHelper
 			}
 		}
 
-		/// <summary>
-		/// 管道(helper类包装)
-		/// </summary>
-		/// <param name="builders"></param>
-		/// <param name="cmdType"></param>
-		/// <param name="async"></param>
-		/// <param name="cancellationToken"></param>
-		/// <returns></returns>
-		internal async ValueTask<object[]> ExecuteDataReaderPipeAsync(IEnumerable<ISqlBuilder> builders, CommandType cmdType, bool async, CancellationToken cancellationToken)
+		internal async ValueTask<object[]> ExecuteDataReaderPipeAsync(bool async, IEnumerable<ISqlBuilder> builders, CommandType cmdType, CancellationToken cancellationToken)
 		{
 			if (builders?.Any() != true)
 				throw new ArgumentNullException(nameof(builders));
@@ -371,7 +363,7 @@ namespace Meta.Driver.DbHelper
 
 		}
 
-		async Task CloseConnectionAsync(DbConnection connection, bool async)
+		async Task CloseConnectionAsync(bool async, DbConnection connection)
 		{
 			if (connection != null && connection.State != ConnectionState.Closed)
 			{
@@ -382,7 +374,7 @@ namespace Meta.Driver.DbHelper
 			}
 		}
 
-		async Task CloseCommandAsync(DbCommand cmd, bool async)
+		async Task CloseCommandAsync(bool async, DbCommand cmd)
 		{
 			if (cmd == null)
 				return;
@@ -390,7 +382,7 @@ namespace Meta.Driver.DbHelper
 				cmd.Parameters.Clear();
 
 			if (CurrentTransaction == null)
-				await CloseConnectionAsync(cmd.Connection, async);
+				await CloseConnectionAsync(async, cmd.Connection);
 
 			if (async)
 				await cmd.DisposeAsync();
@@ -467,7 +459,7 @@ namespace Meta.Driver.DbHelper
 			RemoveCurrentTransaction();
 		}
 
-		private DbTransaction GetTransaction()
+		DbTransaction GetTransaction()
 		{
 			var tran = CurrentTransaction;
 			if (tran == null)
@@ -478,7 +470,7 @@ namespace Meta.Driver.DbHelper
 			return tran;
 		}
 
-		private void RemoveCurrentTransaction()
+		void RemoveCurrentTransaction()
 		{
 			var tid = Thread.CurrentThread.ManagedThreadId;
 			_transPool.Remove(tid);

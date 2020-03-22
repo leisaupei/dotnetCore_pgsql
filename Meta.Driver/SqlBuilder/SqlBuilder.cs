@@ -57,7 +57,7 @@ namespace Meta.Driver.SqlBuilder
 		/// <summary>
 		/// where条件数量
 		/// </summary>
-		public int Count => WhereList.Count;
+		public int WhereCount => WhereList.Count;
 		#endregion
 
 		#region Constructor
@@ -174,30 +174,21 @@ namespace Meta.Driver.SqlBuilder
 		/// </summary>
 		/// <returns></returns>
 		protected TKey ToScalar<TKey>()
-			=> ToScalarAsync<TKey>(false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+			=> PgsqlHelper.GetExecute(DbName).ExecuteScalar<TKey>(CommandText, CommandType.Text, Params.ToArray());
 
 		/// <summary>
 		/// 返回第一个元素
 		/// </summary>
 		/// <returns></returns>
 		protected ValueTask<TKey> ToScalarAsync<TKey>(CancellationToken cancellationToken)
-		=> ToScalarAsync<TKey>(true, cancellationToken);
-
-		async ValueTask<TKey> ToScalarAsync<TKey>(bool async, CancellationToken cancellationToken)
-		{
-			var value = async
-				? await PgsqlHelper.GetExecute(DbName).ExecuteScalarAsync(CommandText, CommandType.Text, Params.ToArray(), cancellationToken)
-				: PgsqlHelper.GetExecute(DbName).ExecuteScalar(CommandText, CommandType.Text, Params.ToArray());
-			return value == null ? default : (TKey)Convert.ChangeType(value, typeof(TKey).GetOriginalType());
-		}
-
+		=> PgsqlHelper.GetExecute(DbName).ExecuteScalarAsync<TKey>(CommandText, CommandType.Text, Params.ToArray(), cancellationToken);
 		/// <summary>
 		/// 返回list 
 		/// </summary>
 		/// <typeparam name="T">model type</typeparam>
 		/// <returns></returns>
 		protected List<T> ToList<T>()
-			=> PgsqlHelper.GetExecute(DbName).ExecuteDataReaderListAsync<T>(CommandText, CommandType.Text, Params.ToArray(), false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+			=> PgsqlHelper.GetExecute(DbName).ExecuteDataReaderListAsync<T>(false, CommandText, CommandType.Text, Params.ToArray(), CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		/// <summary>
 		/// 返回list 
@@ -205,7 +196,7 @@ namespace Meta.Driver.SqlBuilder
 		/// <typeparam name="T">model type</typeparam>
 		/// <returns></returns>
 		protected Task<List<T>> ToListAsync<T>(CancellationToken cancellationToken)
-			=> PgsqlHelper.GetExecute(DbName).ExecuteDataReaderListAsync<T>(CommandText, CommandType.Text, Params.ToArray(), true, cancellationToken);
+			=> PgsqlHelper.GetExecute(DbName).ExecuteDataReaderListAsync<T>(true, CommandText, CommandType.Text, Params.ToArray(), cancellationToken);
 
 		/// <summary>
 		/// 返回一个Model
@@ -213,7 +204,7 @@ namespace Meta.Driver.SqlBuilder
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
 		protected T ToOne<T>()
-			=> PgsqlHelper.GetExecute(DbName).ExecuteDataReaderModelAsync<T>(CommandText, CommandType.Text, Params.ToArray(), false, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+			=> PgsqlHelper.GetExecute(DbName).ExecuteDataReaderModelAsync<T>(false, CommandText, CommandType.Text, Params.ToArray(), CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
 
 		/// <summary>
 		/// 返回一个Model
@@ -221,7 +212,7 @@ namespace Meta.Driver.SqlBuilder
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
 		protected Task<T> ToOneAsync<T>(CancellationToken cancellationToken)
-			=> PgsqlHelper.GetExecute(DbName).ExecuteDataReaderModelAsync<T>(CommandText, CommandType.Text, Params.ToArray(), true, cancellationToken);
+			=> PgsqlHelper.GetExecute(DbName).ExecuteDataReaderModelAsync<T>(true, CommandText, CommandType.Text, Params.ToArray(), cancellationToken);
 
 		/// <summary>
 		/// 返回行数
