@@ -102,7 +102,7 @@ namespace Meta.Initiator
 			}
 			FileInitHelper.GenerateCsproj(model.OutputPath, model.ProjectName);
 			FileInitHelper.GenerateDbConfig(model.OutputPath, model.ProjectName);
-			FileInitHelper.CreateCsproj(model.OutputPath);
+			//FileInitHelper.CreateCsproj(model.OutputPath);
 			FileInitHelper.CreateSln(model.OutputPath, model.ProjectName);
 			return model;
 		}

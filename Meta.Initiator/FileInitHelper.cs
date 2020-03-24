@@ -34,7 +34,7 @@ namespace Meta.Initiator
 			writer.WriteLine("\t</ItemGroup>");
 			writer.WriteLine();
 			writer.WriteLine("\t<ItemGroup>");
-			writer.WriteLine("\t\t<ProjectReference Include=\"..\\Meta.Common\\Meta.Driver.csproj\" />");
+			writer.WriteLine("\t\t<PackageReference Include=\"Meta.Driver\" Version=\"1.0.14\" />");
 			writer.WriteLine("\t</ItemGroup>");
 			writer.WriteLine();
 			writer.WriteLine("</Project>");
@@ -114,8 +114,7 @@ namespace Meta.Initiator
 				writer.WriteLine("Project(\"{0}\") = \"{1}.db\", \"{1}.db\\{1}.db.csproj\", \"{2}\"", Guid.NewGuid(), projectName, dbId);
 				writer.WriteLine($"EndProject");
 
-				Guid commonId = Guid.NewGuid();
-				writer.WriteLine($"Project(\"{Guid.NewGuid()}\") = \"Meta.Common\", \"Meta.Common\\Meta.Driver.csproj\", \"{commonId}\"");
+
 				writer.WriteLine($"EndProject");
 
 				writer.WriteLine("Global");
@@ -129,10 +128,6 @@ namespace Meta.Initiator
 				writer.WriteLine($"\t\t{dbId}.Debug|Any CPU.Build.0 = Debug|Any CPU");
 				writer.WriteLine($"\t\t{dbId}.Release|Any CPU.ActiveCfg = Release|Any CPU");
 				writer.WriteLine($"\t\t{dbId}.Release|Any CPU.Build.0 = Release|Any CPU");
-				writer.WriteLine($"\t\t{commonId}.Debug|Any CPU.ActiveCfg = Debug|Any CPU");
-				writer.WriteLine($"\t\t{commonId}.Debug|Any CPU.Build.0 = Debug|Any CPU");
-				writer.WriteLine($"\t\t{commonId}.Release|Any CPU.ActiveCfg = Release|Any CPU");
-				writer.WriteLine($"\t\t{commonId}.Release|Any CPU.Build.0 = Release|Any CPU");
 				writer.WriteLine("\tEndGlobalSection");
 				writer.WriteLine("\tGlobalSection(SolutionProperties) = preSolution");
 				writer.WriteLine("\t\tHideSolutionNode = FALSE");
