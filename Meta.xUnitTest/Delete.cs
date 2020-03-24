@@ -14,15 +14,14 @@ using Xunit.Extensions.Ordering;
 
 namespace Meta.xUnitTest
 {
-	[Order(5)]
-	public class Delete : BaseTest
-	{
-		[Fact]
-		public void Union()
-		{
-			var a = Guid.NewGuid().GetHashCode();
-		}
+    [Order(5)]
+    public class Delete : BaseTest
+    {
+        [Fact]
+        public void Union()
+        {
+        }
 
 
-	}
+    }
 }
