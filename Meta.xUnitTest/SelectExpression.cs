@@ -246,11 +246,11 @@ namespace Meta.xUnitTest
 		[Fact]
 		public void WhereEnum()
 		{
-			EDataState value = EDataState.Õý³£;
+			EDataState value = EDataState.æ­£å¸¸;
 			var info = TypeTest.Select.Where(a => a.Enum_type == value).ToOne();
-			info = TypeTest.Select.Where(a => a.Enum_type == EDataState.Õý³£).ToOne();
+			info = TypeTest.Select.Where(a => a.Enum_type == EDataState.æ­£å¸¸).ToOne();
 			info = TypeTest.Select.Where(a => a.Int4_type == (int)value).ToOne();
-			info = TypeTest.Select.Where(a => a.Int4_type == (int)EDataState.Õý³£).ToOne();
+			info = TypeTest.Select.Where(a => a.Int4_type == (int)EDataState.æ­£å¸¸).ToOne();
 			Assert.NotNull(info);
 		}
 		[Fact]
@@ -270,7 +270,7 @@ namespace Meta.xUnitTest
 			////var ints = new int[] { 2, 3 }.Select(f => f).ToList();
 			////a.int_type = any(array[2,3])
 			info = TypeTest.Select.Where(a => new int[] { 2, 3 }.Select(f => f).ToArray().Contains(a.Int4_type.Value)).ToOne();
-			info = TypeTest.Select.Where(a => new[] { (int)EDataState.ÒÑÉ¾³ý, (int)EDataState.Õý³£ }.Contains(a.Int4_type.Value)).ToOne();
+			info = TypeTest.Select.Where(a => new[] { (int)EDataState.å·²åˆ é™¤, (int)EDataState.æ­£å¸¸ }.Contains(a.Int4_type.Value)).ToOne();
 
 			Assert.NotNull(info);
 		}
@@ -336,8 +336,8 @@ namespace Meta.xUnitTest
 			TypeTestModel info = null;
 			info = TypeTest.Select.Where(a => a.Array_type == new[] { 0, 1 }).ToOne();
 			info = TypeTest.Select.Where(a => a.Uuid_array_type == new[] { Guid.Empty }).ToOne();
-			info = TypeTest.Select.Where(a => new[] { "¹ã¶«" } == a.Varchar_array_type).ToOne();
-			info = TypeTest.Select.Where(a => a.Varchar_array_type == new[] { "¹ã¶«,¹ãÖÝ" }).ToOne();
+			info = TypeTest.Select.Where(a => new[] { "å¹¿ä¸œ" } == a.Varchar_array_type).ToOne();
+			info = TypeTest.Select.Where(a => a.Varchar_array_type == new[] { "å¹¿ä¸œ,å¹¿å·ž" }).ToOne();
 			Assert.NotNull(info);
 		}
 		[Fact]
