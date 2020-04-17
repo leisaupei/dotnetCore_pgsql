@@ -4,6 +4,8 @@ using Meta.Driver.SqlBuilder;
 using Meta.xUnitTest.DAL;
 using Meta.xUnitTest.Model;
 using Meta.xUnitTest.Options;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Npgsql;
 using System;
 using System.Collections.Generic;
@@ -14,14 +16,25 @@ using Xunit.Extensions.Ordering;
 
 namespace Meta.xUnitTest
 {
-    [Order(5)]
-    public class Delete : BaseTest
-    {
-        [Fact]
-        public void Union()
-        {
-        }
+	[Order(5)]
+	public class Delete : BaseTest
+	{
+		[Fact]
+		public void Union()
+		{
+			var jobj = new JArray {
+			
+			};
+			var list = JsonConvert.DeserializeObject<List<ModelInvoiceItem>>(jobj.ToString());
+		}
 
+		public class ModelInvoiceItem
+		{
+			public decimal Amount { get; set; }
+			public string Pdf { get; set; }
+			public string InvoiceCode { get; set; }
+			public string Status { get; set; }
 
-    }
+		}
+	}
 }

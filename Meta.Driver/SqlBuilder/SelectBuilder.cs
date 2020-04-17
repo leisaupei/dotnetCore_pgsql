@@ -1374,10 +1374,9 @@ namespace Meta.Driver.SqlBuilder
 		/// <param name="model">model value</param>
 		/// <param name="timeout">time out</param>
 		/// <param name="func">修改/删除语句</param>
-		/// <param name="cancellationToken"></param>
 		/// <exception cref="ArgumentNullException">func is null or empty</exception>
 		/// <returns></returns>
-		protected static async ValueTask<int> SetRedisCacheAsync(string key, TModel model, int timeout, Func<ValueTask<int>> func, CancellationToken cancellationToken)
+		protected static async ValueTask<int> SetRedisCacheAsync(string key, TModel model, int timeout, Func<ValueTask<int>> func)
 		{
 			if (func == null)
 				throw new ArgumentNullException(nameof(func));
@@ -1431,7 +1430,7 @@ namespace Meta.Driver.SqlBuilder
 		/// <param name="cancellationToken"></param>
 		/// <exception cref="ArgumentNullException">func is null or empty</exception>
 		/// <returns></returns>
-		protected static async Task<TModel> GetRedisCacheAsync(string key, int timeout, Func<Task<TModel>> select, CancellationToken cancellationToken)
+		protected static async Task<TModel> GetRedisCacheAsync(string key, int timeout, Func<Task<TModel>> select)
 		{
 			if (select == null)
 				throw new ArgumentNullException(nameof(select));

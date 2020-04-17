@@ -20,9 +20,9 @@ namespace Meta.Initiator
 			Console.InputEncoding = Encoding.GetEncoding("UTF-8");
 			Console.WriteLine(@"
 ##########################################################
-#     .net core 3.0 + npsql Postgresql Code Maker        #
+#     .net core 3.0 + ngpsql Postgresql Code Maker       #
 #                author by leisaupei                     #
-#      https://github.com/leisaupei/dotnetCore_pgsql     #
+#          https://github.com/leisaupei/meta             #
 ##########################################################
 > Parameters description:
   - host	host

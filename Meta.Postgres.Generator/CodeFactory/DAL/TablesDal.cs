@@ -659,7 +659,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			=> SetRedisCacheAsync(string.Format(CacheKey{1}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToOneAsync(cancellationToken));
 
 		public static ValueTask<int> CommitAsync({0} model, CancellationToken cancellationToken = default)
-			=> SetRedisCacheAsync(string.Format(CacheKey{1}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRowsAsync(cancellationToken), cancellationToken);
+			=> SetRedisCacheAsync(string.Format(CacheKey{1}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRowsAsync(cancellationToken));
 
 		public static ValueTask<int> CommitAsync(IEnumerable<{0}> models, bool isExceptionCancel = true, CancellationToken cancellationToken = default)
 		{{
@@ -730,7 +730,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			=> GetRedisCache(string.Format(CacheKey{2}), DbConfig.DbCacheTimeOut, () => Select.Where(a => {3}).ToOne());
 
 		public static Task<{0}> GetItemAsync({1}, CancellationToken cancellationToken = default) 
-			=> GetRedisCacheAsync(string.Format(CacheKey{2}), DbConfig.DbCacheTimeOut, () => Select.Where(a => {3}).ToOneAsync(cancellationToken), cancellationToken);
+			=> GetRedisCacheAsync(string.Format(CacheKey{2}), DbConfig.DbCacheTimeOut, () => Select.Where(a => {3}).ToOneAsync(cancellationToken));
 ", ModelClassName, string.Join(", ", d_key), string.Concat(_pkList.Select(f => $", {f.Field}")), where);
 
 				if (_pkList.Count == 1)
