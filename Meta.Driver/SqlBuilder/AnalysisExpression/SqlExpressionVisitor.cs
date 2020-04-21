@@ -159,7 +159,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 			{
 				if (node.Left is MemberExpression exp && IsDbMember(exp, out MemberExpression dbMember))
 				{
-					_exp.SqlText += dbMember.ToString().ToLower();
+					VisitMember(dbMember);
 					_exp.SqlText += string.Concat("[", GetExpressionInvokeResult<int>(node.Right) + 1, "]");
 				}
 				else

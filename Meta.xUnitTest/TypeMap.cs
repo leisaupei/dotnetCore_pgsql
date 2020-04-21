@@ -407,7 +407,8 @@ namespace Meta.xUnitTest
 		{
 			//var affrows = TypeTest.Update(Guid.Empty).SetAppend(a => a.Array_type, 1, 1, 2, 3).ToRows();
 			//affrows = TypeTest.Update(Guid.Empty).SetRemove(a => a.Array_type, 1).ToRows();
-			var affrows = TypeTest.Update(Guid.Empty).Set(a => a.Array_type, null).ToRows();
+			//var affrows = TypeTest.Update(Guid.Empty).Set(a => a.Array_type, null).ToRows();
+			var affrows = TypeTest.Update(Guid.Empty).Set(a => a.Array_type[0], 1).ToRows();
 			Assert.True(affrows > 0);
 
 		}

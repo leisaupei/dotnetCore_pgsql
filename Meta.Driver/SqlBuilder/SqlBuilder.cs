@@ -181,7 +181,8 @@ namespace Meta.Driver.SqlBuilder
 		/// </summary>
 		/// <returns></returns>
 		protected ValueTask<TKey> ToScalarAsync<TKey>(CancellationToken cancellationToken)
-		=> PgsqlHelper.GetExecute(DbName).ExecuteScalarAsync<TKey>(CommandText, CommandType.Text, Params.ToArray(), cancellationToken);
+			=> PgsqlHelper.GetExecute(DbName).ExecuteScalarAsync<TKey>(CommandText, CommandType.Text, Params.ToArray(), cancellationToken);
+
 		/// <summary>
 		/// 返回list 
 		/// </summary>

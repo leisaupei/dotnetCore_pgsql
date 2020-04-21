@@ -75,7 +75,7 @@ namespace Meta.xUnitTest.DAL
 			=> SetRedisCacheAsync(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToOneAsync(cancellationToken));
 
 		public static ValueTask<int> CommitAsync(ClassGradeModel model, CancellationToken cancellationToken = default)
-			=> SetRedisCacheAsync(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRowsAsync(cancellationToken), cancellationToken);
+			=> SetRedisCacheAsync(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRowsAsync(cancellationToken));
 
 		public static ValueTask<int> CommitAsync(IEnumerable<ClassGradeModel> models, bool isExceptionCancel = true, CancellationToken cancellationToken = default)
 		{
@@ -108,7 +108,7 @@ namespace Meta.xUnitTest.DAL
 			=> GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOne());
 
 		public static Task<ClassGradeModel> GetItemAsync(Guid id, CancellationToken cancellationToken = default) 
-			=> GetRedisCacheAsync(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOneAsync(cancellationToken), cancellationToken);
+			=> GetRedisCacheAsync(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOneAsync(cancellationToken));
 
 		public static List<ClassGradeModel> GetItems(IEnumerable<Guid> ids) 
 			=> Select.WhereAny(a => a.Id, ids).ToList();

@@ -12,9 +12,9 @@
     <PackageReleaseNotes>去除无用参数</PackageReleaseNotes>
     <Copyright>MIT</Copyright>
     <PackageLicenseUrl>https://github.com/leisaupei/meta/blob/master/LICENSE</PackageLicenseUrl>
-    <Version>1.0.15</Version>
-    <AssemblyVersion>1.0.15.0</AssemblyVersion>
-    <FileVersion>1.0.15.0</FileVersion>
+    <Version>1.0.16</Version>
+    <AssemblyVersion>1.0.16.0</AssemblyVersion>
+    <FileVersion>1.0.16.0</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

@@ -81,7 +81,7 @@ namespace Meta.xUnitTest.DAL
 			=> SetRedisCacheAsync(string.Format(CacheKey, model.Teacher_id, model.Student_id, model.Grade_id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToOneAsync(cancellationToken));
 
 		public static ValueTask<int> CommitAsync(ClassmateModel model, CancellationToken cancellationToken = default)
-			=> SetRedisCacheAsync(string.Format(CacheKey, model.Teacher_id, model.Student_id, model.Grade_id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRowsAsync(cancellationToken), cancellationToken);
+			=> SetRedisCacheAsync(string.Format(CacheKey, model.Teacher_id, model.Student_id, model.Grade_id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRowsAsync(cancellationToken));
 
 		public static ValueTask<int> CommitAsync(IEnumerable<ClassmateModel> models, bool isExceptionCancel = true, CancellationToken cancellationToken = default)
 		{
@@ -115,7 +115,7 @@ namespace Meta.xUnitTest.DAL
 			=> GetRedisCache(string.Format(CacheKey, teacher_id, student_id, grade_id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Teacher_id == teacher_id && a.Student_id == student_id && a.Grade_id == grade_id).ToOne());
 
 		public static Task<ClassmateModel> GetItemAsync(Guid teacher_id, Guid student_id, Guid grade_id, CancellationToken cancellationToken = default) 
-			=> GetRedisCacheAsync(string.Format(CacheKey, teacher_id, student_id, grade_id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Teacher_id == teacher_id && a.Student_id == student_id && a.Grade_id == grade_id).ToOneAsync(cancellationToken), cancellationToken);
+			=> GetRedisCacheAsync(string.Format(CacheKey, teacher_id, student_id, grade_id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Teacher_id == teacher_id && a.Student_id == student_id && a.Grade_id == grade_id).ToOneAsync(cancellationToken));
 
 		/// <summary>
 		/// (teacher_id, student_id, grade_id)

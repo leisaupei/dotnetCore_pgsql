@@ -42,19 +42,19 @@ namespace Meta.xUnitTest.DAL
 			if (DbConfig.DbCacheTimeOut != 0)
 			{
 				var keys = ids.Select(f => string.Format(CacheKey, f)).ToArray();
-				if (async)
+				if(async)
 					await RedisHelper.DelAsync(keys);
 				else
 					RedisHelper.Del(keys);
 			}
-			if (async)
+			if(async)
 				return await DeleteBuilder.WhereAny(a => a.Id, ids).ToRowsAsync(cancellationToken);
 			return DeleteBuilder.WhereAny(a => a.Id, ids).ToRows();
 		}
 		#endregion
 
 		#region Insert
-		public static int Commit(PeopleModel model)
+		public static int Commit(PeopleModel model) 
 			=> SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows());
 
 		public static PeopleModel Insert(PeopleModel model)
@@ -109,16 +109,16 @@ namespace Meta.xUnitTest.DAL
 		#endregion
 
 		#region Select
-		public static PeopleModel GetItem(Guid id)
+		public static PeopleModel GetItem(Guid id) 
 			=> GetRedisCache(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOne());
 
-		public static Task<PeopleModel> GetItemAsync(Guid id, CancellationToken cancellationToken = default)
+		public static Task<PeopleModel> GetItemAsync(Guid id, CancellationToken cancellationToken = default) 
 			=> GetRedisCacheAsync(string.Format(CacheKey, id), DbConfig.DbCacheTimeOut, () => Select.Where(a => a.Id == id).ToOneAsync(cancellationToken));
 
-		public static List<PeopleModel> GetItems(IEnumerable<Guid> ids)
+		public static List<PeopleModel> GetItems(IEnumerable<Guid> ids) 
 			=> Select.WhereAny(a => a.Id, ids).ToList();
 
-		public static Task<List<PeopleModel>> GetItemsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
+		public static Task<List<PeopleModel>> GetItemsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default) 
 			=> Select.WhereAny(a => a.Id, ids).ToListAsync(cancellationToken);
 		#endregion
 
