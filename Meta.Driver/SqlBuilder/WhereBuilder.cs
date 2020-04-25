@@ -397,11 +397,10 @@ namespace Meta.Driver.SqlBuilder
 			var _values = values.ToArray();
 			var t1 = SqlExpressionVisitor.Instance.VisitSingle(selectorT1).SqlText;
 			var t2 = SqlExpressionVisitor.Instance.VisitSingle(selectorT2).SqlText;
-			for (int i = 0; i < _values.Count(); i++)
-			{
-				Where(string.Concat(t1, "={0} or ", t2, "={1}"), _values[i].Item1, _values[i].Item2);
-			}
-			return This;
+			WhereStartOr();
+			foreach (var item in values)
+				Where(string.Concat(t1, "={0} and ", t2, "={1}"), item.Item1, item.Item2);
+			return WhereEndOr();
 		}
 
 		/// <summary>
@@ -421,15 +420,13 @@ namespace Meta.Driver.SqlBuilder
 			Expression<Func<TModel, T3>> selectorT3,
 			IEnumerable<(T1, T2, T3)> values)
 		{
-			var _values = values.ToArray();
 			var t1 = SqlExpressionVisitor.Instance.VisitSingle(selectorT1).SqlText;
 			var t2 = SqlExpressionVisitor.Instance.VisitSingle(selectorT2).SqlText;
 			var t3 = SqlExpressionVisitor.Instance.VisitSingle(selectorT3).SqlText;
-			for (int i = 0; i < _values.Count(); i++)
-			{
-				Where(string.Concat(t1, "={0} or ", t2, "={1} or ", t3, "={2}"), _values[i].Item1, _values[i].Item2, _values[i].Item3);
-			}
-			return This;
+			WhereStartOr();
+			foreach (var item in values)
+				Where(string.Concat(t1, "={0} and ", t2, "={1} and ", t3, "={2}"), item.Item1, item.Item2, item.Item3);
+			return WhereEndOr();
 		}
 
 		/// <summary>
@@ -452,16 +449,14 @@ namespace Meta.Driver.SqlBuilder
 			Expression<Func<TModel, T4>> selectorT4,
 			IEnumerable<(T1, T2, T3, T4)> values)
 		{
-			var _values = values.ToArray();
 			var t1 = SqlExpressionVisitor.Instance.VisitSingle(selectorT1).SqlText;
 			var t2 = SqlExpressionVisitor.Instance.VisitSingle(selectorT2).SqlText;
 			var t3 = SqlExpressionVisitor.Instance.VisitSingle(selectorT3).SqlText;
 			var t4 = SqlExpressionVisitor.Instance.VisitSingle(selectorT4).SqlText;
-			for (int i = 0; i < _values.Count(); i++)
-			{
-				Where(string.Concat(t1, "={0} or ", t2, "={1} or ", t3, "={2} or ", t4, "={3}"), _values[i].Item1, _values[i].Item2, _values[i].Item3, _values[i].Item4);
-			}
-			return This;
+			WhereStartOr();
+			foreach (var item in values)
+				Where(string.Concat(t1, "={0} and ", t2, "={1} and ", t3, "={2} and ", t4, "={3}"), item.Item1, item.Item2, item.Item3, item.Item4);
+			return WhereEndOr();
 		}
 
 		/// <summary>
