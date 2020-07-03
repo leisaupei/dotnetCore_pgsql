@@ -86,7 +86,7 @@ namespace Meta.Postgres.Generator.CodeFactory.DAL
 		/// <summary>
 		/// 多库枚举 *需要在目标项目添加枚举以及创建该库实例
 		/// </summary>
-		string DbNameAttribute => _dataBaseTypeName == GenerateModel.MASTER_DATABASE_TYPE_NAME && false ? "" : $", DbName(typeof(Options.Db" + _dataBaseTypeName + "))";
+		string DbNameAttribute => _dataBaseTypeName == GenerateModel.MASTER_DATABASE_TYPE_NAME && true ? "" : $", DbName(typeof(Options.Db" + _dataBaseTypeName + "))";
 		/// <summary>
 		/// Model名称
 		/// </summary>
