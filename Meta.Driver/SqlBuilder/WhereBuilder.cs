@@ -40,6 +40,7 @@ namespace Meta.Driver.SqlBuilder
 		{
 			if (string.IsNullOrEmpty(MainTable))
 				MainTable = EntityHelper.GetTableName<TModel>();
+			DbName = (EntityHelper.GetDbName<TModel>() ?? PgsqlHelper.DefaultDbName) + (PgsqlHelper.IsSlaveFirst ? PgsqlHelper.SLAVE_SUFFIX : string.Empty);
 		}
 		#endregion
 

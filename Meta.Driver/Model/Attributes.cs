@@ -22,22 +22,34 @@ namespace Meta.Driver.Model
 		/// <param name="tableName">表名</param>
 		public DbTableAttribute(string tableName) => TableName = tableName;
 	}
-
-	/// <summary>
-	/// 数据库名称特性
-	/// </summary>
-	[AttributeUsage(AttributeTargets.Struct, Inherited = true)]
+	[AttributeUsage(AttributeTargets.Class, Inherited = true)]
 	public class DbNameAttribute : Attribute
 	{
-		/// <summary>
-		/// 名称
-		/// </summary>
-		public string DbName { get; set; }
-
-		/// <summary>
-		/// 初始化
-		/// </summary>
-		/// <param name="dbName">数据库名称</param>
-		public DbNameAttribute(string dbName) => DbName = dbName;
+		private readonly Type _dbName;
+		public string DbName
+		{
+			get
+			{
+				return _dbName.Name;
+			}
+		}
+		public DbNameAttribute(Type dbName) => _dbName = dbName;
 	}
+	///// <summary>
+	///// 数据库名称特性
+	///// </summary>
+	//[AttributeUsage(AttributeTargets.Struct, Inherited = true)]
+	//public class DbNameAttribute : Attribute
+	//{
+	//	/// <summary>
+	//	/// 名称
+	//	/// </summary>
+	//	public string DbName { get; set; }
+
+	//	/// <summary>
+	//	/// 初始化
+	//	/// </summary>
+	//	/// <param name="dbName">数据库名称</param>
+	//	public DbNameAttribute(string dbName) => DbName = dbName;
+	//}
 }

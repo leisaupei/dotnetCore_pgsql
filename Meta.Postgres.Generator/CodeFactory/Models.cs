@@ -125,6 +125,10 @@ namespace Meta.Postgres.Generator.CodeFactory
 		/// 纬度
 		/// </summary>
 		public int Dimensions { get; set; }
+		/// <summary>
+		/// 默认值
+		/// </summary>
+		public string Column_default { get; set; }
 	}
 	/// <summary>
 	/// 

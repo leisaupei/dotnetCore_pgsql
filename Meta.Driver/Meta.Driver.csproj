@@ -9,12 +9,12 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <Description>.net core 3.0+pgsql数据库底层</Description>
-    <PackageReleaseNotes>修复复合主键条件问题</PackageReleaseNotes>
+    <PackageReleaseNotes>更新数据库字段加上双引号包裹, 更新数据库只写可读可选</PackageReleaseNotes>
     <Copyright>MIT</Copyright>
     <PackageLicenseUrl>https://github.com/leisaupei/meta/blob/master/LICENSE</PackageLicenseUrl>
-    <Version>1.0.17</Version>
-    <AssemblyVersion>1.0.17.0</AssemblyVersion>
-    <FileVersion>1.0.17.0</FileVersion>
+    <Version>1.0.18</Version>
+    <AssemblyVersion>1.0.18.0</AssemblyVersion>
+    <FileVersion>1.0.18.0</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

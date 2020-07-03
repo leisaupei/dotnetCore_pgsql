@@ -33,7 +33,7 @@ namespace Meta.Driver.SqlBuilder
 		/// <summary>
 		/// 设置默认数据库
 		/// </summary>
-		protected string DbName { get; set; } = "DbMaster";
+		protected string DbName { get; set; }
 		/// <summary>
 		/// 是否返回默认值
 		/// </summary>

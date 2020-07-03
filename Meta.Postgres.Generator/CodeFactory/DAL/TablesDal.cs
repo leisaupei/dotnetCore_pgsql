@@ -86,7 +86,7 @@ namespace Meta.Postgres.Generator.CodeFactory.DAL
 		/// <summary>
 		/// 多库枚举 *需要在目标项目添加枚举以及创建该库实例
 		/// </summary>
-		string DataSelectString => _dataBaseTypeName == GenerateModel.MASTER_DATABASE_TYPE_NAME ? "" : $".By<Db{_dataBaseTypeName}>()";
+		string DbNameAttribute => _dataBaseTypeName == GenerateModel.MASTER_DATABASE_TYPE_NAME && false ? "" : $", DbName(typeof(Options.Db" + _dataBaseTypeName + "))";
 		/// <summary>
 		/// Model名称
 		/// </summary>
@@ -147,7 +147,8 @@ SELECT a.oid,
 	c.attndims as dimensions,  
 	(CASE WHEN f.character_maximum_length IS NULL THEN c.attlen ELSE f.character_maximum_length END) AS length,  
 	(CASE WHEN e.typelem = 0 THEN e.typname WHEN e.typcategory = 'G' THEN format_type (c.atttypid, c.atttypmod) ELSE e2.typname END ) AS dbtype,  
-	(CASE WHEN e.typelem = 0 THEN e.typtype ELSE e2.typtype END) AS datatype, ns.nspname, COALESCE(pc.contype = 'u',false) as isunique 
+	(CASE WHEN e.typelem = 0 THEN e.typtype ELSE e2.typtype END) AS datatype, ns.nspname, COALESCE(pc.contype = 'u',false) as isunique ,
+	f.column_default
 FROM pg_class a  
 INNER JOIN pg_namespace b ON a.relnamespace = b.oid  
 INNER JOIN pg_attribute c ON attrelid = a.oid  
@@ -193,6 +194,11 @@ WHERE (b.nspname='{_schemaName}' and a.relname='{_table.Name}')
 					}
 					string _array = f.IsArray ? "[".PadRight(Math.Max(0, f.Dimensions), ',') + "]" : "";
 					f.RelType = $"{_type}{_notnull}{_array}";
+				}
+				if (f.IsUnique)
+				{
+					if (f.Column_default?.StartsWith("nextval(") == true)
+						f.IsIdentity = true;
 				}
 			}
 		}
@@ -317,6 +323,8 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			{
 				FieldInfo fs = _fieldList.FirstOrDefault(f => f.Field == _pkList[i].Field);
 				d_key.Add(fs.RelType + " " + fs.Field);
+				if (fs.Column_default?.StartsWith("nextval(") == true)
+					fs.IsIdentity = true;
 
 			}
 
@@ -351,7 +359,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			writer.WriteLine();
 			writer.WriteLine($"namespace {_projectName}.Model{NamespaceSuffix}");
 			writer.WriteLine("{");
-			writer.WriteLine($"\t[DbTable(\"{TableName}\")]");
+			writer.WriteLine($"\t[DbTable(\"{TableName}\"){DbNameAttribute}]");
 			writer.WriteLine($"\tpublic partial class {ModelClassName} : IDbModel");
 			writer.WriteLine("\t{");
 
@@ -481,12 +489,12 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			{
 				writer.Write("\t\t#region Delete");
 				DeleteGenerator(writer);
-				writer.WriteLine("\t\t#endregion");
+				writer.WriteLine("\n\t\t#endregion");
 				writer.WriteLine();
 
 				writer.Write("\t\t#region Insert");
 				InsertGenerator(writer);
-				writer.WriteLine("\t\t#endregion");
+				writer.WriteLine("\n\t\t#endregion");
 				writer.WriteLine();
 			}
 			writer.Write("\t\t#region Select");
@@ -497,7 +505,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			{
 				writer.Write("\t\t#region Update");
 				UpdateGenerator(writer);
-				writer.Write("\t\t#endregion");
+				writer.Write("\n\t\t#endregion");
 				writer.WriteLine();
 			}
 
@@ -511,20 +519,20 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 		/// <param name="writer"></param>
 		void PropertiesGenerator(StreamWriter writer)
 		{
-			string parameterCount = string.Empty;
-			for (int i = 0; i < _pkList.Count; i++)
+			if (_pkList.Count > 0)
 			{
-				parameterCount += string.Concat("_{", i, "}");
+				string parameterCount = string.Empty;
+				for (int i = 0; i < _pkList.Count; i++)
+					parameterCount += string.Concat("_{", i, "}");
+				writer.WriteLine("\t\tpublic const string CacheKey = \"{0}\";", string.Concat(_projectName.Replace('.', '_').ToLower(), "_model_", ModelClassName.ToLower(), parameterCount));
 			}
-			writer.WriteLine("\t\tpublic const string CacheKey = \"{0}\";", string.Concat(_projectName.Replace('.', '_').ToLower(), "_model_", ModelClassName.ToLower(), parameterCount));
-
 			writer.WriteLine("\t\tprivate {0}() {{ }}", DalClassName);
-			writer.WriteLine("\t\tpublic static {0} Select => new {0}(){1};", DalClassName, DataSelectString);
+			writer.WriteLine("\t\tpublic static {0} Select => new {0}();", DalClassName);
 			if (_table.Type == "table")
 			{
-				writer.WriteLine("\t\tpublic static UpdateBuilder<{0}> UpdateBuilder => new UpdateBuilder<{0}>(){1};", ModelClassName, DataSelectString);
-				writer.WriteLine("\t\tpublic static DeleteBuilder<{0}> DeleteBuilder => new DeleteBuilder<{0}>(){1};", ModelClassName, DataSelectString);
-				writer.WriteLine("\t\tpublic static InsertBuilder<{0}> InsertBuilder => new InsertBuilder<{0}>(){1};", ModelClassName, DataSelectString);
+				writer.WriteLine("\t\tpublic static UpdateBuilder<{0}> UpdateBuilder => new UpdateBuilder<{0}>();", ModelClassName);
+				writer.WriteLine("\t\tpublic static DeleteBuilder<{0}> DeleteBuilder => new DeleteBuilder<{0}>();", ModelClassName);
+				writer.WriteLine("\t\tpublic static InsertBuilder<{0}> InsertBuilder => new InsertBuilder<{0}>();", ModelClassName);
 			}
 		}
 
@@ -560,10 +568,10 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 		public static int Delete(params {0}[] {1}s)
 			=> DeleteAsync(false, CancellationToken.None, {1}s).ConfigureAwait(false).GetAwaiter().GetResult();
 
-		public static ValueTask<int> DeleteAsync(CancellationToken cancellationToken = default, params {0}[] {1}s)
+		public static ValueTask<int> DeleteAsync({0}[] {1}s, CancellationToken cancellationToken = default)
 			=> DeleteAsync(true, cancellationToken, {1}s);
 
-		private static async ValueTask<int> DeleteAsync(bool async, CancellationToken cancellationToken, params {0}[] {1}s)
+		private static async ValueTask<int> DeleteAsync(bool async, CancellationToken cancellationToken, {0}[] {1}s)
 		{{
 			if ({1}s == null)
 				throw new ArgumentNullException(nameof({1}s));
@@ -578,8 +586,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			if(async)
 				return await DeleteBuilder.WhereAny(a => a.{2}, {1}s).ToRowsAsync(cancellationToken);
 			return DeleteBuilder.WhereAny(a => a.{2}, {1}s).ToRows();
-		}}
-", types, _pkList[0].Field, _pkList[0].FieldUpCase);
+		}}", types, _pkList[0].Field, _pkList[0].FieldUpCase);
 
 				}
 				else if (_pkList.Count > 1)
@@ -613,8 +620,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			if(async)
 				return await DeleteBuilder.Where({2}, values).ToRowsAsync(cancellationToken);
 			return DeleteBuilder.Where({2}, values).ToRows();
-		}}
-", types, string.Concat(_pkList.Select((f, index) => ", f.Item" + (index + 1))), _pkList.Select(a => $"a => a.{a.FieldUpCase}").Join(", "), _pkList.Select(a => $"{a.Field}").Join(", "));
+		}}", types, string.Concat(_pkList.Select((f, index) => ", f.Item" + (index + 1))), _pkList.Select(a => $"a => a.{a.FieldUpCase}").Join(", "), _pkList.Select(a => $"{a.Field}").Join(", "));
 
 				}
 			}
@@ -626,24 +632,24 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 		/// <param name="writer"></param>
 		void InsertGenerator(StreamWriter writer)
 		{
-			if (_pkList.Count == 0) return;
-
-			string where = ".Where(a => ";
-			for (var i = 0; i < _pkList.Count; i++)
+			//if (_pkList.Count == 0) return;
+			if (_pkList.Count > 0)
 			{
-				FieldInfo fs = _fieldList.FirstOrDefault(f => f.Field == _pkList[i].Field);
-				where += $"a.{fs.FieldUpCase} == f.{fs.FieldUpCase}";
-				if (i != _pkList.Count - 1)
-					where += " && ";
-			}
-			where += ")";
-			writer.Write(@"
-		public static int Commit({0} model) 
-			=> SetRedisCache(string.Format(CacheKey{1}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows());
+				string where = ".Where(a => ";
+				for (var i = 0; i < _pkList.Count; i++)
+				{
+					FieldInfo fs = _fieldList.FirstOrDefault(f => f.Field == _pkList[i].Field);
+					where += $"a.{fs.FieldUpCase} == f.{fs.FieldUpCase}";
+					if (i != _pkList.Count - 1)
+						where += " && ";
+				}
+				where += ")";
+				writer.Write(@"
+		public static int Commit({0} model) => GetInsertBuilder(model).ToRows();
 
 		public static {0} Insert({0} model)
 		{{
-			SetRedisCache(string.Format(CacheKey{1}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));
+			GetInsertBuilder(model).ToRows(ref model);
 			return model;
 		}}
 
@@ -680,24 +686,70 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 		{{
 			if (model == null)
 				throw new ArgumentNullException(nameof(model));
-			return InsertBuilder{4}
-", ModelClassName, string.Concat(_pkList.Select(f => $", model.{f.FieldUpCase}")), _dataBaseTypeName, where, _fieldList.Count == 0 ? ";" : "");
+			return InsertBuilder{4}",
+			ModelClassName, string.Concat(_pkList.Select(f => $", model.{f.FieldUpCase}")), _dataBaseTypeName, where, _fieldList.Count == 0 ? ";" : "");
+			}
+			else
+			{
+				writer.Write(@"
+		public static int Commit({0} model) 
+			=> SetRedisCache(string.Format(CacheKey{1}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows());
+
+		public static {0} Insert({0} model)
+		{{
+			SetRedisCache(string.Format(CacheKey{1}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));
+			return model;
+		}}
+
+		public static int Commit(IEnumerable<{0}> models)
+		{{
+			if (models == null)
+				throw new ArgumentNullException(nameof(models));
+			return InsertMultiple<Db{2}>(GetSqlBuilder(models));
+		}}
+
+		public static Task<{0}> InsertAsync({0} model, CancellationToken cancellationToken = default)
+			=> SetRedisCacheAsync(string.Format(CacheKey{1}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToOneAsync(cancellationToken));
+
+		public static ValueTask<int> CommitAsync({0} model, CancellationToken cancellationToken = default)
+			=> SetRedisCacheAsync(string.Format(CacheKey{1}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRowsAsync(cancellationToken));
+
+		public static ValueTask<int> CommitAsync(IEnumerable<{0}> models, CancellationToken cancellationToken = default)
+		{{
+			if (models == null)
+				return new ValueTask<int>(Task.FromException<int>(new ArgumentNullException(nameof(models))));
+			return InsertMultipleAsync<Db{2}>(GetSqlBuilder(models), cancellationToken);
+		}}
+
+		public static IEnumerable<ISqlBuilder> GetSqlBuilder(IEnumerable<{0}> models)
+		{{
+			return models.Select(f => GetInsertBuilder(f).ToRowsPipe());
+		}}
+
+		public static InsertBuilder<{0}> GetInsertBuilder({0} model)
+		{{
+			if (model == null)
+				throw new ArgumentNullException(nameof(model));
+			return InsertBuilder{4}",
+			ModelClassName, string.Concat(_pkList.Select(f => $", model.{f.FieldUpCase}")), _dataBaseTypeName, "", _fieldList.Count == 0 ? ";" : "");
+			}
 
 			for (int i = 0; i < _fieldList.Count; i++)
 			{
 				FieldInfo item = _fieldList[i];
-				string end = i + 1 == _fieldList.Count() ? ";" : "";
-				if (item.IsIdentity) continue;
-				if (Types.NotCreateModelFieldDbType(item.DbType, item.Typcategory))
-					writer.WriteLine($"\t\t\t\t.Set(a => a.{item.FieldUpCase}, model.{item.FieldUpCase}{SetInsertDefaultValue(item.Field, item.CSharpType, item.IsNotNull)}){end}");
+				var last = i + 1 == _fieldList.Count();
+				string end = last ? ";" : "";
 
-				if (item.DbType == "geometry")
+				if (item.IsIdentity)
 				{
-					writer.WriteLine($"\t\t\t\t.Set(a => a.{item.FieldUpCase}, model.{item.FieldUpCase}{SetInsertDefaultValue(item.Field, item.CSharpType, item.IsNotNull)}){end}");
-
+					if (last)
+						writer.Write(end);
+					continue;
 				}
+
+				writer.Write($"\n\t\t\t\t.Set(a => a.{item.FieldUpCase}, model.{item.FieldUpCase}{SetInsertDefaultValue(item.Field, item.CSharpType, item.IsNotNull)}){end}");
 			}
-			writer.WriteLine("\t\t}");
+			writer.Write("\n\t\t}");
 
 		}
 
@@ -811,9 +863,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del({2}s.Select(f => string.Format(CacheKey, f)).ToArray());
 			return UpdateBuilder.WhereAny(a => a.{3}, {2}s);
-		}}
-",
-		ModelClassName, types, _pkList[0].Field, _pkList[0].FieldUpCase);
+		}}", ModelClassName, types, _pkList[0].Field, _pkList[0].FieldUpCase);
 				}
 				else if (_pkList.Count > 1)
 				{
@@ -828,9 +878,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			if (DbConfig.DbCacheTimeOut != 0)
 				RedisHelper.Del(values.Select(f => string.Format(CacheKey{3})).ToArray());
 			return UpdateBuilder.Where({4}, values);
-		}}
-",
-		_pkList.Select(a => $"{a.Field}").Join(", "), ModelClassName, types, string.Concat(_pkList.Select((f, index) => ", f.Item" + (index + 1))), _pkList.Select(a => $"a => a.{a.FieldUpCase}").Join(", "));
+		}}", _pkList.Select(a => $"{a.Field}").Join(", "), ModelClassName, types, string.Concat(_pkList.Select((f, index) => ", f.Item" + (index + 1))), _pkList.Select(a => $"a => a.{a.FieldUpCase}").Join(", "));
 				}
 			}
 

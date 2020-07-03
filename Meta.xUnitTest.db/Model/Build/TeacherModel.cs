@@ -16,7 +16,7 @@ using Meta.xUnitTest.DAL;
 
 namespace Meta.xUnitTest.Model
 {
-	[DbTable("teacher")]
+	[DbTable("teacher"), DbName(typeof(Options.DbMaster))]
 	public partial class TeacherModel : IDbModel
 	{
 		#region Properties

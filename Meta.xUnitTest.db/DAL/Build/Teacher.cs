@@ -32,10 +32,10 @@ namespace Meta.xUnitTest.DAL
 		public static int Delete(params Guid[] ids)
 			=> DeleteAsync(false, CancellationToken.None, ids).ConfigureAwait(false).GetAwaiter().GetResult();
 
-		public static ValueTask<int> DeleteAsync(CancellationToken cancellationToken = default, params Guid[] ids)
+		public static ValueTask<int> DeleteAsync(Guid[] ids, CancellationToken cancellationToken = default)
 			=> DeleteAsync(true, cancellationToken, ids);
 
-		private static async ValueTask<int> DeleteAsync(bool async, CancellationToken cancellationToken, params Guid[] ids)
+		private static async ValueTask<int> DeleteAsync(bool async, CancellationToken cancellationToken, Guid[] ids)
 		{
 			if (ids == null)
 				throw new ArgumentNullException(nameof(ids));
@@ -54,12 +54,11 @@ namespace Meta.xUnitTest.DAL
 		#endregion
 
 		#region Insert
-		public static int Commit(TeacherModel model) 
-			=> SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows());
+		public static int Commit(TeacherModel model) => GetInsertBuilder(model).ToRows();
 
 		public static TeacherModel Insert(TeacherModel model)
 		{
-			SetRedisCache(string.Format(CacheKey, model.Id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));
+			GetInsertBuilder(model).ToRows(ref model);
 			return model;
 		}
 

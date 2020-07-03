@@ -12,6 +12,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 
@@ -25,6 +26,15 @@ namespace Meta.Driver.Extensions
 		/// </summary>
 		public static bool IsNullOrEmpty<T>(this IEnumerable<T> value) => value == null || value.Count() == 0;
 
+		/// <summary>
+		/// 成员表达式改成数据库字段 a.Xxx-> a."xxx"
+		/// </summary>
+		/// <param name="mb"></param>
+		/// <returns></returns>
+		public static string ToDatebaseField(this MemberExpression mb)
+		{
+			return string.Concat(mb.ToString().ToLower().Replace(".", ".\""), "\"");
+		}
 		public static bool ExistsJsonPropertyAttribute(this PropertyInfo info)
 		{
 			return info.GetCustomAttribute<JsonPropertyAttribute>() != null;

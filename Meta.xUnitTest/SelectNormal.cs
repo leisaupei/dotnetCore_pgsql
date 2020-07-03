@@ -199,7 +199,7 @@ namespace Meta.xUnitTest
 			Assert.True(minAge >= 0);
 		}
 		[Fact, Order(16), Description("the type of T must be same as the column's type")]
-		public void Avg()
+ 		public void Avg()
 		{
 			var avgAge = People.Select.Avg<decimal>(a => a.Age);
 			Assert.True(avgAge >= 0);

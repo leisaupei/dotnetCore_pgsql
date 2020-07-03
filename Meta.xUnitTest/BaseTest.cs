@@ -36,8 +36,8 @@ namespace Meta.xUnitTest
 				var options = new[] {
 					new MasterDbOption(TestConnectionString, null, logger.CreateLogger<BaseTest>())
 				};
-				PgsqlHelper.InitDBConnectionOption<DbMaster>(options);
-				//RedisHelper.Initialization(new CSRedis.CSRedisClient("172.16.1.250:6379,defaultDatabase=13,name=weibo,password=Gworld2017,prefix=weibo,abortConnect=false"));
+				PgsqlHelper.InitDBConnectionOption<DbMaster>(options, true, true);
+				RedisHelper.Initialization(new CSRedis.CSRedisClient("172.16.1.250:6379,defaultDatabase=13,name=weibo,password=Gworld2017,prefix=weibo,abortConnect=false"));
 				IsInit = true;
 				JsonConvert.DefaultSettings = () =>
 				{

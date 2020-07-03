@@ -279,6 +279,10 @@ namespace Meta.xUnitTest
 		{
 			TypeTestModel info = null;
 
+
+			//'xxx' like a.Varchar_type || '%'
+			info = TypeTest.Select.Where(a => "xxxxxxxxxxxx".StartsWith(a.Varchar_type)).ToOne();
+			Assert.NotNull(info);
 			//a.varchar_type like '%xxx%'
 			info = TypeTest.Select.Where(a => a.Varchar_type.Contains("xxx")).ToOne();
 			Assert.NotNull(info);

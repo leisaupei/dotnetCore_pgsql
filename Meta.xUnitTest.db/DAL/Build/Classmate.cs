@@ -60,12 +60,11 @@ namespace Meta.xUnitTest.DAL
 		#endregion
 
 		#region Insert
-		public static int Commit(ClassmateModel model) 
-			=> SetRedisCache(string.Format(CacheKey, model.Teacher_id, model.Student_id, model.Grade_id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows());
+		public static int Commit(ClassmateModel model) => GetInsertBuilder(model).ToRows();
 
 		public static ClassmateModel Insert(ClassmateModel model)
 		{
-			SetRedisCache(string.Format(CacheKey, model.Teacher_id, model.Student_id, model.Grade_id), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));
+			GetInsertBuilder(model).ToRows(ref model);
 			return model;
 		}
 

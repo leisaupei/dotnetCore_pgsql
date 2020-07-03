@@ -206,7 +206,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 						case PropertyInfo propertyInfo:
 							if (IsDbMember(node, out MemberExpression dbMember))
 							{
-								_exp.SqlText += dbMember.ToString().ToLower();
+								_exp.SqlText += _methodStringContainsFormat != null ? string.Format(_methodStringContainsFormat, dbMember.ToDatebaseField()) : dbMember.ToDatebaseField();
 								if (_isAddCastText)
 								{
 									_isAddCastText = false;
@@ -216,7 +216,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 							else SetMemberValue(node, propertyInfo.PropertyType);
 							break;
 						default:
-							_exp.SqlText += node.ToString().ToLower();
+							_exp.SqlText += node.ToDatebaseField();
 							break;
 					}
 					break;
@@ -226,7 +226,7 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 				default:
 					{
 						if (IsDbMember(node, out MemberExpression dbMember))
-							_exp.SqlText += dbMember.ToString().ToLower();
+							_exp.SqlText += dbMember.ToDatebaseField();
 					}
 					break;
 			}
@@ -239,17 +239,17 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 			switch (node.Method.Name)
 			{
 				case "Contains":
-					if (!StringLikeCalling(node, "%{0}%"))
+					if (!StringLikeCalling(node, "%{0}%", "'%'||{0}||'%'"))
 						MethodContaionsHandler(node);
 					break;
 				case "StartsWith":
-					StringLikeCalling(node, "{0}%");
+					StringLikeCalling(node, "{0}%", "{0}||'%'");
 					break;
 				case "EndsWith":
-					StringLikeCalling(node, "%{0}");
+					StringLikeCalling(node, "%{0}", "'%'||{0}");
 					break;
 				case "ToString" when node.Object.NodeType == ExpressionType.MemberAccess && IsDbMember(node.Object as MemberExpression, out MemberExpression dbMember):
-					_exp.SqlText += string.Concat(dbMember.ToString().ToLower(), "::text");
+					_exp.SqlText += string.Concat(dbMember.ToDatebaseField(), "::text");
 					break;
 				default:
 					SetExpressionInvokeResultParameter(node);
@@ -547,20 +547,22 @@ namespace Meta.Driver.SqlBuilder.AnalysisExpression
 		/// </summary>
 		/// <param name="node"></param>
 		/// <param name="key"></param>
+		/// <param name="fieldKey"></param>
 		/// <returns></returns>
-		private bool StringLikeCalling(MethodCallExpression node, string key)
+		private bool StringLikeCalling(MethodCallExpression node, string key, string fieldKey)
 		{
 			if (node.Object == null) return false;
 			if (node.Object.Type == typeof(string))
 			{
-				_exp.SqlText += node.Object.ToString().ToLower();
+				Visit(node.Object);
+
 				_exp.SqlText += _currentLambdaNodeType == ExpressionType.Not ? " NOT" : string.Empty;
 				if (node.Arguments.Count == 2 && node.Arguments[1].ToString().EndsWith("IgnoreCase"))
 					_exp.SqlText += " ILIKE ";
 				else
 					_exp.SqlText += " LIKE ";
 
-				_methodStringContainsFormat = key;
+				_methodStringContainsFormat = IsDbMember(node.Object, out MemberExpression _) ? key : fieldKey;
 				base.Visit(node.Arguments[0]);
 				_methodStringContainsFormat = null;
 				return true;

@@ -82,7 +82,7 @@ namespace Meta.Driver.DbHelper
 		{
 			List<string> list = new List<string>();
 			alias = !string.IsNullOrEmpty(alias) ? alias + "." : "";
-			GetAllFields(p => list.Add(alias + p.Name.ToLower()), type);
+			GetAllFields(p => list.Add(alias + "\"" + p.Name.ToLower() + "\""), type);
 			return list;
 		}
 
@@ -108,12 +108,17 @@ namespace Meta.Driver.DbHelper
 			return mapping.TableName;
 		}
 
+		/// <summary>
+		/// 获取db别名 如果没有返回null
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
 		public static string GetDbName<T>()
 		{
 			var mapping = typeof(T).GetCustomAttribute<DbNameAttribute>();
-			if (mapping == null)
-				throw new ArgumentNullException(nameof(DbNameAttribute));
-			return mapping.DbName;
+			//if (mapping == null)
+			//	throw new ArgumentNullException(nameof(DbNameAttribute));
+			return mapping?.DbName;
 		}
 
 		/// <summary>

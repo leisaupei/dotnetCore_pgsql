@@ -1474,6 +1474,17 @@ namespace Meta.Driver.SqlBuilder
 		/// <summary>
 		/// 批量插入数据
 		/// </summary>
+		/// <param name="sqlbuilders"></param>
+		/// <returns></returns>
+		protected static int InsertMultiple<TDbName>(IEnumerable<ISqlBuilder> sqlbuilders) where TDbName : struct, IDbName
+		{
+			var rows = PgsqlHelper<TDbName>.ExecuteDataReaderPipe(sqlbuilders).OfType<int>();
+			return rows.Sum();
+		}
+
+		/// <summary>
+		/// 批量插入数据
+		/// </summary>
 		/// <param name="models"></param>
 		/// <param name="sqlbuilders"></param>
 		/// <param name="timeout"></param>
@@ -1494,6 +1505,17 @@ namespace Meta.Driver.SqlBuilder
 						h.Set(func(model), model, timeout);
 					}
 				});
+			return rows.Sum();
+		}
+		/// <summary>
+		/// 批量插入数据
+		/// </summary>
+		/// <param name="sqlbuilders"></param>
+		/// <param name="cancellationToken"></param>
+		/// <returns></returns>
+		protected static async ValueTask<int> InsertMultipleAsync<TDbName>(IEnumerable<ISqlBuilder> sqlbuilders, CancellationToken cancellationToken) where TDbName : struct, IDbName
+		{
+			var rows = (await PgsqlHelper<TDbName>.ExecuteDataReaderPipeAsync(sqlbuilders, CommandType.Text, cancellationToken)).OfType<int>();
 			return rows.Sum();
 		}
 		#endregion

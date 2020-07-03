@@ -189,10 +189,10 @@ WHERE ns.nspname || '.' || a.typname not in ({Types.ConvertArrayToSql(notCreateC
 			_sbConstTypeName.AppendFormat("\t/// <summary>\n\t/// {0}主库\n\t/// </summary>\n", TypeName);
 			_sbConstTypeName.AppendFormat("\tpublic struct Db{0} : IDbName {{ }}\n", _typeName.ToUpperPascal());
 			_sbConstTypeName.AppendFormat("\t/// <summary>\n\t/// {0}从库\n\t/// </summary>\n", TypeName);
-			_sbConstTypeName.AppendFormat("\tpublic struct Db{0} : IDbName {{ }}\n", _typeName.ToUpperPascal() + PgsqlHelper.SlaveSuffix);
+			_sbConstTypeName.AppendFormat("\tpublic struct Db{0} : IDbName {{ }}\n", _typeName.ToUpperPascal() + PgsqlHelper.SLAVE_SUFFIX);
 
 			_sbConstTypeConstrutor.AppendFormat("\t\t#region {0}\n", _typeName);
-			_sbConstTypeConstrutor.AppendFormat("\t\tpublic class {0}DbOption : BaseDbOption<Db{0}, Db{1}>\n", _typeName.ToUpperPascal(), _typeName.ToUpperPascal() + PgsqlHelper.SlaveSuffix);
+			_sbConstTypeConstrutor.AppendFormat("\t\tpublic class {0}DbOption : BaseDbOption<Db{0}, Db{1}>\n", _typeName.ToUpperPascal(), _typeName.ToUpperPascal() + PgsqlHelper.SLAVE_SUFFIX);
 			_sbConstTypeConstrutor.AppendLine("\t\t{");
 			_sbConstTypeConstrutor.AppendFormat("\t\t\tpublic {0}DbOption(string masterConnectionString, string[] slaveConnectionStrings, ILogger logger) : base(masterConnectionString, slaveConnectionStrings, logger)\n", _typeName.ToUpperPascal(), TypeName);
 			_sbConstTypeConstrutor.AppendLine("\t\t\t{");
