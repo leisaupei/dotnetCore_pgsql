@@ -142,7 +142,7 @@ namespace Meta.Driver.Extensions
 				var model = Activator.CreateInstance(objType);
 				var isSet = false; // 这个实体类是否有赋值 没赋值直接返回 default
 
-				var fs = EntityHelper.GetFieldsFromStaticType(objType);
+				var fs = EntityHelper.GetFieldsFromStaticTypeNoSymbol(objType);
 				for (int i = 0; i < fs.Length; i++)
 				{
 					++columnIndex;

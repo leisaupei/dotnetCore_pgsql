@@ -894,6 +894,10 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 		{
 			if (!string.IsNullOrEmpty(comment))
 			{
+				if (comment.Contains("\n"))
+				{
+					comment = comment.Replace("\r\n", "\n\t\t/// ");
+				}
 				writer.WriteLine("\t\t/// <summary>");
 				writer.WriteLine($"\t\t/// {comment}");
 				writer.WriteLine("\t\t/// </summary>");

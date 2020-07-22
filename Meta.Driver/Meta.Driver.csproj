@@ -9,12 +9,12 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <Description>.net core 3.0+pgsql数据库底层</Description>
-    <PackageReleaseNotes>更新数据库字段加上双引号包裹, 更新数据库只写可读可选</PackageReleaseNotes>
+    <PackageReleaseNotes>新增except sql关键字, 修复tounion问题, 支持数据库comment换行</PackageReleaseNotes>
     <Copyright>MIT</Copyright>
     <PackageLicenseUrl>https://github.com/leisaupei/meta/blob/master/LICENSE</PackageLicenseUrl>
-    <Version>1.0.18</Version>
-    <AssemblyVersion>1.0.18.0</AssemblyVersion>
-    <FileVersion>1.0.18.0</FileVersion>
+    <Version>1.0.19</Version>
+    <AssemblyVersion>1.0.19.0</AssemblyVersion>
+    <FileVersion>1.0.19.0</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

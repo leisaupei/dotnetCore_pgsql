@@ -33,6 +33,7 @@ namespace Meta.Driver.SqlBuilder
 		string _union;
 		string _tablesampleSystem;
 		string _distinctOn;
+		string _except;
 		#endregion
 
 		#region Constructor
@@ -59,7 +60,7 @@ namespace Meta.Driver.SqlBuilder
 		}
 
 		/// <summary>
-		/// 设置单个字段 常用于IN系列与EXISTS系列 会采用key selector别名为表别名
+		/// 设置单个字段 常用于IN系列与EXISTS系列
 		/// </summary>
 		/// <returns>ISqlBuilder</returns>
 		public TSQL Field(string field)
@@ -148,13 +149,35 @@ namespace Meta.Driver.SqlBuilder
 		}
 
 		/// <summary>
-		/// 连接 selectbuilder
+		/// 连接selectBuilder
 		/// </summary>
 		/// <param name="sqlBuilder"></param>
 		/// <returns></returns>
 		public TSQL Union(ISqlBuilder sqlBuilder)
 		{
 			_union = $"({sqlBuilder.CommandText})";
+			return AddParameters(sqlBuilder.Params);
+		}
+
+		/// <summary>
+		/// 排除一个sql语句
+		/// </summary>
+		/// <param name="view"></param>
+		/// <returns></returns>
+		public TSQL Except(string view)
+		{
+			_except = $"({view})";
+			return This;
+		}
+
+		/// <summary>
+		/// 排除selectBuilder
+		/// </summary>
+		/// <param name="sqlBuilder"></param>
+		/// <returns></returns>
+		public TSQL Except(ISqlBuilder sqlBuilder)
+		{
+			_except = $"({sqlBuilder.CommandText})";
 			return AddParameters(sqlBuilder.Params);
 		}
 
@@ -1267,6 +1290,9 @@ namespace Meta.Driver.SqlBuilder
 
 			if (!string.IsNullOrEmpty(_union))
 				sqlText.AppendLine(string.Concat("UNION ", _union));
+
+			if (!string.IsNullOrEmpty(_except))
+				sqlText.AppendLine(string.Concat("EXCEPT ", _except));
 			return sqlText.ToString().TrimEnd();
 		}
 		#endregion

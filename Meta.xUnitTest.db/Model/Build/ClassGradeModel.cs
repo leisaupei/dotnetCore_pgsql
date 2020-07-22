@@ -16,7 +16,7 @@ using Meta.xUnitTest.DAL;
 
 namespace Meta.xUnitTest.Model
 {
-	[DbTable("class.grade"), DbName(typeof(Options.DbMaster))]
+	[DbTable("class.grade")]
 	public partial class ClassGradeModel : IDbModel
 	{
 		#region Properties

@@ -33,17 +33,21 @@ namespace Meta.Driver.DbHelper
 			}
 		}
 
-		static Dictionary<string, string[]> _typeFieldsDict;
+		static Dictionary<string, (string[], string[])> _typeFieldsDict;
 		const string _sysytemLoadSuffix = ".SystemLoad";
-
+		/// <summary>
+		/// 根据实体类获取所有字段数组, 有双引号
+		/// </summary>
+		/// <param name="type"></param>
+		/// <returns></returns>
 		public static string[] GetFieldsFromStaticType(Type type)
 		{
 			InitStaticTypesFields(type);
-			return _typeFieldsDict[string.Concat(type.FullName, _sysytemLoadSuffix)];
+			return _typeFieldsDict[string.Concat(type.FullName, _sysytemLoadSuffix)].Item1;
 		}
 
 		/// <summary>
-		/// 匹配生成模型
+		/// 根据实体类获取所有字段数组, 有双引号
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
@@ -52,17 +56,42 @@ namespace Meta.Driver.DbHelper
 			return GetFieldsFromStaticType(typeof(T));
 		}
 
+		/// <summary>
+		/// 根据实体类获取所有字段数组, 不包含双引号
+		/// </summary>
+		/// <param name="type"></param>
+		/// <returns></returns>
+		public static string[] GetFieldsFromStaticTypeNoSymbol(Type type)
+		{
+			InitStaticTypesFields(type);
+			return _typeFieldsDict[string.Concat(type.FullName, _sysytemLoadSuffix)].Item2;
+		}
+
+		/// <summary>
+		/// 根据实体类获取所有字段数组, 不包含双引号
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		static string[] GetFieldsFromStaticTypeNoSymbol<T>() where T : IDbModel
+		{
+			return GetFieldsFromStaticTypeNoSymbol(typeof(T));
+		}
+
+		/// <summary>
+		/// 根据类型初始化, 实体类map
+		/// </summary>
+		/// <param name="t"></param>
 		static void InitStaticTypesFields(Type t)
 		{
 			if (_typeFieldsDict != null) return;
 			if (!t.GetInterfaces().Any(f => f == typeof(IDbModel))) return;
-			_typeFieldsDict = new Dictionary<string, string[]>();
+			_typeFieldsDict = new Dictionary<string, (string[], string[])>();
 			var types = t.Assembly.GetTypes().Where(f => !string.IsNullOrEmpty(f.Namespace) && f.Namespace.Contains(".Model") && f.GetCustomAttribute<DbTableAttribute>() != null);
 			foreach (var type in types)
 			{
 				var key = string.Concat(type.FullName, _sysytemLoadSuffix);
 				if (!_typeFieldsDict.ContainsKey(key))
-					_typeFieldsDict[key] = GetAllFields("", type).ToArray();
+					_typeFieldsDict[key] = GetAllFields("", type);
 
 			}
 		}
@@ -77,13 +106,18 @@ namespace Meta.Driver.DbHelper
 		/// </summary>
 		/// <param name="type"></param>
 		/// <param name="alias"></param>
-		/// <returns></returns>
-		static List<string> GetAllFields(string alias, Type type)
+		/// <returns>(包含双引号,用于SQL语句,不包含双引号,用于反射)</returns>
+		static (string[], string[]) GetAllFields(string alias, Type type)
 		{
 			List<string> list = new List<string>();
+			List<string> list_u = new List<string>();
 			alias = !string.IsNullOrEmpty(alias) ? alias + "." : "";
-			GetAllFields(p => list.Add(alias + "\"" + p.Name.ToLower() + "\""), type);
-			return list;
+			GetAllFields(p =>
+			{
+				list.Add(alias + "\"" + p.Name.ToLower() + "\"");
+				list_u.Add(alias + p.Name.ToLower());
+			}, type);
+			return (list.ToArray(), list_u.ToArray());
 		}
 
 		/// <summary>
@@ -116,13 +150,11 @@ namespace Meta.Driver.DbHelper
 		public static string GetDbName<T>()
 		{
 			var mapping = typeof(T).GetCustomAttribute<DbNameAttribute>();
-			//if (mapping == null)
-			//	throw new ArgumentNullException(nameof(DbNameAttribute));
 			return mapping?.DbName;
 		}
 
 		/// <summary>
-		/// 获取当前类字段的字符串
+		/// 获取当前类字段的字符串, 包含双引号
 		/// </summary>
 		/// <param name="type"></param>
 		/// <param name="alias"></param>
@@ -130,15 +162,36 @@ namespace Meta.Driver.DbHelper
 		public static string GetModelTypeFieldsString(string alias, Type type)
 		{
 			InitStaticTypesFields(type);
-			return string.Join(", ", _typeFieldsDict[string.Concat(type.FullName, _sysytemLoadSuffix)].Select(f => $"{alias}.{f}"));
+			return string.Join(", ", _typeFieldsDict[string.Concat(type.FullName, _sysytemLoadSuffix)].Item1.Select(f => $"{alias}.{f}"));
 		}
 
 		/// <summary>
-		/// 获取当前类字段的字符串
+		/// 获取当前类字段的字符串, 包含双引号
 		/// </summary>
 		/// <param name="alias"></param>
 		/// <returns></returns>
 		public static string GetModelTypeFieldsString<T>(string alias) where T : IDbModel
+		{
+			return GetModelTypeFieldsString(alias, typeof(T));
+		}
+		/// <summary>
+		/// 获取当前类字段的字符串, 不包含双引号
+		/// </summary>
+		/// <param name="type"></param>
+		/// <param name="alias"></param>
+		/// <returns></returns>
+		public static string GetModelTypeFieldsStringNoSymbol(string alias, Type type)
+		{
+			InitStaticTypesFields(type);
+			return string.Join(", ", _typeFieldsDict[string.Concat(type.FullName, _sysytemLoadSuffix)].Item2.Select(f => $"{alias}.{f}"));
+		}
+
+		/// <summary>
+		/// 获取当前类字段的字符串, 不包含双引号
+		/// </summary>
+		/// <param name="alias"></param>
+		/// <returns></returns>
+		public static string GetModelTypeFieldsStringNoSymbol<T>(string alias) where T : IDbModel
 		{
 			return GetModelTypeFieldsString(alias, typeof(T));
 		}
@@ -168,5 +221,4 @@ namespace Meta.Driver.DbHelper
 			}
 		}
 	}
-
 }
