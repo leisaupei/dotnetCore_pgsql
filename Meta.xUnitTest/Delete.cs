@@ -22,10 +22,13 @@ namespace Meta.xUnitTest
 		[Fact]
 		public void Union()
 		{
-			var jobj = new JArray {
-			
-			};
-			var list = JsonConvert.DeserializeObject<List<ModelInvoiceItem>>(jobj.ToString());
+			decimal d = 19200.32M;
+			var a = d.ToString("#0.00");
+			var b = string.Format("{0:N2}", d);
+			//var jobj = new JArray {
+
+			//};
+			//var list = JsonConvert.DeserializeObject<List<ModelInvoiceItem>>(jobj.ToString());
 		}
 
 		public class ModelInvoiceItem

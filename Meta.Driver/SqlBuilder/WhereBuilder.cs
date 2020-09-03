@@ -66,7 +66,7 @@ namespace Meta.Driver.SqlBuilder
 		/// <param name="isAdd">是否添加此表达式</param>
 		/// <returns></returns>
 		public TSQL Where(Expression<Func<TModel, bool>> selector, bool isAdd = true)
-			=> isAdd ? Where<TModel>(selector) : This;
+			=> Where<TModel>(selector, isAdd);
 
 		/// <summary>
 		/// 开始Or where表达式
@@ -357,12 +357,7 @@ namespace Meta.Driver.SqlBuilder
 		/// <param name="isAdd"></param>
 		/// <param name="filter"></param>
 		/// <returns></returns>
-		public TSQL Where(bool isAdd, Func<string> filter)
-		{
-			if (isAdd)
-				Where(filter.Invoke());
-			return This;
-		}
+		public TSQL Where(bool isAdd, Func<string> filter) => isAdd ? Where(filter.Invoke()) : This;
 
 		/// <summary>
 		/// 是否添加 添加func返回的where语句, format格式
@@ -372,12 +367,9 @@ namespace Meta.Driver.SqlBuilder
 		/// <returns></returns>
 		public TSQL Where(bool isAdd, Func<(string, object[])> filter)
 		{
-			if (isAdd)
-			{
-				var (sql, ps) = filter.Invoke();
-				Where(sql, ps);
-			}
-			return This;
+			if (!isAdd) return This;
+			var (sql, ps) = filter.Invoke();
+			return Where(sql, ps);
 		}
 
 
@@ -395,7 +387,6 @@ namespace Meta.Driver.SqlBuilder
 			Expression<Func<TModel, T2>> selectorT2,
 			IEnumerable<(T1, T2)> values)
 		{
-			var _values = values.ToArray();
 			var t1 = SqlExpressionVisitor.Instance.VisitSingle(selectorT1).SqlText;
 			var t2 = SqlExpressionVisitor.Instance.VisitSingle(selectorT2).SqlText;
 			WhereStartOr();
@@ -444,7 +435,7 @@ namespace Meta.Driver.SqlBuilder
 		/// <param name="values"></param>
 		/// <returns></returns>
 		public TSQL Where<T1, T2, T3, T4>(
-			Expression<Func<TModel, T1>> selectorT1,
+			Expression<Func<TModel, T1>> selectorT1, 
 			Expression<Func<TModel, T2>> selectorT2,
 			Expression<Func<TModel, T3>> selectorT3,
 			Expression<Func<TModel, T4>> selectorT4,
@@ -468,7 +459,9 @@ namespace Meta.Driver.SqlBuilder
 		/// <returns></returns>
 		public TSQL Where(string filter, params object[] values)
 		{
-			if (values.IsNullOrEmpty())
+			if (string.IsNullOrEmpty(filter))
+				throw new ArgumentNullException(nameof(filter));
+			if (!(values?.Any() ?? false))
 				return Where(TypeHelper.GetNullSql(filter, @"\{\d\}"));
 
 			for (int i = 0; i < values.Length; i++)
