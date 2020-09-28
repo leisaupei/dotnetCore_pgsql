@@ -193,6 +193,8 @@ namespace Meta.Driver.Extensions
 				{
 					// 如果c#是enum 数据库是整型
 					var t when t.IsEnum && value.GetType().GetInterface(nameof(IFormattable)) != null => Enum.ToObject(t, value),
+
+					var t when t == typeof(PostgisGeometry) => (PostgisGeometry)value,
 					// jsonb json 类型
 					var t when _jTypes.Contains(t) => JToken.Parse(value?.ToString() ?? "{}"),
 
