@@ -12,9 +12,9 @@
     <PackageReleaseNotes>新增except sql关键字, 修复tounion问题, 支持数据库comment换行</PackageReleaseNotes>
     <Copyright></Copyright>
     <PackageLicenseUrl></PackageLicenseUrl>
-    <Version>1.1.1</Version>
-    <AssemblyVersion>1.1.1.0</AssemblyVersion>
-    <FileVersion>1.1.1.0</FileVersion>
+    <Version>1.1.2</Version>
+    <AssemblyVersion>1.1.2.0</AssemblyVersion>
+    <FileVersion>1.1.2.0</FileVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 

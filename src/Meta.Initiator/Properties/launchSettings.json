@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Meta.Initiator": {
+      "commandName": "Project",
+      "commandLineArgs": "host=localhost;port=5432;user=postgres;pwd=123456;db=meta;maxpool=50;name=Meta.xUnitTest;path=D:\\workspace\\meta"
+    }
+  }
+}
