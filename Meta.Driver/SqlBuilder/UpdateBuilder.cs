@@ -51,7 +51,7 @@ namespace Meta.Driver.SqlBuilder
 		/// <param name="selector">key selector</param>
 		/// <param name="sqlBuilder">SQL语句</param>
 		/// <returns></returns>
-		public UpdateBuilder<TModel> Set(Expression<Func<TModel, object>> selector, [DisallowNull]ISqlBuilder sqlBuilder)
+		public UpdateBuilder<TModel> Set(Expression<Func<TModel, object>> selector, [DisallowNull] ISqlBuilder sqlBuilder)
 		{
 			var exp = string.Concat(SqlExpressionVisitor.Instance.VisitSingleForNoAlias(selector).SqlText, " = ", $"({sqlBuilder.CommandText})");
 			AddParameters(sqlBuilder.Params);
@@ -83,7 +83,7 @@ namespace Meta.Driver.SqlBuilder
 		/// <param name="selector">字段key selector</param>
 		/// <param name="value">value</param>
 		/// <returns></returns>
-		private UpdateBuilder<TModel> Set<TKey>(Expression<Func<TModel, TKey>> selector, [DisallowNull]Enum value) where TKey : IFormattable
+		private UpdateBuilder<TModel> Set<TKey>(Expression<Func<TModel, TKey>> selector, [DisallowNull] Enum value) where TKey : IFormattable
 			=> Set(selector, (TKey)Convert.ChangeType(value, typeof(TKey)));
 
 		/// <summary>
@@ -232,12 +232,11 @@ namespace Meta.Driver.SqlBuilder
 		/// <summary>
 		/// 插入数据库并返回数据
 		/// </summary>
-		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		public new T ToOne<T>()
+		public TModel ToOne()
 		{
 			_isReturn = true;
-			return ToOne<T>();
+			return base.ToOne<TModel>();
 		}
 
 		/// <summary>
