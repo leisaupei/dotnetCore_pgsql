@@ -32,14 +32,14 @@ namespace Meta.xUnitTest
 
 			//}
 		}
-		[Fact]
-		public async Task TransactionAsync()
-		{
-			await PgsqlHelper.TransactionAsync(() =>
-			{
-				ClassGrade.Update(Guid.Parse("81d58ab2-4fc6-425a-bc51-d1d73bf9f4b1")).Set(a => a.Name, "软件技术").ToRows();
-			}, CancellationToken.None);
-		}
+		//[Fact]
+		//public async Task TransactionAsync()
+		//{
+		//	await PgsqlHelper.TransactionAsync(() =>
+		//	{
+		//		ClassGrade.Update(Guid.Parse("81d58ab2-4fc6-425a-bc51-d1d73bf9f4b1")).Set(a => a.Name, "软件技术").ToRows();
+		//	}, CancellationToken.None);
+		//}
 		[Fact]
 		public void TestAsync()
 		{

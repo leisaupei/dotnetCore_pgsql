@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 
 namespace Meta.Driver.DbHelper
 {
@@ -20,6 +21,8 @@ namespace Meta.Driver.DbHelper
 		/// </summary>
 		static int _paramsCount = 0;
 
+		private readonly static SemaphoreSlim _paramLock = new SemaphoreSlim(initialCount: 1, maxCount: 1);
+		private static object paraLock = new object();
 		/// <summary>
 		/// 参数后缀
 		/// </summary>
@@ -27,9 +30,17 @@ namespace Meta.Driver.DbHelper
 		{
 			get
 			{
+
+				_paramLock.Wait();
+
 				if (_paramsCount == int.MaxValue)
 					_paramsCount = 0;
-				return "p" + _paramsCount++.ToString().PadLeft(6, '0');
+				var paraStr = _paramsCount++.ToString();
+
+				_paramLock.Release();
+
+				return "p" + paraStr.PadLeft(6, '0');
+
 			}
 		}
 

@@ -194,6 +194,7 @@ namespace Meta.Driver.DbHelper
 		/// <param name="action">Action委托</param>
 		/// <param name="cancellationToken"></param>
 		/// <exception cref="ArgumentNullException">委托是null</exception>
+		[Obsolete]
 		public new static Task TransactionAsync(Action action, CancellationToken cancellationToken = default)
 			=> cancellationToken.IsCancellationRequested
 			? Task.FromCanceled(cancellationToken)
@@ -208,6 +209,7 @@ namespace Meta.Driver.DbHelper
 		/// <summary>
 		/// 开启事务
 		/// </summary>
+		[Obsolete]
 		public new static Task BeginTransactionAsync(CancellationToken cancellationToken)
 			=> GetExecute(GetDbName).BeginTransactionAsync(cancellationToken);
 
@@ -220,6 +222,7 @@ namespace Meta.Driver.DbHelper
 		/// <summary>
 		/// 确认事务
 		/// </summary>
+		[Obsolete]
 		public new static Task CommitTransactionAsync(CancellationToken cancellationToken)
 			=> GetExecute(GetDbName).CommitTransactionAsync(cancellationToken);
 
@@ -232,6 +235,7 @@ namespace Meta.Driver.DbHelper
 		/// <summary>
 		/// 回滚事务
 		/// </summary>
+		[Obsolete]
 		public new static Task RollBackTransactionAsync(CancellationToken cancellationToken)
 			=> GetExecute(GetDbName).RollBackTransactionAsync(cancellationToken);
 	}
@@ -509,6 +513,7 @@ namespace Meta.Driver.DbHelper
 		/// <param name="action">Action委托</param>
 		/// <param name="cancellationToken"></param>
 		/// <exception cref="ArgumentNullException">委托是null</exception>
+		[Obsolete]
 		public static ValueTask TransactionAsync(Action action, CancellationToken cancellationToken = default)
 			=> GetExecute(DefaultDbName).TransactionAsync(true, action, cancellationToken);
 
@@ -521,6 +526,7 @@ namespace Meta.Driver.DbHelper
 		/// <summary>
 		/// 开启事务
 		/// </summary>
+		[Obsolete]
 		public static Task BeginTransactionAsync(CancellationToken cancellationToken)
 			=> GetExecute(DefaultDbName).BeginTransactionAsync(cancellationToken);
 
@@ -533,6 +539,7 @@ namespace Meta.Driver.DbHelper
 		/// <summary>
 		/// 确认事务
 		/// </summary>
+		[Obsolete]
 		public static Task CommitTransactionAsync(CancellationToken cancellationToken)
 			=> GetExecute(DefaultDbName).CommitTransactionAsync(cancellationToken);
 
@@ -545,6 +552,7 @@ namespace Meta.Driver.DbHelper
 		/// <summary>
 		/// 回滚事务
 		/// </summary>
+		[Obsolete]
 		public static Task RollBackTransactionAsync(CancellationToken cancellationToken)
 			=> GetExecute(DefaultDbName).RollBackTransactionAsync(cancellationToken);
 

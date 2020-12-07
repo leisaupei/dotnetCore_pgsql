@@ -77,23 +77,6 @@ namespace Meta.Initiator
 			writer.WriteLine("\t}");
 			writer.WriteLine("}");
 		}
-
-		/// <summary>
-		/// 创建csproj文件
-		/// </summary>
-		public static void CreateCsproj(string outputDir)
-		{
-			//copy common directory
-			string targetCommonDirectory = Path.Combine(outputDir, "Meta.Common");
-			if (!Directory.Exists(targetCommonDirectory)) //if is not exist
-			{
-				var path = Path.Combine("..", "..", "..", "..", "Meta.Common");
-				string commonDirectory = new DirectoryInfo(path).FullName;
-				Console.WriteLine(commonDirectory);
-				DirectoryCopy(commonDirectory, targetCommonDirectory);
-			}
-
-		}
 		/// <summary>
 		/// 创建sln解决方案文件
 		/// </summary>

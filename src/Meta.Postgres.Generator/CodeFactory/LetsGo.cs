@@ -105,10 +105,12 @@ namespace Meta.Postgres.Generator.CodeFactory
 		{
 			modelPath = Path.Combine(ModelPath, buildModel.TypeName.ToUpperPascal());
 			dalPath = Path.Combine(DalPath, buildModel.TypeName.ToUpperPascal());
-			if (!Directory.Exists(dalPath))
-				Directory.CreateDirectory(dalPath);
-			if (!Directory.Exists(modelPath))
-				Directory.CreateDirectory(modelPath);
+			if (Directory.Exists(dalPath))
+				Directory.Delete(dalPath, true);
+			Directory.CreateDirectory(dalPath);
+			if (Directory.Exists(modelPath))
+				Directory.Delete(modelPath, true);
+			Directory.CreateDirectory(modelPath);
 		}
 
 		/// <summary>

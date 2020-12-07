@@ -692,11 +692,11 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			{
 				writer.Write(@"
 		public static int Commit({0} model) 
-			=> SetRedisCache(string.Format(CacheKey{1}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows());
+			=> GetInsertBuilder(model).ToRows();
 
 		public static {0} Insert({0} model)
 		{{
-			SetRedisCache(string.Format(CacheKey{1}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRows(ref model));
+			GetInsertBuilder(model).ToRows(ref model);
 			return model;
 		}}
 
@@ -708,10 +708,10 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 		}}
 
 		public static Task<{0}> InsertAsync({0} model, CancellationToken cancellationToken = default)
-			=> SetRedisCacheAsync(string.Format(CacheKey{1}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToOneAsync(cancellationToken));
+			=> GetInsertBuilder(model).ToOneAsync(cancellationToken);
 
 		public static ValueTask<int> CommitAsync({0} model, CancellationToken cancellationToken = default)
-			=> SetRedisCacheAsync(string.Format(CacheKey{1}), model, DbConfig.DbCacheTimeOut, () => GetInsertBuilder(model).ToRowsAsync(cancellationToken));
+			=> GetInsertBuilder(model).ToRowsAsync(cancellationToken);
 
 		public static ValueTask<int> CommitAsync(IEnumerable<{0}> models, CancellationToken cancellationToken = default)
 		{{
