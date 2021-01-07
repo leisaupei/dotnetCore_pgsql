@@ -17,7 +17,7 @@ namespace Meta.Driver.SqlBuilder
 	/// insert 语句实例
 	/// </summary>
 	/// <typeparam name="TModel"></typeparam>
-	public class InsertBuilder<TModel> : WhereBuilder<InsertBuilder<TModel>, TModel> 
+	public class InsertBuilder<TModel> : WhereBuilder<InsertBuilder<TModel>, TModel>
 		where TModel : IDbModel, new()
 	{
 		/// <summary>
@@ -157,7 +157,7 @@ namespace Meta.Driver.SqlBuilder
 			var ret = _isReturn ? $"RETURNING {field}" : "";
 			if (WhereList.Count == 0)
 				return $"INSERT INTO {MainTable} ({field}) VALUES({string.Join(", ", _insertList.Values)}) {ret}";
-			return $"INSERT INTO {MainTable} ({field}) SELECT {string.Join(", ", _insertList.Values)} WHERE {string.Join("\nAND", WhereList)} {ret}";
+			return $"INSERT INTO {MainTable} ({field}) SELECT {string.Join(", ", _insertList.Values)} WHERE {string.Join(Environment.NewLine + "AND", WhereList)} {ret}";
 		}
 		#endregion
 	}

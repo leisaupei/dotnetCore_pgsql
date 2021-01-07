@@ -36,7 +36,7 @@ namespace Meta.Driver.SqlBuilder
 		{
 			if (WhereList.Count == 0)
 				throw new ArgumentNullException(nameof(WhereList));
-			return $"DELETE FROM {MainTable} {MainAlias} WHERE {string.Join("\nAND", WhereList)}";
+			return $"DELETE FROM {MainTable} {MainAlias} WHERE {string.Join(Environment.NewLine + "AND", WhereList)}";
 		}
 		#endregion
 	}

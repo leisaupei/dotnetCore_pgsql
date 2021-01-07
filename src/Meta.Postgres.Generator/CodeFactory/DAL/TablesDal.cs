@@ -399,9 +399,11 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 					sb.AppendFormat("\t\tprivate {0}{1} {2} = null;", nspTableName, ModelSuffix, tmp_var);
 					sb.AppendLine();
 					if (isPk == true)
-						sb.AppendFormat("\t\tpublic {0}{1} {2} => {3} ??= {0}.GetItem({4});\n", nspTableName, ModelSuffix, propertyName, tmp_var, DotValueHelper(conname, _fieldList));
+						sb.AppendFormat("\t\tpublic {0}{1} {2} => {3} ??= {0}.GetItem({4});{5}",
+							nspTableName, ModelSuffix, propertyName, tmp_var, DotValueHelper(conname, _fieldList), Environment.NewLine);
 					else
-						sb.AppendFormat("\t\tpublic {0}{1} {2} => {3} ??= {0}.Select.Where(a => a.{5} == {4}).ToOne();\n", nspTableName, ModelSuffix, propertyName, tmp_var, DotValueHelper(conname, _fieldList), refColumn.ToUpperPascal());
+						sb.AppendFormat("\t\tpublic {0}{1} {2} => {3} ??= {0}.Select.Where(a => a.{5} == {4}).ToOne();{6}",
+							nspTableName, ModelSuffix, propertyName, tmp_var, DotValueHelper(conname, _fieldList), refColumn.ToUpperPascal(), Environment.NewLine);
 
 					if (propertyName.IsNotNullOrEmpty() && !ht.ContainsKey(propertyName))
 						ht.Add(propertyName, "");
@@ -488,12 +490,12 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			{
 				writer.Write("\t\t#region Delete");
 				DeleteGenerator(writer);
-				writer.WriteLine("\n\t\t#endregion");
+				writer.WriteLine(Environment.NewLine + "\t\t#endregion");
 				writer.WriteLine();
 
 				writer.Write("\t\t#region Insert");
 				InsertGenerator(writer);
-				writer.WriteLine("\n\t\t#endregion");
+				writer.WriteLine(Environment.NewLine + "\t\t#endregion");
 				writer.WriteLine();
 			}
 			writer.Write("\t\t#region Select");
@@ -504,7 +506,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			{
 				writer.Write("\t\t#region Update");
 				UpdateGenerator(writer);
-				writer.Write("\n\t\t#endregion");
+				writer.Write(Environment.NewLine + "\t\t#endregion");
 				writer.WriteLine();
 			}
 
@@ -746,9 +748,9 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 					continue;
 				}
 
-				writer.Write($"\n\t\t\t\t.Set(a => a.{item.FieldUpCase}, model.{item.FieldUpCase}{SetInsertDefaultValue(item.Field, item.CSharpType, item.IsNotNull)}){end}");
+				writer.Write($"{Environment.NewLine}\t\t\t\t.Set(a => a.{item.FieldUpCase}, model.{item.FieldUpCase}{SetInsertDefaultValue(item.Field, item.CSharpType, item.IsNotNull)}){end}");
 			}
-			writer.Write("\n\t\t}");
+			writer.Write(Environment.NewLine + "\t\t}");
 
 		}
 
@@ -895,7 +897,7 @@ WHERE a.indrelid = '{_schemaName}.{_table.Name}'::regclass AND a.indisprimary
 			{
 				if (comment.Contains("\n"))
 				{
-					comment = comment.Replace("\r\n", "\n\t\t/// ");
+					comment = comment.Replace("\r\n", "\r\n\t\t/// ");
 				}
 				writer.WriteLine("\t\t/// <summary>");
 				writer.WriteLine($"\t\t/// {comment}");

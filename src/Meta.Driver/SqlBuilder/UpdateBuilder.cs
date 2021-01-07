@@ -292,7 +292,7 @@ namespace Meta.Driver.SqlBuilder
 				Fields = EntityHelper.GetModelTypeFieldsString<TModel>(MainAlias);
 				ret = $"RETURNING {Fields}";
 			}
-			return $"UPDATE {MainTable} {MainAlias} SET {string.Join(",", _setList)} WHERE {string.Join("\nAND", WhereList)} {ret}";
+			return $"UPDATE {MainTable} {MainAlias} SET {string.Join(",", _setList)} WHERE {string.Join(Environment.NewLine + "AND", WhereList)} {ret}";
 		}
 		#endregion
 	}

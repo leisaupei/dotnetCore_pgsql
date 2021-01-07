@@ -357,9 +357,9 @@ namespace Meta.Driver.DbHelper
 			string str = string.Empty;
 			if (cmd?.Parameters != null)
 				foreach (DbParameter item in cmd.Parameters)
-					str += $"{item.ParameterName}:{item.Value}\n";
+					str += $"{item.ParameterName}:{item.Value}" + Environment.NewLine;
 
-			_conn.Logger.LogError(new EventId(111111), ex, "数据库执行出错：===== \n{0}\n{1}\nConnectionString:{2}", cmd?.CommandText, str, cmd?.Connection.ConnectionString);//输出日志
+			_conn.Logger.LogError(new EventId(111111), ex, "数据库执行出错：===== {3}{0}{3}{1}{3}ConnectionString:{2}", cmd?.CommandText, str, cmd?.Connection.ConnectionString, Environment.NewLine);//输出日志
 
 		}
 

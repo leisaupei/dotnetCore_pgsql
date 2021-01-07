@@ -29,7 +29,7 @@ namespace Meta.Driver.DbHelper
 				else
 					sql = sql.Replace(key, $"'{value}'");
 			}
-			return sql.Replace("\r", " ").Replace("\n", " ");
+			return sql.Replace(Environment.NewLine, " ").Replace("\r", " ").Replace("\n", " ");
 		}
 		public static string GetNullSql(string sql, string key)
 		{

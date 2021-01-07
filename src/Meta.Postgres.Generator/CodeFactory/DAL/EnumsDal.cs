@@ -112,39 +112,40 @@ WHERE ns.nspname || '.' || a.typname not in ({Types.ConvertArrayToSql(notCreateC
 			List<CompositeTypeInfo> composites = new List<CompositeTypeInfo>();
 			var isFoot = false;
 			PgsqlHelper.ExecuteDataReader(dr =>
-		   {
-			   var composite = new CompositeTypeInfo
-			   {
-				   Nspname = dr["nspname"]?.ToString(),
-				   Typname = dr["typename"]?.ToString(),
-			   };
-			   var temp = $"{composite.Nspname}.{composite.Typname}";
+			{
+				var composite = new CompositeTypeInfo
+				{
+					Nspname = dr["nspname"]?.ToString(),
+					Typname = dr["typename"]?.ToString(),
+				};
+				var temp = $"{composite.Nspname}.{composite.Typname}";
 
-			   if (!dic.ContainsKey(temp))
-			   {
-				   var str = "";
-				   if (isFoot)
-				   {
-					   str += "\t}\n";
-					   isFoot = false;
-				   }
-				   str += $"\t[JsonObject(MemberSerialization.OptIn)]\n";
-				   str += $"\tpublic partial struct {Types.DeletePublic(composite.Nspname, composite.Typname)}\n";
-				   str += "\t{";
-				   dic.Add(temp, str);
-				   composites.Add(composite);
-			   }
-			   else isFoot = true;
-			   var isArray = Convert.ToInt16(dr["attndims"]) > 0;
-			   string _type = Types.ConvertPgDbTypeToCSharpType(dr["typtype"].ToString(), dr["typname"].ToString());
-			   var _notnull = string.Empty;
-			   if (_type != "string" && _type != "JToken" && _type != "byte[]" && !isArray && _type != "object" && _type != "IPAdress")
-				   _notnull = "?";
-			   string _array = isArray ? "[]" : "";
-			   var relType = $"{_type}{_notnull}{_array}";
-			   dic[temp] += $"\n\t\t[JsonProperty] public {relType} {dr["attname"].ToString().ToUpperPascal()} {{ get; set; }}";
+				if (!dic.ContainsKey(temp))
+				{
+					var str = "";
+					if (isFoot)
+					{
+						str += string.Concat("\t}", Environment.NewLine);
+						isFoot = false;
+					}
+					str += $"\t[JsonObject(MemberSerialization.OptIn)]{Environment.NewLine}";
+					str += $"\tpublic partial struct {Types.DeletePublic(composite.Nspname, composite.Typname)}{Environment.NewLine}";
+					str += "\t{";
+					dic.Add(temp, str);
+					composites.Add(composite);
 
-		   }, sql);
+				}
+				else isFoot = true;
+				var isArray = Convert.ToInt16(dr["attndims"]) > 0;
+				string _type = Types.ConvertPgDbTypeToCSharpType(dr["typtype"].ToString(), dr["typname"].ToString());
+				var _notnull = string.Empty;
+				if (_type != "string" && _type != "JToken" && _type != "byte[]" && !isArray && _type != "object" && _type != "IPAdress")
+					_notnull = "?";
+				string _array = isArray ? "[]" : "";
+				var relType = $"{_type}{_notnull}{_array}";
+				dic[temp] += $"{Environment.NewLine}\t\t[JsonProperty] public {relType} {dr["attname"].ToString().ToUpperPascal()} {{ get; set; }}";
+
+			}, sql);
 
 			if (dic.Count > 0)
 			{
@@ -186,15 +187,15 @@ WHERE ns.nspname || '.' || a.typname not in ({Types.ConvertArrayToSql(notCreateC
 		public static void GenerateMapping(List<EnumTypeInfo> list, List<CompositeTypeInfo> listComposite)
 		{
 			_sbNamespace.AppendLine($"using {_projectName}.Model{NamespaceSuffix};");
-			_sbConstTypeName.AppendFormat("\t/// <summary>\n\t/// {0}主库\n\t/// </summary>\n", TypeName);
-			_sbConstTypeName.AppendFormat("\tpublic struct Db{0} : IDbName {{ }}\n", _typeName.ToUpperPascal());
-			_sbConstTypeName.AppendFormat("\t/// <summary>\n\t/// {0}从库\n\t/// </summary>\n", TypeName);
-			_sbConstTypeName.AppendFormat("\tpublic struct Db{0} : IDbName {{ }}\n", _typeName.ToUpperPascal() + PgsqlHelper.SLAVE_SUFFIX);
+			_sbConstTypeName.AppendFormat("\t/// <summary>{1}\t/// {0}主库{1}\t/// </summary>{1}", TypeName, Environment.NewLine);
+			_sbConstTypeName.AppendFormat("\tpublic struct Db{0} : IDbName {{ }}{1}", _typeName.ToUpperPascal(), Environment.NewLine);
+			_sbConstTypeName.AppendFormat("\t/// <summary>{1}\t/// {0}从库{1}\t/// </summary>{1}", TypeName, Environment.NewLine);
+			_sbConstTypeName.AppendFormat("\tpublic struct Db{0} : IDbName {{ }}{1}", _typeName.ToUpperPascal() + PgsqlHelper.SLAVE_SUFFIX, Environment.NewLine);
 
-			_sbConstTypeConstrutor.AppendFormat("\t\t#region {0}\n", _typeName);
-			_sbConstTypeConstrutor.AppendFormat("\t\tpublic class {0}DbOption : BaseDbOption<Db{0}, Db{1}>\n", _typeName.ToUpperPascal(), _typeName.ToUpperPascal() + PgsqlHelper.SLAVE_SUFFIX);
+			_sbConstTypeConstrutor.AppendFormat("\t\t#region {0}{1}", _typeName, Environment.NewLine);
+			_sbConstTypeConstrutor.AppendFormat("\t\tpublic class {0}DbOption : BaseDbOption<Db{0}, Db{1}>{2}", _typeName.ToUpperPascal(), _typeName.ToUpperPascal() + PgsqlHelper.SLAVE_SUFFIX, Environment.NewLine);
 			_sbConstTypeConstrutor.AppendLine("\t\t{");
-			_sbConstTypeConstrutor.AppendFormat("\t\t\tpublic {0}DbOption(string masterConnectionString, string[] slaveConnectionStrings, ILogger logger) : base(masterConnectionString, slaveConnectionStrings, logger)\n", _typeName.ToUpperPascal(), TypeName);
+			_sbConstTypeConstrutor.AppendFormat("\t\t\tpublic {0}DbOption(string masterConnectionString, string[] slaveConnectionStrings, ILogger logger) : base(masterConnectionString, slaveConnectionStrings, logger){2}", _typeName.ToUpperPascal(), TypeName, Environment.NewLine);
 			_sbConstTypeConstrutor.AppendLine("\t\t\t{");
 			_sbConstTypeConstrutor.AppendLine("\t\t\t\tOptions.MapAction = conn =>");
 			_sbConstTypeConstrutor.AppendLine("\t\t\t\t{");
@@ -210,7 +211,7 @@ WHERE ns.nspname || '.' || a.typname not in ({Types.ConvertArrayToSql(notCreateC
 			_sbConstTypeConstrutor.AppendLine("\t\t\t\t};");
 			_sbConstTypeConstrutor.AppendLine("\t\t\t}");
 			_sbConstTypeConstrutor.AppendLine("\t\t}");
-			_sbConstTypeConstrutor.AppendLine("\t\t#endregion\n");
+			_sbConstTypeConstrutor.AppendLine("\t\t#endregion" + Environment.NewLine);
 
 			if (_typeName == LetsGo.FinalType)
 			{
