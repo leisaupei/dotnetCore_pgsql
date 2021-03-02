@@ -370,7 +370,7 @@ namespace Meta.Driver.DbHelper
 		/// <param name="cmdText">sql语句</param>
 		/// <param name="cmdParams">sql参数</param>
 		/// <returns>返回(0,0)值</returns>
-		public static object ExecuteScalar<T>(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null)
+		public static T ExecuteScalar<T>(string cmdText, CommandType cmdType = CommandType.Text, DbParameter[] cmdParams = null)
 			=> GetExecute(DefaultDbName).ExecuteScalar<T>(cmdText, cmdType, cmdParams);
 
 		/// <summary>
